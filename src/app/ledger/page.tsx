@@ -1,0 +1,263 @@
+"use client";
+
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import LedgerTable from "@/components/ledger/LedgerTable";
+import { Button } from "@/components/ui/Button";
+import { DashboardLayout } from "@/components/layout";
+import { PlusIcon, FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline";
+
+function LedgerPageContent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const [entries, setEntries] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filters, setFilters] = useState({
+        page: 1,
+        limit: 20,
+        search: "",
+        type: "",
+        categoryId: "",
+        from: "",
+        to: "",
+    });
+    const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+    const [totalPages, setTotalPages] = useState(1);
+    const [showFilters, setShowFilters] = useState(false);
+
+    useEffect(() => {
+        fetchCategories();
+    }, []);
+
+    useEffect(() => {
+        fetchEntries();
+    }, [filters]);
+
+    const fetchCategories = async () => {
+        try {
+            const res = await fetch("/api/ledger/categories");
+            if (res.ok) setCategories(await res.json());
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const fetchEntries = async () => {
+        setLoading(true);
+        try {
+            const query = new URLSearchParams();
+            (Object.keys(filters) as Array<keyof typeof filters>).forEach((key) => {
+                if (filters[key]) query.append(key, String(filters[key]));
+            });
+
+            const res = await fetch(`/api/ledger?${query.toString()}`);
+            if (res.ok) {
+                const data = await res.json();
+                setEntries(data.data);
+                setTotalPages(data.meta.totalPages);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!confirm("Delete this entry?")) return;
+        try {
+            const res = await fetch(`/api/ledger/${id}`, { method: "DELETE" });
+            if (res.ok) fetchEntries();
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const updateFilter = (key: string, value: string | number) => {
+        setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    };
+
+    const clearFilters = () => {
+        setFilters({
+            page: 1,
+            limit: 20,
+            search: "",
+            type: "",
+            categoryId: "",
+            from: "",
+            to: "",
+        });
+    };
+
+    const hasActiveFilters =
+        filters.search || filters.type || filters.categoryId || filters.from || filters.to;
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <h1 className="text-2xl font-bold text-gray-900">Ledger</h1>
+                <div className="flex gap-2">
+                    <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
+                        <FunnelIcon className="h-5 w-5 mr-2" />
+                        Filters
+                        {hasActiveFilters && (
+                            <span className="ml-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                                Active
+                            </span>
+                        )}
+                    </Button>
+                    <Button onClick={() => router.push("/ledger/new")}>
+                        <PlusIcon className="h-5 w-5 mr-2" />
+                        Add Entry
+                    </Button>
+                </div>
+            </div>
+
+            {showFilters && (
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-medium text-gray-900">Filters</h3>
+                        {hasActiveFilters && (
+                            <button
+                                onClick={clearFilters}
+                                className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                            >
+                                <XMarkIcon className="h-4 w-4" />
+                                Clear all
+                            </button>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Search Note
+                            </label>
+                            <input
+                                type="text"
+                                className="w-full p-2 border rounded-md text-sm"
+                                placeholder="Search..."
+                                value={filters.search}
+                                onChange={(e) => updateFilter("search", e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Type
+                            </label>
+                            <select
+                                className="w-full p-2 border rounded-md text-sm"
+                                value={filters.type}
+                                onChange={(e) => updateFilter("type", e.target.value)}
+                            >
+                                <option value="">All</option>
+                                <option value="credit">Credit (In)</option>
+                                <option value="debit">Debit (Out)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Category
+                            </label>
+                            <select
+                                className="w-full p-2 border rounded-md text-sm"
+                                value={filters.categoryId}
+                                onChange={(e) => updateFilter("categoryId", e.target.value)}
+                            >
+                                <option value="">All</option>
+                                {categories.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Date Range
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="date"
+                                    className="w-full p-2 border rounded-md text-xs"
+                                    value={filters.from}
+                                    onChange={(e) => updateFilter("from", e.target.value)}
+                                />
+                                <input
+                                    type="date"
+                                    className="w-full p-2 border rounded-md text-xs"
+                                    value={filters.to}
+                                    onChange={(e) => updateFilter("to", e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <LedgerTable
+                    data={entries}
+                    loading={loading}
+                    onEdit={(id) => router.push(`/ledger/${id}/edit`)}
+                    onDelete={handleDelete}
+                />
+
+                {/* Pagination */}
+                <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
+                    <div className="flex-1 flex justify-between sm:hidden">
+                        <Button
+                            disabled={filters.page <= 1}
+                            onClick={() => setFilters((prev) => ({ ...prev, page: prev.page - 1 }))}
+                            size="sm"
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            disabled={filters.page >= totalPages}
+                            onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}
+                            size="sm"
+                        >
+                            Next
+                        </Button>
+                    </div>
+                    <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm text-gray-700">
+                                Page <span className="font-medium">{filters.page}</span> of{" "}
+                                <span className="font-medium">{totalPages}</span>
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button
+                                disabled={filters.page <= 1}
+                                onClick={() => setFilters((prev) => ({ ...prev, page: prev.page - 1 }))}
+                                size="sm"
+                                variant="secondary"
+                            >
+                                Previous
+                            </Button>
+                            <Button
+                                disabled={filters.page >= totalPages}
+                                onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}
+                                size="sm"
+                                variant="secondary"
+                            >
+                                Next
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function LedgerPage() {
+    return (
+        <DashboardLayout>
+            <Suspense fallback={<div>Loading...</div>}>
+                <LedgerPageContent />
+            </Suspense>
+        </DashboardLayout>
+    );
+}

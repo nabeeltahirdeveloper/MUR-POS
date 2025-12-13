@@ -1,65 +1,283 @@
-import Image from "next/image";
+import Link from "next/link";
+import {
+  CubeIcon,
+  ChartBarIcon,
+  ShoppingCartIcon,
+  BoltIcon,
+  BanknotesIcon,
+  BellAlertIcon,
+} from "@heroicons/react/24/outline";
+
+// Feature data with heroicon components
+const features = [
+  {
+    Icon: CubeIcon,
+    title: "Inventory Management",
+    description: "Track items, categories, units, and stock levels with smart low-stock alerts.",
+  },
+  {
+    Icon: ChartBarIcon,
+    title: "Ledger & Accounting",
+    description: "Monitor your income and expenses with categorized transaction tracking.",
+  },
+  {
+    Icon: ShoppingCartIcon,
+    title: "Purchase Orders",
+    description: "Manage suppliers and streamline your ordering process efficiently.",
+  },
+  {
+    Icon: BoltIcon,
+    title: "Utilities Tracking",
+    description: "Never miss a bill payment with utility tracking and due date management.",
+  },
+  {
+    Icon: BanknotesIcon,
+    title: "Debt Management",
+    description: "Keep track of loans given and received with payment history.",
+  },
+  {
+    Icon: BellAlertIcon,
+    title: "Smart Reminders",
+    description: "Automated alerts for low stock, upcoming bills, and debt payments.",
+  },
+];
+
+// How it works steps
+const steps = [
+  {
+    number: "01",
+    title: "Sign Up",
+    description: "Create your account in seconds and set up your business profile.",
+  },
+  {
+    number: "02",
+    title: "Add Your Data",
+    description: "Import your inventory, suppliers, and financial records easily.",
+  },
+  {
+    number: "03",
+    title: "Manage & Grow",
+    description: "Use insights and automation to run your business smarter.",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <BoltIcon className="h-7 w-7 text-amber-500" />
+            <span className="text-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
+              Moon Electric
+            </span>
+          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/login"
+              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 rounded-full hover:from-amber-400 hover:to-yellow-400 transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40"
+            >
+              Get Started
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-20 px-6 overflow-hidden">
+        {/* Background glow effects */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-yellow-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
+
+        <div className="relative max-w-7xl mx-auto text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50 mb-8">
+            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-sm text-slate-300">Business Management Simplified</span>
+          </div>
+
+          {/* Main heading */}
+          <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6">
+            <span className="text-white">Manage Your</span>
+            <br />
+            <span className="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 bg-clip-text text-transparent">
+              Electrical Business
+            </span>
+            <br />
+            <span className="text-white">Smarter</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          {/* Subheadline */}
+          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10">
+            All-in-one solution for inventory, accounting, purchase orders, and more.
+            Built specifically for electrical supply businesses.
           </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/signup"
+              className="group px-8 py-4 text-lg font-semibold bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 rounded-full hover:from-amber-400 hover:to-yellow-400 transition-all shadow-xl shadow-amber-500/30 hover:shadow-amber-500/50 hover:scale-105"
+            >
+              Start Free Today
+              <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
+            </Link>
+            <Link
+              href="/login"
+              className="px-8 py-4 text-lg font-medium text-slate-300 border border-slate-600 rounded-full hover:bg-slate-800/50 hover:border-slate-500 transition-all"
+            >
+              Sign In
+            </Link>
+          </div>
+
+          {/* Stats */}
+          <div className="flex flex-wrap justify-center gap-8 md:gap-16 mt-16 pt-16 border-t border-slate-800/50">
+            {[
+              { value: "6+", label: "Core Features" },
+              { value: "100%", label: "Cloud-Based" },
+              { value: "24/7", label: "Access Anywhere" },
+            ].map((stat) => (
+              <div key={stat.label} className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-amber-400">{stat.value}</div>
+                <div className="text-sm text-slate-500 mt-1">{stat.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 px-6" id="features">
+        <div className="max-w-7xl mx-auto">
+          {/* Section header */}
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Everything You Need to
+              <span className="bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent"> Succeed</span>
+            </h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              Powerful features designed specifically for electrical supply businesses to streamline operations and boost productivity.
+            </p>
+          </div>
+
+          {/* Features grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="group p-6 bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl hover:bg-slate-800/50 hover:border-amber-500/30 transition-all duration-300 hover:-translate-y-1"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="mb-4 text-amber-400 group-hover:scale-110 transition-transform duration-300">
+                  <feature.Icon className="h-10 w-10" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">{feature.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </main>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-20 px-6 bg-slate-900/50">
+        <div className="max-w-7xl mx-auto">
+          {/* Section header */}
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Get Started in
+              <span className="bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent"> 3 Simple Steps</span>
+            </h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              From signup to full business management in minutes, not days.
+            </p>
+          </div>
+
+          {/* Steps */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {steps.map((step, index) => (
+              <div key={step.number} className="relative">
+                {/* Connector line */}
+                {index < steps.length - 1 && (
+                  <div className="hidden md:block absolute top-12 left-1/2 w-full h-0.5 bg-gradient-to-r from-amber-500/50 to-transparent" />
+                )}
+
+                <div className="relative text-center p-6">
+                  {/* Step number */}
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-900 text-xl font-bold mb-6 shadow-lg shadow-amber-500/30">
+                    {step.number}
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">{step.title}</h3>
+                  <p className="text-slate-400 text-sm">{step.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="relative p-12 rounded-3xl bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 text-center overflow-hidden">
+            {/* Background glow */}
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-yellow-500/5 blur-3xl" />
+
+            <div className="relative">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Ready to Transform Your Business?
+              </h2>
+              <p className="text-slate-400 mb-8 max-w-xl mx-auto">
+                Join businesses that trust Moon Electric to manage their operations efficiently.
+              </p>
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 rounded-full hover:from-amber-400 hover:to-yellow-400 transition-all shadow-xl shadow-amber-500/30 hover:shadow-amber-500/50 hover:scale-105"
+              >
+                Get Started Free
+                <span>→</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 px-6 border-t border-slate-800/50">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Brand */}
+            <div className="flex items-center gap-2">
+              <BoltIcon className="h-7 w-7 text-amber-500" />
+              <span className="text-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
+                Moon Electric
+              </span>
+            </div>
+
+            {/* Links */}
+            <div className="flex items-center gap-8">
+              <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">
+                Sign In
+              </Link>
+              <Link href="/signup" className="text-sm text-slate-400 hover:text-white transition-colors">
+                Sign Up
+              </Link>
+            </div>
+
+            {/* Copyright */}
+            <p className="text-sm text-slate-500">
+              © {new Date().getFullYear()} Moon Electric. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
