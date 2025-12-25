@@ -1,39 +1,37 @@
-import { Prisma } from "@prisma/client";
-
 export interface Unit {
-    id: number;
+    id: string;
     name: string;
     symbol?: string;
 }
 
 export interface Category {
-    id: number;
+    id: string;
     name: string;
 }
 
 export interface Item {
-    id: number;
+    id: string;
     name: string;
-    categoryId: number | null;
-    baseUnitId: number | null;
-    saleUnitId: number | null;
-    conversionFactor: number | Prisma.Decimal;
-    minStockLevel: number | Prisma.Decimal | null;
+    categoryId: string | null;
+    baseUnitId: string | null;
+    saleUnitId: string | null;
+    conversionFactor: number;
+    minStockLevel: number | null;
     createdAt: string;
 
     category?: Category;
     baseUnit?: Unit;
     saleUnit?: Unit;
 
-    currentStock?: number | Prisma.Decimal; // Calculated field
+    currentStock?: number; // Calculated field
     isLowStock?: boolean;
 }
 
 export interface StockLog {
-    id: number;
-    itemId: number;
+    id: string;
+    itemId: string;
     type: "in" | "out";
-    quantityBaseUnit: number | Prisma.Decimal;
+    quantityBaseUnit: number;
     description: string | null;
     createdAt: string;
     item?: {

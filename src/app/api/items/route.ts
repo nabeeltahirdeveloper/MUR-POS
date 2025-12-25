@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/firestore";
+import { queryDocs, getAllDocs, getDocById } from "@/lib/firestore-helpers";
 import { calculateCurrentStock, checkLowStock } from "@/lib/inventory";
-import { Prisma } from "@prisma/client";
+import type { FirestoreItem, FirestoreCategory, FirestoreUnit } from "@/types/firestore";
 
 export async function GET(request: NextRequest) {
     try {
@@ -9,46 +10,54 @@ export async function GET(request: NextRequest) {
         const categoryId = searchParams.get("categoryId");
         const search = searchParams.get("search");
 
-        const where: Prisma.ItemWhereInput = {};
+        let items: (FirestoreItem & { id: string })[];
 
         if (categoryId) {
-            where.categoryId = parseInt(categoryId);
+            items = await queryDocs<FirestoreItem>('items', [
+                { field: 'categoryId', operator: '==', value: categoryId }
+            ], {
+                orderBy: 'name',
+                orderDirection: 'asc',
+            });
+        } else {
+            items = await getAllDocs<FirestoreItem>('items', {
+                orderBy: 'name',
+                orderDirection: 'asc',
+            });
         }
 
+        // Filter by search term if provided (case-insensitive)
         if (search) {
-            where.name = {
-                contains: search,
-                mode: "insensitive",
-            };
+            const searchLower = search.toLowerCase();
+            items = items.filter(item => 
+                item.name.toLowerCase().includes(searchLower)
+            );
         }
 
-        const items = await prisma.item.findMany({
-            where,
-            include: {
-                category: true,
-                baseUnit: true,
-                saleUnit: true,
-            },
-            orderBy: {
-                name: 'asc'
-            }
-        });
-
-        // Calculate stock and low stock status for each item
-        const itemsWithStock = await Promise.all(
+        // Fetch related data (category, baseUnit, saleUnit)
+        const itemsWithRelations = await Promise.all(
             items.map(async (item) => {
+                const [category, baseUnit, saleUnit] = await Promise.all([
+                    item.categoryId ? getDocById<FirestoreCategory>('categories', item.categoryId) : null,
+                    item.baseUnitId ? getDocById<FirestoreUnit>('units', item.baseUnitId) : null,
+                    item.saleUnitId ? getDocById<FirestoreUnit>('units', item.saleUnitId) : null,
+                ]);
+
                 const currentStock = await calculateCurrentStock(item.id);
                 const isLowStock = await checkLowStock(item.id, currentStock);
 
                 return {
                     ...item,
+                    category,
+                    baseUnit,
+                    saleUnit,
                     currentStock,
                     isLowStock,
                 };
             })
         );
 
-        return NextResponse.json(itemsWithStock);
+        return NextResponse.json(itemsWithRelations);
     } catch (error) {
         console.error("Error fetching items:", error);
         return NextResponse.json(
@@ -77,23 +86,37 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const newItem = await prisma.item.create({
-            data: {
-                name,
-                categoryId: categoryId ? parseInt(categoryId) : null,
-                baseUnitId: parseInt(baseUnitId),
-                saleUnitId: parseInt(saleUnitId),
-                conversionFactor: conversionFactor ? new Prisma.Decimal(conversionFactor) : 1,
-                minStockLevel: minStockLevel ? new Prisma.Decimal(minStockLevel) : 0,
-            },
-            include: {
-                category: true,
-                baseUnit: true,
-                saleUnit: true,
-            },
-        });
+        const itemData: Omit<FirestoreItem, 'id'> = {
+            name,
+            categoryId: categoryId || null,
+            baseUnitId: baseUnitId || null,
+            saleUnitId: saleUnitId || null,
+            conversionFactor: conversionFactor ? Number(conversionFactor) : 1,
+            minStockLevel: minStockLevel ? Number(minStockLevel) : 0,
+            createdAt: new Date(),
+        };
 
-        return NextResponse.json(newItem, { status: 201 });
+        const { createDoc, getDocById } = await import('@/lib/firestore-helpers');
+        const itemId = await createDoc<Omit<FirestoreItem, 'id'>>('items', itemData);
+
+        // Fetch the created item with relations
+        const newItem = await getDocById<FirestoreItem>('items', itemId);
+        if (!newItem) {
+            throw new Error('Failed to fetch created item');
+        }
+
+        const [category, baseUnit, saleUnit] = await Promise.all([
+            newItem.categoryId ? getDocById<FirestoreCategory>('categories', newItem.categoryId) : null,
+            newItem.baseUnitId ? getDocById<FirestoreUnit>('units', newItem.baseUnitId) : null,
+            newItem.saleUnitId ? getDocById<FirestoreUnit>('units', newItem.saleUnitId) : null,
+        ]);
+
+        return NextResponse.json({
+            ...newItem,
+            category,
+            baseUnit,
+            saleUnit,
+        }, { status: 201 });
     } catch (error) {
         console.error("Error creating item:", error);
         return NextResponse.json(

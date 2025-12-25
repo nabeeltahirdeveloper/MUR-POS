@@ -1,7 +1,8 @@
-import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { Prisma } from "@prisma/client";
+import { db, Timestamp } from "@/lib/firestore";
+import { queryDocs, getDocById, getAllDocs } from "@/lib/firestore-helpers";
+import type { FirestoreLedger, FirestoreLedgerCategory } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -19,49 +20,67 @@ export async function GET(req: NextRequest) {
         const from = searchParams.get("from");
         const to = searchParams.get("to");
 
-        const skip = (page - 1) * limit;
-
-        const where: Prisma.LedgerWhereInput = {};
+        // Build filters
+        const filters: Array<{ field: string; operator: '<' | '<=' | '==' | '>' | '>=' | '!=' | 'array-contains' | 'in' | 'array-contains-any'; value: any }> = [];
 
         if (type && (type === "debit" || type === "credit")) {
-            where.type = type;
+            filters.push({ field: 'type', operator: '==', value: type });
         }
 
         if (categoryId) {
-            const catId = parseInt(categoryId);
-            if (!isNaN(catId)) {
-                where.categoryId = catId;
-            }
+            filters.push({ field: 'categoryId', operator: '==', value: categoryId });
         }
 
+        if (from) {
+            const fromDate = new Date(from);
+            fromDate.setHours(0, 0, 0, 0);
+            filters.push({ field: 'date', operator: '>=', value: Timestamp.fromDate(fromDate) });
+        }
+
+        if (to) {
+            const toDate = new Date(to);
+            toDate.setHours(23, 59, 59, 999);
+            filters.push({ field: 'date', operator: '<=', value: Timestamp.fromDate(toDate) });
+        }
+
+        // Get all entries (Firestore doesn't support skip/take easily, so we'll fetch all and paginate in memory)
+        let entries = filters.length > 0 
+            ? await queryDocs<FirestoreLedger>('ledger', filters, {
+                orderBy: 'date',
+                orderDirection: 'desc',
+            })
+            : await getAllDocs<FirestoreLedger>('ledger', {
+                orderBy: 'date',
+                orderDirection: 'desc',
+            });
+
+        // Filter by search term if provided (case-insensitive)
         if (search) {
-            where.note = {
-                contains: search,
-                mode: "insensitive",
-            };
+            const searchLower = search.toLowerCase();
+            entries = entries.filter(entry => 
+                entry.note?.toLowerCase().includes(searchLower)
+            );
         }
 
-        if (from || to) {
-            where.date = {};
-            if (from) where.date.gte = new Date(from);
-            if (to) where.date.lte = new Date(to);
-        }
+        const total = entries.length;
+        const skip = (page - 1) * limit;
+        const paginatedEntries = entries.slice(skip, skip + limit);
 
-        const [entries, total] = await Promise.all([
-            prisma.ledger.findMany({
-                where,
-                skip,
-                take: limit,
-                orderBy: { date: "desc" },
-                include: {
-                    category: true,
-                },
-            }),
-            prisma.ledger.count({ where }),
-        ]);
+        // Fetch categories for entries
+        const entriesWithCategories = await Promise.all(
+            paginatedEntries.map(async (entry) => {
+                const category = entry.categoryId 
+                    ? await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId)
+                    : null;
+                return {
+                    ...entry,
+                    category,
+                };
+            })
+        );
 
         return NextResponse.json({
-            data: entries,
+            data: entriesWithCategories,
             meta: {
                 total,
                 page,
@@ -110,11 +129,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const parsedCategoryId = parseInt(categoryId);
         // Verify category exists
-        const categoryExists = await prisma.ledgerCategory.findUnique({
-            where: { id: parsedCategoryId },
-        });
+        const categoryExists = await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId);
 
         if (!categoryExists) {
             return NextResponse.json(
@@ -123,15 +139,18 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const entry = await prisma.ledger.create({
-            data: {
-                type,
-                amount: new Prisma.Decimal(amount),
-                categoryId: parsedCategoryId,
-                note,
-                date: date ? new Date(date) : new Date(),
-            },
-        });
+        const { createDoc } = await import('@/lib/firestore-helpers');
+        const entryData: Omit<FirestoreLedger, 'id'> = {
+            type: type as 'debit' | 'credit',
+            amount: Number(amount),
+            categoryId: categoryId || null,
+            note: note || null,
+            date: date ? new Date(date) : new Date(),
+            createdAt: new Date(),
+        };
+
+        const entryId = await createDoc<Omit<FirestoreLedger, 'id'>>('ledger', entryData);
+        const entry = await getDocById<FirestoreLedger>('ledger', entryId);
 
         return NextResponse.json(entry, { status: 201 });
     } catch (error) {

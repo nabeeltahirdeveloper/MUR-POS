@@ -70,7 +70,7 @@ export default function Home() {
           <Link href="/" className="flex items-center gap-2">
             <BoltIcon className="h-7 w-7 text-amber-500" />
             <span className="text-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
-              Moon Electric
+              Moon Traders
             </span>
           </Link>
           <div className="flex items-center gap-4">
@@ -235,7 +235,7 @@ export default function Home() {
                 Ready to Transform Your Business?
               </h2>
               <p className="text-slate-400 mb-8 max-w-xl mx-auto">
-                Join businesses that trust Moon Electric to manage their operations efficiently.
+                Join businesses that trust Moon Traders to manage their operations efficiently.
               </p>
               <Link
                 href="/signup"
@@ -257,7 +257,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <BoltIcon className="h-7 w-7 text-amber-500" />
               <span className="text-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
-                Moon Electric
+                Moon Traders
               </span>
             </div>
 
@@ -273,7 +273,7 @@ export default function Home() {
 
             {/* Copyright */}
             <p className="text-sm text-slate-500">
-              © {new Date().getFullYear()} Moon Electric. All rights reserved.
+              © {new Date().getFullYear()} Moon Traders. All rights reserved.
             </p>
           </div>
         </div>
