@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/firestore";
+import { getDocById, queryDocs, createDoc, updateDoc, deleteDoc } from "@/lib/firestore-helpers";
+import type { FirestorePurchaseOrder, FirestorePurchaseOrderItem, FirestoreSupplier, FirestoreItem, FirestoreUnit } from "@/types/firestore";
 
 export async function PUT(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
+        const id = params.id;
         const body = await request.json();
         const { items } = body; // Array of { itemId, qty, pricePerUnit }
 
@@ -17,9 +19,7 @@ export async function PUT(
             );
         }
 
-        const currentPO = await prisma.purchaseOrder.findUnique({
-            where: { id },
-        });
+        const currentPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
 
         if (!currentPO) {
             return NextResponse.json(
@@ -47,37 +47,60 @@ export async function PUT(
 
             return {
                 orderId: id,
-                itemId: parseInt(item.itemId),
+                itemId: String(item.itemId),
                 qty: qty,
                 pricePerUnit: price
             };
         });
 
-        const updatedPO = await prisma.$transaction(async (tx) => {
-            // Delete old items
-            await tx.purchaseOrderItem.deleteMany({
-                where: { orderId: id }
-            });
+        // Delete old items
+        const oldItems = await queryDocs<FirestorePurchaseOrderItem>('purchase_order_items', [
+            { field: 'orderId', operator: '==', value: id }
+        ]);
+        
+        for (const oldItem of oldItems) {
+            await deleteDoc('purchase_order_items', oldItem.id);
+        }
 
-            // Insert new items
-            if (cleanItems.length > 0) {
-                await tx.purchaseOrderItem.createMany({
-                    data: cleanItems
-                });
-            }
+        // Insert new items
+        for (const item of cleanItems) {
+            await createDoc<Omit<FirestorePurchaseOrderItem, 'id'>>('purchase_order_items', item);
+        }
 
-            // Update PO total
-            return await tx.purchaseOrder.update({
-                where: { id },
-                data: { totalAmount },
-                include: {
-                    items: { include: { item: true } },
-                    supplier: true
-                }
-            });
+        // Update PO total
+        await updateDoc<Partial<FirestorePurchaseOrder>>('purchase_orders', id, {
+            totalAmount,
         });
 
-        return NextResponse.json(updatedPO);
+        // Fetch updated PO with relations
+        const updatedPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        if (!updatedPO) {
+            throw new Error('Failed to fetch updated purchase order');
+        }
+
+        const supplier = updatedPO.supplierId 
+            ? await getDocById<FirestoreSupplier>('suppliers', updatedPO.supplierId)
+            : null;
+
+        const poItems = await queryDocs<FirestorePurchaseOrderItem>('purchase_order_items', [
+            { field: 'orderId', operator: '==', value: id }
+        ]);
+
+        const itemsWithDetails = await Promise.all(
+            poItems.map(async (poItem) => {
+                const item = await getDocById<FirestoreItem>('items', poItem.itemId);
+                return {
+                    ...poItem,
+                    item,
+                };
+            })
+        );
+
+        return NextResponse.json({
+            ...updatedPO,
+            supplier,
+            items: itemsWithDetails,
+        });
 
     } catch (error: any) {
         console.error("Error updating purchase order items:", error);

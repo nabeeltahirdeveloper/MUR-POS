@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getDocById, updateDoc } from "@/lib/firestore-helpers";
+import type { FirestorePurchaseOrder } from "@/types/firestore";
 
 export async function POST(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
+        const id = params.id;
         const body = await request.json();
         const { status } = body;
 
@@ -18,9 +19,7 @@ export async function POST(
             );
         }
 
-        const currentPO = await prisma.purchaseOrder.findUnique({
-            where: { id },
-        });
+        const currentPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
 
         if (!currentPO) {
             return NextResponse.json(
@@ -36,10 +35,11 @@ export async function POST(
             );
         }
 
-        const updatedPO = await prisma.purchaseOrder.update({
-            where: { id },
-            data: { status },
+        await updateDoc<Partial<FirestorePurchaseOrder>>('purchase_orders', id, {
+            status: status as any,
         });
+
+        const updatedPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
 
         return NextResponse.json(updatedPO);
     } catch (error) {

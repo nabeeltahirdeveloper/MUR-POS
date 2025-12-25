@@ -1,6 +1,7 @@
-import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { getAllDocs, createDoc, queryDocs } from "@/lib/firestore-helpers";
+import type { FirestoreLedgerCategory } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -9,8 +10,9 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const categories = await prisma.ledgerCategory.findMany({
-            orderBy: { name: "asc" },
+        const categories = await getAllDocs<FirestoreLedgerCategory>('ledger_categories', {
+            orderBy: 'name',
+            orderDirection: 'asc',
         });
 
         return NextResponse.json(categories);
@@ -43,20 +45,22 @@ export async function POST(req: NextRequest) {
         const trimmedName = name.trim();
 
         // Check for duplicate
-        const existing = await prisma.ledgerCategory.findUnique({
-            where: { name: trimmedName },
-        });
+        const existing = await queryDocs<FirestoreLedgerCategory>('ledger_categories', [
+            { field: 'name', operator: '==', value: trimmedName }
+        ]);
 
-        if (existing) {
+        if (existing.length > 0) {
             return NextResponse.json(
                 { error: "Category already exists" },
                 { status: 409 }
             );
         }
 
-        const category = await prisma.ledgerCategory.create({
-            data: { name: trimmedName },
+        const categoryId = await createDoc<Omit<FirestoreLedgerCategory, 'id'>>('ledger_categories', {
+            name: trimmedName,
         });
+
+        const category = await import('@/lib/firestore-helpers').then(m => m.getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
 
         return NextResponse.json(category, { status: 201 });
     } catch (error) {

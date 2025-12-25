@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { updateDoc, getDocById, deleteDoc } from "@/lib/firestore-helpers";
+import { db } from "@/lib/firestore";
+import type { FirestoreSupplier } from "@/types/firestore";
 
 export async function PUT(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
+        const id = params.id;
         const body = await request.json();
         const { name, phone, address } = body;
 
@@ -17,10 +19,16 @@ export async function PUT(
             );
         }
 
-        const supplier = await prisma.supplier.update({
-            where: { id },
-            data: { name, phone, address },
+        await updateDoc<Partial<FirestoreSupplier>>('suppliers', id, {
+            name,
+            phone: phone || null,
+            address: address || null,
         });
+
+        const supplier = await getDocById<FirestoreSupplier>('suppliers', id);
+        if (!supplier) {
+            return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
+        }
 
         return NextResponse.json(supplier);
     } catch (error) {
@@ -37,23 +45,22 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = parseInt(params.id);
+        const id = params.id;
 
         // Check for existing POs
-        const poCount = await prisma.purchaseOrder.count({
-            where: { supplierId: id },
-        });
+        const poSnapshot = await db.collection('purchase_orders')
+            .where('supplierId', '==', id)
+            .limit(1)
+            .get();
 
-        if (poCount > 0) {
+        if (!poSnapshot.empty) {
             return NextResponse.json(
                 { error: "Cannot delete supplier with existing Purchase Orders" },
                 { status: 400 }
             );
         }
 
-        await prisma.supplier.delete({
-            where: { id },
-        });
+        await deleteDoc('suppliers', id);
 
         return NextResponse.json({ success: true });
     } catch (error) {

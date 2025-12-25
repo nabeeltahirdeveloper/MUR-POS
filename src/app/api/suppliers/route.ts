@@ -1,35 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getAllDocs, createDoc } from "@/lib/firestore-helpers";
+import type { FirestoreSupplier } from "@/types/firestore";
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || "";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const skip = (page - 1) * limit;
-
-    const where = search
-        ? {
-            OR: [
-                { name: { contains: search, mode: "insensitive" } },
-                { phone: { contains: search, mode: "insensitive" } },
-            ],
-        }
-        : {};
 
     try {
-        const [suppliers, total] = await Promise.all([
-            prisma.supplier.findMany({
-                where,
-                skip,
-                take: limit,
-                orderBy: { name: "asc" },
-            }),
-            prisma.supplier.count({ where }),
-        ]);
+        let suppliers = await getAllDocs<FirestoreSupplier>('suppliers', {
+            orderBy: 'name',
+            orderDirection: 'asc',
+        });
+
+        // Filter by search term if provided (case-insensitive)
+        if (search) {
+            const searchLower = search.toLowerCase();
+            suppliers = suppliers.filter(supplier =>
+                supplier.name.toLowerCase().includes(searchLower) ||
+                supplier.phone?.toLowerCase().includes(searchLower)
+            );
+        }
+
+        const total = suppliers.length;
+        const skip = (page - 1) * limit;
+        const paginatedSuppliers = suppliers.slice(skip, skip + limit);
 
         return NextResponse.json({
-            suppliers,
+            suppliers: paginatedSuppliers,
             pagination: {
                 total,
                 pages: Math.ceil(total / limit),
@@ -58,13 +57,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const supplier = await prisma.supplier.create({
-            data: {
-                name,
-                phone,
-                address,
-            },
-        });
+        const supplierData: Omit<FirestoreSupplier, 'id'> = {
+            name,
+            phone: phone || null,
+            address: address || null,
+        };
+
+        const supplierId = await createDoc<Omit<FirestoreSupplier, 'id'>>('suppliers', supplierData);
+        const { getDocById } = await import('@/lib/firestore-helpers');
+        const supplier = await getDocById<FirestoreSupplier>('suppliers', supplierId);
 
         return NextResponse.json(supplier, { status: 201 });
     } catch (error) {

@@ -62,7 +62,7 @@ export default function Sidebar({
             <div className="flex h-16 shrink-0 items-center px-6 border-b border-slate-800">
                 <BoltIcon className="h-8 w-8 text-amber-500" />
                 <span className="ml-2 text-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
-                    Moon Electric
+                    Moon Traders
                 </span>
             </div>
 

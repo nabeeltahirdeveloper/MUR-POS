@@ -1,7 +1,7 @@
-import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { Prisma } from "@prisma/client";
+import { getDocById } from "@/lib/firestore-helpers";
+import type { FirestoreLedger, FirestoreLedgerCategory } from "@/types/firestore";
 
 export async function GET(
     req: NextRequest,
@@ -14,22 +14,20 @@ export async function GET(
         }
 
         const { id } = await params;
-        const entryId = parseInt(id);
-
-        if (isNaN(entryId)) {
-            return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
-        }
-
-        const entry = await prisma.ledger.findUnique({
-            where: { id: entryId },
-            include: { category: true },
-        });
+        const entry = await getDocById<FirestoreLedger>('ledger', id);
 
         if (!entry) {
             return NextResponse.json({ error: "Entry not found" }, { status: 404 });
         }
 
-        return NextResponse.json(entry);
+        const category = entry.categoryId 
+            ? await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId)
+            : null;
+
+        return NextResponse.json({
+            ...entry,
+            category,
+        });
     } catch (error) {
         console.error("Error fetching ledger entry:", error);
         return NextResponse.json(
@@ -50,51 +48,47 @@ export async function PUT(
         }
 
         const { id } = await params;
-        const entryId = parseInt(id);
         const body = await req.json();
         const { type, amount, categoryId, note, date } = body;
 
-        const data: Prisma.LedgerUpdateInput = {};
+        const updateData: Partial<FirestoreLedger> = {};
 
         if (type) {
             if (type !== "debit" && type !== "credit") {
                 return NextResponse.json({ error: "Invalid type" }, { status: 400 });
             }
-            data.type = type;
+            updateData.type = type;
         }
 
         if (amount !== undefined) {
             if (amount <= 0) {
                 return NextResponse.json({ error: "Amount must be > 0" }, { status: 400 });
             }
-            data.amount = new Prisma.Decimal(amount);
+            updateData.amount = Number(amount);
         }
 
-        if (categoryId) {
-            const catId = parseInt(categoryId);
-            const categoryExists = await prisma.ledgerCategory.findUnique({
-                where: { id: catId },
-            });
+        if (categoryId !== undefined) {
+            const categoryExists = await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId);
             if (!categoryExists) {
                 return NextResponse.json({ error: "Invalid Category" }, { status: 400 });
             }
-            data.category = { connect: { id: catId } };
+            updateData.categoryId = categoryId || null;
         }
 
-        if (note !== undefined) data.note = note;
-        if (date) data.date = new Date(date);
+        if (note !== undefined) updateData.note = note || null;
+        if (date) updateData.date = new Date(date);
 
-        const updatedEntry = await prisma.ledger.update({
-            where: { id: entryId },
-            data,
-        });
+        const { updateDoc } = await import('@/lib/firestore-helpers');
+        await updateDoc<Partial<FirestoreLedger>>('ledger', id, updateData);
+
+        const updatedEntry = await getDocById<FirestoreLedger>('ledger', id);
+        if (!updatedEntry) {
+            return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+        }
 
         return NextResponse.json(updatedEntry);
     } catch (error) {
         console.error("Error updating ledger entry:", error);
-        if ((error as any).code === "P2025") {
-            return NextResponse.json({ error: "Entry not found" }, { status: 404 });
-        }
         return NextResponse.json(
             { error: "Failed to update entry" },
             { status: 500 }
@@ -113,18 +107,12 @@ export async function DELETE(
         }
 
         const { id } = await params;
-        const entryId = parseInt(id);
-
-        await prisma.ledger.delete({
-            where: { id: entryId },
-        });
+        const { deleteDoc } = await import('@/lib/firestore-helpers');
+        await deleteDoc('ledger', id);
 
         return NextResponse.json({ message: "Deleted successfully" });
     } catch (error) {
         console.error("Error deleting ledger entry:", error);
-        if ((error as any).code === "P2025") {
-            return NextResponse.json({ error: "Entry not found" }, { status: 404 });
-        }
         return NextResponse.json(
             { error: "Failed to delete entry" },
             { status: 500 }

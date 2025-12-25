@@ -1,6 +1,8 @@
-import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { db, Timestamp } from "@/lib/firestore";
+import { queryDocs, getDocById } from "@/lib/firestore-helpers";
+import type { FirestoreLedger, FirestoreLedgerCategory } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -24,36 +26,35 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
         }
 
-        // Since date is @db.Date, we can query by the exact date object in theory,
-        // but Prisma usually treats Date objects as timestamps. 
-        // However, for @db.Date columns, passing a Date object usually matches that day.
-        // To be safe and precise with Prisma's DateTime handling:
-        // We'll trust that passing the Date object matches the @db.Date column correctly
-        // or use a range if needed. But usually `equals` works for Date types if the time is 00:00:00.
-
-        // Let's grab all entries for that date first to be safe and simple
-        // Or closer:
         const startOfDay = new Date(dateStr);
         startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(dateStr);
+        endOfDay.setHours(23, 59, 59, 999);
 
-        // Actually, with @db.Date, storing 2023-01-01 usually means 00:00:00 UTC.
-        // If we just match `date: new Date(dateStr)` it should work.
+        const entries = await queryDocs<FirestoreLedger>('ledger', [
+            { field: 'date', operator: '>=', value: Timestamp.fromDate(startOfDay) },
+            { field: 'date', operator: '<=', value: Timestamp.fromDate(endOfDay) },
+        ]);
 
-        const entries = await prisma.ledger.findMany({
-            where: {
-                date: new Date(dateStr),
-            },
-            include: {
-                category: true,
-            },
-        });
+        // Fetch categories for entries
+        const entriesWithCategories = await Promise.all(
+            entries.map(async (entry) => {
+                const category = entry.categoryId 
+                    ? await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId)
+                    : null;
+                return {
+                    ...entry,
+                    category,
+                };
+            })
+        );
 
         // Calculate totals in JS
         let totalCredit = 0;
         let totalDebit = 0;
         const categoryBreakdown: Record<string, { name: string; credit: number; debit: number }> = {};
 
-        for (const entry of entries) {
+        for (const entry of entriesWithCategories) {
             const amount = Number(entry.amount);
             if (entry.type === "credit") {
                 totalCredit += amount;

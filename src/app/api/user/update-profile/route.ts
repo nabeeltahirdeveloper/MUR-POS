@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/firebase-admin';
+import { getDocById, updateDoc } from '@/lib/firestore-helpers';
+import type { FirestoreUser } from '@/types/firestore';
 
 export async function POST(req: Request) {
     try {
         const session = await auth();
 
-        if (!session?.user?.email) {
+        if (!session?.user?.email || !session?.user?.id) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
@@ -17,10 +19,21 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: 'Name is required' }, { status: 400 });
         }
 
-        const updatedUser = await prisma.user.update({
-            where: { email: session.user.email },
-            data: { name },
+        // Update user in Firestore
+        await updateDoc<Partial<FirestoreUser>>('users', session.user.id, { name });
+
+        // Update display name in Firebase Auth
+        const { auth: firebaseAuth } = await import('@/lib/firebase-admin');
+        await firebaseAuth.updateUser(session.user.id, {
+            displayName: name,
         });
+
+        // Get updated user
+        const updatedUser = await getDocById<FirestoreUser>('users', session.user.id);
+
+        if (!updatedUser) {
+            return NextResponse.json({ message: 'User not found' }, { status: 404 });
+        }
 
         return NextResponse.json(
             { message: 'Profile updated successfully', user: updatedUser },

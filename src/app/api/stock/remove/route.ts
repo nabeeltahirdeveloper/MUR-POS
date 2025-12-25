@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { createDoc } from "@/lib/firestore-helpers";
 import { calculateCurrentStock } from "@/lib/inventory";
-import { Prisma } from "@prisma/client";
+import type { FirestoreStockLog } from "@/types/firestore";
 
 export async function POST(request: NextRequest) {
     try {
@@ -15,10 +15,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const id = parseInt(itemId);
-        const qtyToRemove = new Prisma.Decimal(quantity);
+        const id = String(itemId);
+        const qtyToRemove = Number(quantity);
 
-        if (qtyToRemove.lessThanOrEqualTo(0)) {
+        if (qtyToRemove <= 0) {
             return NextResponse.json(
                 { error: "Quantity must be greater than 0" },
                 { status: 400 }
@@ -28,27 +28,28 @@ export async function POST(request: NextRequest) {
         // Check available stock
         const currentStock = await calculateCurrentStock(id);
 
-        if (currentStock.lessThan(qtyToRemove)) {
+        if (currentStock < qtyToRemove) {
             return NextResponse.json(
                 {
-                    error: `Insufficient stock. Current stock: ${currentStock.toString()}, Requested: ${qtyToRemove.toString()}`,
+                    error: `Insufficient stock. Current stock: ${currentStock}, Requested: ${qtyToRemove}`,
                 },
                 { status: 400 }
             );
         }
 
         // Create OUT log
-        await prisma.stockLog.create({
-            data: {
-                itemId: id,
-                type: "out",
-                quantityBaseUnit: qtyToRemove,
-                description,
-            },
-        });
+        const logData: Omit<FirestoreStockLog, 'id'> = {
+            itemId: id,
+            type: "out",
+            quantityBaseUnit: qtyToRemove,
+            description: description || null,
+            createdAt: new Date(),
+        };
+
+        await createDoc<Omit<FirestoreStockLog, 'id'>>('stock_logs', logData);
 
         // Return updated stock
-        const newStock = currentStock.minus(qtyToRemove);
+        const newStock = currentStock - qtyToRemove;
 
         return NextResponse.json({
             message: "Stock removed successfully",

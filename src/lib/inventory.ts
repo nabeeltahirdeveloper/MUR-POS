@@ -1,26 +1,22 @@
-import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { queryDocs, getDocById } from "./firestore-helpers";
+import type { FirestoreStockLog, FirestoreItem } from "@/types/firestore";
 
 /**
  * Calculates current stock for an item by summing up all stock logs.
  * Returns the quantity in BASE unit.
  */
-export async function calculateCurrentStock(itemId: number): Promise<Prisma.Decimal> {
-    const logs = await prisma.stockLog.findMany({
-        where: { itemId },
-        select: {
-            type: true,
-            quantityBaseUnit: true,
-        },
-    });
+export async function calculateCurrentStock(itemId: string): Promise<number> {
+    const logs = await queryDocs<FirestoreStockLog>('stock_logs', [
+        { field: 'itemId', operator: '==', value: itemId }
+    ]);
 
-    let totalStock = new Prisma.Decimal(0);
+    let totalStock = 0;
 
     for (const log of logs) {
         if (log.type === "in") {
-            totalStock = totalStock.plus(log.quantityBaseUnit);
+            totalStock += log.quantityBaseUnit;
         } else if (log.type === "out") {
-            totalStock = totalStock.minus(log.quantityBaseUnit);
+            totalStock -= log.quantityBaseUnit;
         }
     }
 
@@ -30,13 +26,10 @@ export async function calculateCurrentStock(itemId: number): Promise<Prisma.Deci
 /**
  * Checks if an item is low on stock.
  */
-export async function checkLowStock(itemId: number, currentStock?: Prisma.Decimal): Promise<boolean> {
-    const item = await prisma.item.findUnique({
-        where: { id: itemId },
-        select: { minStockLevel: true },
-    });
+export async function checkLowStock(itemId: string, currentStock?: number): Promise<boolean> {
+    const item = await getDocById<FirestoreItem>('items', itemId);
 
-    if (!item || item.minStockLevel === null) {
+    if (!item || item.minStockLevel === null || item.minStockLevel === undefined) {
         return false;
     }
 
@@ -47,5 +40,5 @@ export async function checkLowStock(itemId: number, currentStock?: Prisma.Decima
     // Requirement says: "Compare with min_stock_level".
     // Let's assume if stock <= minStockLevel, it's low (trigger reorder).
 
-    return stock.lessThanOrEqualTo(item.minStockLevel);
+    return stock <= item.minStockLevel;
 }

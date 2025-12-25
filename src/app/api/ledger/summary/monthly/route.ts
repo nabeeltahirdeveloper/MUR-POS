@@ -1,6 +1,8 @@
-import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { Timestamp } from "@/lib/firestore";
+import { queryDocs, getDocById } from "@/lib/firestore-helpers";
+import type { FirestoreLedger, FirestoreLedgerCategory } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -31,32 +33,42 @@ export async function GET(req: NextRequest) {
         }
 
         const startDate = new Date(year, month - 1, 1);
+        startDate.setHours(0, 0, 0, 0);
         const endDate = new Date(year, month, 0); // Last day of month
+        endDate.setHours(23, 59, 59, 999);
 
         // Fetch all entries for the month
-        const entries = await prisma.ledger.findMany({
-            where: {
-                date: {
-                    gte: startDate,
-                    lte: endDate,
-                },
-            },
-            include: {
-                category: true,
-            },
-            orderBy: {
-                date: "asc",
-            },
+        const entries = await queryDocs<FirestoreLedger>('ledger', [
+            { field: 'date', operator: '>=', value: Timestamp.fromDate(startDate) },
+            { field: 'date', operator: '<=', value: Timestamp.fromDate(endDate) },
+        ], {
+            orderBy: 'date',
+            orderDirection: 'asc',
         });
+
+        // Fetch categories for entries
+        const entriesWithCategories = await Promise.all(
+            entries.map(async (entry) => {
+                const category = entry.categoryId 
+                    ? await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId)
+                    : null;
+                return {
+                    ...entry,
+                    category,
+                };
+            })
+        );
 
         let totalCredit = 0;
         let totalDebit = 0;
         const categoryBreakdown: Record<string, { name: string; credit: number; debit: number }> = {};
         const dailyBreakdown: Record<string, { date: string; credit: number; debit: number; net: number }> = {};
 
-        for (const entry of entries) {
+        for (const entry of entriesWithCategories) {
             const amount = Number(entry.amount);
-            const dateKey = entry.date.toISOString().split("T")[0];
+            // Convert Firestore Timestamp to Date if needed
+            const entryDate = entry.date instanceof Date ? entry.date : (entry.date as any).toDate ? (entry.date as any).toDate() : new Date(entry.date);
+            const dateKey = entryDate.toISOString().split("T")[0];
 
             // Global Totals
             if (entry.type === "credit") {
