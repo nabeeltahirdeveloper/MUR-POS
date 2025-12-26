@@ -12,7 +12,7 @@ export default function Header({
 }: {
     setSidebarOpen: (open: boolean) => void;
 }) {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
 
     return (
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
@@ -68,17 +68,29 @@ export default function Header({
 
                     {/* User info (desktop only) */}
                     <div className="hidden lg:flex lg:items-center lg:gap-x-3">
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-white font-semibold text-sm">
-                            {session?.user?.name?.charAt(0)?.toUpperCase() || "U"}
-                        </div>
-                        <div className="text-sm">
-                            <p className="font-semibold text-gray-900">
-                                {session?.user?.name || "User"}
-                            </p>
-                            <p className="text-gray-500 text-xs">
-                                {session?.user?.role || "Admin"}
-                            </p>
-                        </div>
+                        {status === "loading" ? (
+                            <div className="flex items-center gap-x-3">
+                                <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse" />
+                                <div className="space-y-1.5">
+                                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                                    <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-white font-semibold text-sm">
+                                    {session?.user?.name?.charAt(0)?.toUpperCase() || "U"}
+                                </div>
+                                <div className="text-sm">
+                                    <p className="font-semibold text-gray-900">
+                                        {session?.user?.name || "User"}
+                                    </p>
+                                    <p className="text-gray-500 text-xs">
+                                        {session?.user?.role || "Admin"}
+                                    </p>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
