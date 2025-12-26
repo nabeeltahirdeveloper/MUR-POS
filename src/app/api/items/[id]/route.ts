@@ -5,10 +5,10 @@ import type { FirestoreItem, FirestoreCategory, FirestoreUnit } from "@/types/fi
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
         const item = await getDocById<FirestoreItem>('items', id);
 
         if (!item) {
@@ -44,10 +44,10 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
         const body = await request.json();
         const {
             name,
@@ -101,37 +101,43 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
         const { db } = await import('@/lib/firestore');
+        const { deleteDoc } = await import('@/lib/firestore-helpers');
 
-        // Check for dependencies
+        // Get all associated stock logs and purchase order items
         const stockLogsSnapshot = await db.collection('stock_logs')
             .where('itemId', '==', id)
-            .limit(1)
             .get();
 
         const poItemsSnapshot = await db.collection('purchase_order_items')
             .where('itemId', '==', id)
-            .limit(1)
             .get();
 
-        if (!stockLogsSnapshot.empty || !poItemsSnapshot.empty) {
-            return NextResponse.json(
-                {
-                    error:
-                        "Cannot delete item because it has associated stock logs or purchase orders. Archive it instead.",
-                },
-                { status: 400 }
-            );
-        }
+        // Delete associated stock logs
+        const stockLogDeletions = stockLogsSnapshot.docs.map(doc => doc.ref.delete());
+        
+        // Delete associated purchase order items
+        const poItemDeletions = poItemsSnapshot.docs.map(doc => doc.ref.delete());
 
-        const { deleteDoc } = await import('@/lib/firestore-helpers');
+        // Wait for all associated records to be deleted
+        await Promise.all([...stockLogDeletions, ...poItemDeletions]);
+
+        // Delete the item itself
         await deleteDoc('items', id);
 
-        return NextResponse.json({ message: "Item deleted successfully" });
+        const deletedCounts = {
+            stockLogs: stockLogsSnapshot.size,
+            purchaseOrderItems: poItemsSnapshot.size,
+        };
+
+        return NextResponse.json({ 
+            message: "Item deleted successfully",
+            deletedCounts 
+        });
     } catch (error) {
         console.error("Error deleting item:", error);
         return NextResponse.json(

@@ -35,7 +35,7 @@ export function StockLogTable({ logs }: StockLogTableProps) {
                     header: "Quantity",
                     render: (value, row) => (
                         <span className={row.type === 'in' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                            {row.type === 'in' ? '+' : '-'}{String(value)} {row.item?.baseUnit?.symbol}
+                            {row.type === 'in' ? '+' : '-'}{String(value)}
                         </span>
                     ),
                 },
