@@ -21,7 +21,7 @@ function LedgerPageContent() {
         from: "",
         to: "",
     });
-    const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+    const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
 
@@ -50,11 +50,16 @@ function LedgerPageContent() {
                 if (filters[key]) query.append(key, String(filters[key]));
             });
 
-            const res = await fetch(`/api/ledger?${query.toString()}`);
+            const url = `/api/ledger?${query.toString()}`;
+            console.debug('[ledger page] fetching', url);
+            const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
-                setEntries(data.data);
-                setTotalPages(data.meta.totalPages);
+                console.debug('[ledger page] response meta', data?.meta);
+                setEntries(data.data || []);
+                setTotalPages(data.meta?.totalPages || 1);
+            } else {
+                console.warn('[ledger page] fetch failed', res.status);
             }
         } catch (error) {
             console.error(error);
