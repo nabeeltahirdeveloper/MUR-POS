@@ -1,7 +1,12 @@
 import type { NextAuthConfig } from "next-auth"
 
 export const authConfig = {
-    session: { strategy: "jwt" },
+    session: { 
+        strategy: "jwt",
+        // maxAge will be set dynamically by signIn() maxAge parameter
+        // When maxAge is not provided, NextAuth uses session cookies (expires on browser close)
+        // When maxAge is provided in signIn(), it sets persistent cookie expiration
+    },
     providers: [],
     callbacks: {
         async jwt({ token, user }) {
