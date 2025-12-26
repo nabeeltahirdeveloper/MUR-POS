@@ -20,6 +20,9 @@ export async function GET(req: NextRequest) {
         const from = searchParams.get("from");
         const to = searchParams.get("to");
 
+        // Debug: log incoming params to help diagnose intermittent filtering issues
+        console.debug('[ledger GET] params:', { page, limit, type, categoryId, search, from, to });
+
         // Build filters
         const filters: Array<{ field: string; operator: '<' | '<=' | '==' | '>' | '>=' | '!=' | 'array-contains' | 'in' | 'array-contains-any'; value: any }> = [];
 
@@ -43,16 +46,54 @@ export async function GET(req: NextRequest) {
             filters.push({ field: 'date', operator: '<=', value: Timestamp.fromDate(toDate) });
         }
 
-        // Get all entries (Firestore doesn't support skip/take easily, so we'll fetch all and paginate in memory)
-        let entries = filters.length > 0 
-            ? await queryDocs<FirestoreLedger>('ledger', filters, {
-                orderBy: 'date',
-                orderDirection: 'desc',
-            })
-            : await getAllDocs<FirestoreLedger>('ledger', {
+        // Get all entries. Prefer server-side queries, but if Firestore query fails
+        // (e.g. requires a composite index) fall back to fetching all and filtering in memory.
+        let entries: (FirestoreLedger & { id: string })[] = [];
+        let usedFallback = false;
+        if (filters.length > 0) {
+            try {
+                entries = await queryDocs<FirestoreLedger>('ledger', filters, {
+                    orderBy: 'date',
+                    orderDirection: 'desc',
+                });
+            } catch (queryErr) {
+                usedFallback = true;
+                console.error('Firestore query failed, falling back to in-memory filtering:', queryErr);
+                // Fallback: fetch all and apply filters in memory
+                entries = await getAllDocs<FirestoreLedger>('ledger', {
+                    orderBy: 'date',
+                    orderDirection: 'desc',
+                });
+
+                // Apply filters in memory
+                entries = entries.filter((entry) => {
+                    for (const f of filters) {
+                        const field = f.field;
+                        const op = f.operator;
+                        const val = f.value;
+
+                        if (field === 'date') {
+                            const entryDate = entry.date instanceof Date ? entry.date : new Date(entry.date);
+                            const compDate = val && val.toDate ? val.toDate() : new Date(val);
+                            if (op === '>=' && entryDate < compDate) return false;
+                            if (op === '<=' && entryDate > compDate) return false;
+                        } else if (op === '==') {
+                            // simple equality check (convert both to string for safety)
+                            if (String((entry as any)[field]) !== String(val)) return false;
+                        } else {
+                            // unsupported operator in fallback — be conservative and skip the entry
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+            }
+        } else {
+            entries = await getAllDocs<FirestoreLedger>('ledger', {
                 orderBy: 'date',
                 orderDirection: 'desc',
             });
+        }
 
         // Filter by search term if provided (case-insensitive)
         if (search) {
@@ -79,7 +120,7 @@ export async function GET(req: NextRequest) {
             })
         );
 
-        return NextResponse.json({
+        const payload: any = {
             data: entriesWithCategories,
             meta: {
                 total,
@@ -87,7 +128,13 @@ export async function GET(req: NextRequest) {
                 limit,
                 totalPages: Math.ceil(total / limit),
             },
-        });
+        };
+
+        if (process.env.NODE_ENV !== 'production') {
+            payload.meta.debug = { filters: { type, categoryId, from, to, search }, usedFallback };
+        }
+
+        return NextResponse.json(payload);
     } catch (error) {
         console.error("Error fetching ledger entries:", error);
         return NextResponse.json(
