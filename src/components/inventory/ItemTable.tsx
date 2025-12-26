@@ -24,6 +24,9 @@ export function ItemTable({ items, onDelete }: ItemTableProps) {
                 {
                     key: "category.name",
                     header: "Category",
+                    render: (value, row) => (
+                        <span>{row.category?.name || "—"}</span>
+                    ),
                 },
                 {
                     key: "currentStock",
@@ -42,6 +45,15 @@ export function ItemTable({ items, onDelete }: ItemTableProps) {
                 {
                     key: "saleUnit.name",
                     header: "Sale Unit",
+                    render: (value, row) => {
+                        if (!row.saleUnit) return <span>—</span>;
+                        return (
+                            <span>
+                                {row.saleUnit.name}
+                                {row.saleUnit.symbol && ` (${row.saleUnit.symbol})`}
+                            </span>
+                        );
+                    },
                 },
                 {
                     key: "actions",

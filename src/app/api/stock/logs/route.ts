@@ -14,12 +14,28 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const logs = await queryDocs<FirestoreStockLog>('stock_logs', [
-            { field: 'itemId', operator: '==', value: String(itemId) }
-        ], {
-            orderBy: 'createdAt',
-            orderDirection: 'desc',
-        });
+        // Query stock logs - try with orderBy first, fallback to without if it fails
+        let logs: (FirestoreStockLog & { id: string })[];
+        try {
+            logs = await queryDocs<FirestoreStockLog>('stock_logs', [
+                { field: 'itemId', operator: '==', value: String(itemId) }
+            ], {
+                orderBy: 'createdAt',
+                orderDirection: 'desc',
+            });
+        } catch (orderByError) {
+            // If orderBy fails (e.g., missing index), try without orderBy
+            console.warn("OrderBy failed, trying without orderBy:", orderByError);
+            logs = await queryDocs<FirestoreStockLog>('stock_logs', [
+                { field: 'itemId', operator: '==', value: String(itemId) }
+            ]);
+            // Sort manually in memory
+            logs.sort((a, b) => {
+                const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime();
+                const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime();
+                return dateB - dateA; // desc order
+            });
+        }
 
         // Fetch item details for each log
         const item = await getDocById<FirestoreItem>('items', String(itemId));
@@ -27,6 +43,7 @@ export async function GET(request: NextRequest) {
 
         const logsWithItem = logs.map(log => ({
             ...log,
+            createdAt: log.createdAt instanceof Date ? log.createdAt.toISOString() : (typeof log.createdAt === 'string' ? log.createdAt : new Date(log.createdAt).toISOString()),
             item: item ? {
                 name: item.name,
                 baseUnit: baseUnit,
@@ -36,8 +53,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(logsWithItem);
     } catch (error) {
         console.error("Error fetching stock logs:", error);
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         return NextResponse.json(
-            { error: "Failed to fetch stock logs" },
+            { error: "Failed to fetch stock logs", details: errorMessage },
             { status: 500 }
         );
     }
