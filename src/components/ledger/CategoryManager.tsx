@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 
 type Category = {
-    id: number;
+    id: string;
     name: string;
 };
 
@@ -16,7 +16,7 @@ export default function CategoryManager({
 }) {
     const [categories, setCategories] = useState<Category[]>([]);
     const [newCategory, setNewCategory] = useState("");
-    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -65,7 +65,7 @@ export default function CategoryManager({
         }
     };
 
-    const handleUpdate = async (id: number) => {
+    const handleUpdate = async (id: string) => {
         if (!editName.trim()) return;
         setLoading(true);
         setError("");
@@ -92,7 +92,7 @@ export default function CategoryManager({
         }
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (!confirm("Are you sure?")) return;
         setLoading(true);
         setError("");

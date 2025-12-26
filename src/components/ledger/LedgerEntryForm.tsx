@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import CategoryManager from "./CategoryManager";
 
 type Category = {
-    id: number;
+    id: string;
     name: string;
 };
 
@@ -13,7 +13,7 @@ type LedgerEntry = {
     id?: number;
     type: "debit" | "credit";
     amount: number | string;
-    categoryId: number;
+    categoryId: string;
     note: string;
     date: string;
 };
@@ -30,8 +30,8 @@ export default function LedgerEntryForm({
     const [amount, setAmount] = useState<string>(
         initialData?.amount?.toString() || ""
     );
-    const [categoryId, setCategoryId] = useState<number | string>(
-        initialData?.categoryId || ""
+    const [categoryId, setCategoryId] = useState<string>(
+        (initialData?.categoryId as any) || ""
     );
     const [note, setNote] = useState(initialData?.note || "");
     const [date, setDate] = useState(
@@ -78,7 +78,7 @@ export default function LedgerEntryForm({
             const payload = {
                 type,
                 amount: Number(amount),
-                categoryId: Number(categoryId),
+                categoryId: categoryId || null,
                 note,
                 date,
             };
