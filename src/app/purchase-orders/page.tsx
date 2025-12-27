@@ -87,11 +87,23 @@ export default function PurchaseOrdersPage() {
     }, [status, supplierId, startDate, endDate, search]);
 
     const columns = [
-        { key: "id", header: "PO #" },
+        {
+            key: "id",
+            header: "PO #",
+            render: (value: any) => (
+                <div className="max-w-[10rem] truncate font-mono" title={String(value || "")}>
+                    {String(value || "—")}
+                </div>
+            ),
+        },
         {
             key: "supplier",
             header: "Supplier",
-            render: (_: any, row: PurchaseOrder) => row.supplier?.name || "—",
+            render: (_: any, row: PurchaseOrder) => (
+                <div className="max-w-[18rem] truncate" title={row.supplier?.name || ""}>
+                    {row.supplier?.name || "—"}
+                </div>
+            ),
         },
         {
             key: "status",
@@ -109,7 +121,12 @@ export default function PurchaseOrdersPage() {
         {
             key: "totalAmount",
             header: "Total",
-            render: (value: any) => `$${Number(value || 0).toFixed(2)}`
+            render: (value: any) =>
+                new Intl.NumberFormat("en-PK", {
+                    style: "currency",
+                    currency: "PKR",
+                    maximumFractionDigits: 2,
+                }).format(Number(value || 0))
         },
         {
             key: "createdAt",
@@ -128,7 +145,7 @@ export default function PurchaseOrdersPage() {
     ];
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 max-w-7xl mx-auto min-w-0">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">Purchase Orders</h1>
                 <Link
@@ -140,15 +157,15 @@ export default function PurchaseOrdersPage() {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow border border-gray-200 mb-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
                     <input
-                        className="md:col-span-2 border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="sm:col-span-2 lg:col-span-4 min-w-0 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         placeholder="Search by supplier name..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                     <select
-                        className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="lg:col-span-2 min-w-0 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
                     >
@@ -160,7 +177,7 @@ export default function PurchaseOrdersPage() {
                         <option value="cancelled">Cancelled</option>
                     </select>
                     <select
-                        className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="lg:col-span-3 min-w-0 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         value={supplierId}
                         onChange={(e) => setSupplierId(e.target.value)}
                     >
@@ -171,22 +188,22 @@ export default function PurchaseOrdersPage() {
                             </option>
                         ))}
                     </select>
-                    <div className="flex gap-2">
+                    <div className="lg:col-span-3 grid grid-cols-2 gap-2 min-w-0">
                         <input
                             type="date"
-                            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            className="min-w-0 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                         />
                         <input
                             type="date"
-                            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            className="min-w-0 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
                         />
                     </div>
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                     <div className="text-sm text-gray-500">
                         Page {page} of {totalPages}
                     </div>
@@ -206,7 +223,9 @@ export default function PurchaseOrdersPage() {
             {loading ? (
                 <div className="text-center py-10">Loading purchase orders...</div>
             ) : (
-                <Table data={orders} columns={columns} emptyMessage="No purchase orders found." />
+                <div className="min-w-0">
+                    <Table data={orders} columns={columns} emptyMessage="No purchase orders found." />
+                </div>
             )}
         </div>
     );

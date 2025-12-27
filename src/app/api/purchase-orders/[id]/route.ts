@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDocById, queryDocs } from "@/lib/firestore-helpers";
-import type { FirestorePurchaseOrder, FirestoreSupplier, FirestorePurchaseOrderItem, FirestoreItem, FirestoreUnit } from "@/types/firestore";
+import type { FirestorePurchaseOrder, FirestoreSupplier, FirestorePurchaseOrderItem, FirestoreItem, FirestoreUnit, FirestoreCategory } from "@/types/firestore";
 
 export async function GET(
     request: NextRequest,
@@ -24,17 +24,22 @@ export async function GET(
             : null;
 
         // Fetch items
+        // NOTE: Do not add Firestore `orderBy` here unless you also create the required composite index.
+        // We intentionally fetch without ordering (simple equality query) to avoid index requirements.
+        // If you need stable ordering, sort in-memory by document id.
         const poItems = await queryDocs<FirestorePurchaseOrderItem>('purchase_order_items', [
             { field: 'orderId', operator: '==', value: id }
-        ], {
-            orderBy: 'id',
-            orderDirection: 'asc',
-        });
+        ]);
+
+        poItems.sort((a, b) => a.id.localeCompare(b.id));
 
         // Fetch item details for each PO item
         const itemsWithDetails = await Promise.all(
             poItems.map(async (poItem) => {
                 const item = await getDocById<FirestoreItem>('items', poItem.itemId);
+                const category = item?.categoryId
+                    ? await getDocById<FirestoreCategory>("categories", item.categoryId)
+                    : null;
                 const baseUnit = item?.baseUnitId 
                     ? await getDocById<FirestoreUnit>('units', item.baseUnitId)
                     : null;
@@ -42,6 +47,7 @@ export async function GET(
                     ...poItem,
                     item: item ? {
                         ...item,
+                        category,
                         baseUnit,
                     } : null,
                 };
