@@ -5,10 +5,10 @@ import type { FirestorePurchaseOrder, FirestorePurchaseOrderItem, FirestoreStock
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
 
         // Use Firestore batch for atomicity
         const batch = db.batch();

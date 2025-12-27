@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getDocById, updateDoc, queryDocs } from "@/lib/firestore-helpers";
-import type { FirestoreLedgerCategory } from "@/types/firestore";
+import { getDocById, updateDoc, queryDocs, deleteDoc } from "@/lib/firestore-helpers";
+import type { FirestoreLedgerCategory, FirestoreLedger } from "@/types/firestore";
 
 export async function PUT(
     req: NextRequest,
@@ -70,8 +70,6 @@ export async function DELETE(
         const { id } = await params;
 
         // Check usage
-        const { queryDocs, deleteDoc } = await import('@/lib/firestore-helpers');
-        const { FirestoreLedger } = await import('@/types/firestore');
         const usage = await queryDocs<FirestoreLedger>('ledger', [
             { field: 'categoryId', operator: '==', value: id }
         ]);
