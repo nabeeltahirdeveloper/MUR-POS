@@ -2,17 +2,21 @@
   "name": "moon-electric",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "yarn@1.22.22",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.0.0",
     "bcrypt": "^6.0.0",
+    "firebase": "^12.7.0",
+    "firebase-admin": "^13.6.0",
     "next": "16.0.6",
     "next-auth": "^5.0.0-beta.30",
     "react": "19.2.0",
