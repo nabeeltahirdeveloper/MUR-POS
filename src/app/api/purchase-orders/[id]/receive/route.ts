@@ -27,6 +27,10 @@ export async function POST(
             throw new Error("Cannot receive a cancelled Purchase Order");
         }
 
+        if (po.status !== "approved") {
+            throw new Error("Purchase Order must be approved before receiving");
+        }
+
         const poItems = await queryDocs<FirestorePurchaseOrderItem>('purchase_order_items', [
             { field: 'orderId', operator: '==', value: id }
         ]);

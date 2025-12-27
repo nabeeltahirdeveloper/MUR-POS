@@ -35,8 +35,24 @@ export async function POST(
             );
         }
 
+        // Enforce valid transitions
+        const next = status as FirestorePurchaseOrder["status"];
+        const curr = currentPO.status;
+
+        const isValidTransition =
+            (curr === "draft" && next === "pending") ||
+            (curr === "pending" && next === "approved") ||
+            ((curr === "draft" || curr === "pending" || curr === "approved") && next === "cancelled");
+
+        if (!isValidTransition) {
+            return NextResponse.json(
+                { error: `Invalid status transition: ${curr} -> ${next}` },
+                { status: 400 }
+            );
+        }
+
         await updateDoc<Partial<FirestorePurchaseOrder>>('purchase_orders', id, {
-            status: status as any,
+            status: next as any,
         });
 
         const updatedPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);

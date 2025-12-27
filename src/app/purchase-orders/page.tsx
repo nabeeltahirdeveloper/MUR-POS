@@ -3,38 +3,96 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Table } from "@/components/ui/Table";
+import { Button } from "@/components/ui/Button";
+import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 
 interface PurchaseOrder {
-    id: number;
-    supplier: { name: string };
-    status: string;
-    totalAmount: number;
-    createdAt: string;
+    id: string;
+    supplier?: { id: string; name: string } | null;
+    status: "draft" | "pending" | "approved" | "received" | "cancelled";
+    totalAmount?: number | null;
+    createdAt: string | Date;
+}
+
+interface Supplier {
+    id: string;
+    name: string;
 }
 
 export default function PurchaseOrdersPage() {
     const [orders, setOrders] = useState<PurchaseOrder[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+
+    const [page, setPage] = useState(1);
+    const limit = 10;
+    const [totalPages, setTotalPages] = useState(1);
+
+    const [status, setStatus] = useState<string>("");
+    const [supplierId, setSupplierId] = useState<string>("");
+    const [startDate, setStartDate] = useState<string>("");
+    const [endDate, setEndDate] = useState<string>("");
+    const [search, setSearch] = useState<string>("");
 
     useEffect(() => {
-        fetch("/api/purchase-orders")
-            .then((res) => {
-                if (!res.ok) throw new Error("Failed to fetch");
-                return res.json();
-            })
-            .then((data) => {
-                setOrders(data.purchaseOrders);
-                setLoading(false);
-            })
-            .catch((err) => {
-                console.error(err);
-                setLoading(false);
-            });
+        fetch("/api/suppliers?limit=500")
+            .then((res) => res.json())
+            .then((data) => setSuppliers(data.suppliers || []))
+            .catch(() => setSuppliers([]));
     }, []);
+
+    const fetchPOs = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const params = new URLSearchParams();
+            params.set("page", String(page));
+            params.set("limit", String(limit));
+            if (status) params.set("status", status);
+            if (supplierId) params.set("supplierId", supplierId);
+            if (startDate) params.set("startDate", startDate);
+            if (endDate) params.set("endDate", endDate);
+            if (search.trim()) params.set("search", search.trim());
+
+            const res = await fetch(`/api/purchase-orders?${params.toString()}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error || "Failed to fetch purchase orders");
+            setOrders(data.purchaseOrders || []);
+            setTotalPages(data.pagination?.pages || 1);
+        } catch (e: any) {
+            setError(e.message || "Failed to fetch purchase orders");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchPOs();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page]);
+
+    // Debounce filter changes (reset to page 1)
+    useEffect(() => {
+        const t = setTimeout(() => {
+            if (page !== 1) {
+                setPage(1);
+            } else {
+                fetchPOs();
+            }
+        }, 300);
+        return () => clearTimeout(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [status, supplierId, startDate, endDate, search]);
 
     const columns = [
         { key: "id", header: "PO #" },
-        { key: "supplier.name", header: "Supplier" },
+        {
+            key: "supplier",
+            header: "Supplier",
+            render: (_: any, row: PurchaseOrder) => row.supplier?.name || "—",
+        },
         {
             key: "status",
             header: "Status",
@@ -51,7 +109,7 @@ export default function PurchaseOrdersPage() {
         {
             key: "totalAmount",
             header: "Total",
-            render: (value: any) => `$${Number(value).toFixed(2)}`
+            render: (value: any) => `$${Number(value || 0).toFixed(2)}`
         },
         {
             key: "createdAt",
@@ -80,6 +138,70 @@ export default function PurchaseOrdersPage() {
                     Create Purchase Order
                 </Link>
             </div>
+
+            <div className="bg-white p-4 rounded-lg shadow border border-gray-200 mb-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <input
+                        className="md:col-span-2 border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        placeholder="Search by supplier name..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                    <select
+                        className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                    >
+                        <option value="">All Statuses</option>
+                        <option value="draft">Draft</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="received">Received</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                    <select
+                        className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        value={supplierId}
+                        onChange={(e) => setSupplierId(e.target.value)}
+                    >
+                        <option value="">All Suppliers</option>
+                        {suppliers.map((s) => (
+                            <option key={s.id} value={s.id}>
+                                {s.name}
+                            </option>
+                        ))}
+                    </select>
+                    <div className="flex gap-2">
+                        <input
+                            type="date"
+                            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                        />
+                        <input
+                            type="date"
+                            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                        />
+                    </div>
+                </div>
+                <div className="flex justify-between items-center">
+                    <div className="text-sm text-gray-500">
+                        Page {page} of {totalPages}
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="secondary" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1 || loading}>
+                            Prev
+                        </Button>
+                        <Button variant="secondary" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading}>
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            {error && <div className="mb-6"><ErrorDisplay message={error} onRetry={() => fetchPOs()} /></div>}
 
             {loading ? (
                 <div className="text-center py-10">Loading purchase orders...</div>

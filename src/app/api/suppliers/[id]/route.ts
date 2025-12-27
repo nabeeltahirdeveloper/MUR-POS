@@ -3,6 +3,25 @@ import { updateDoc, getDocById, deleteDoc } from "@/lib/firestore-helpers";
 import { db } from "@/lib/firestore";
 import type { FirestoreSupplier } from "@/types/firestore";
 
+export async function GET(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const supplier = await getDocById<FirestoreSupplier>("suppliers", id);
+
+        if (!supplier) {
+            return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
+        }
+
+        return NextResponse.json(supplier);
+    } catch (error) {
+        console.error("Error fetching supplier:", error);
+        return NextResponse.json({ error: "Failed to fetch supplier" }, { status: 500 });
+    }
+}
+
 export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }

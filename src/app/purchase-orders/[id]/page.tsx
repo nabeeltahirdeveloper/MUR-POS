@@ -1,26 +1,33 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 
 interface Item {
-    id: number;
+    id: string;
     name: string;
     sku?: string;
 }
 
 interface POItem {
-    itemId: number;
+    itemId: string;
     qty: number;
     pricePerUnit: number;
     item?: Item; // For display
 }
 
+interface Supplier {
+    id: string;
+    name: string;
+}
+
 interface PurchaseOrder {
-    id: number;
-    supplier: { id: number; name: string };
-    status: string;
+    id: string;
+    supplier: { id: string; name: string } | null;
+    status: "draft" | "pending" | "approved" | "received" | "cancelled";
     totalAmount: number;
     notes: string;
     terms: string;
@@ -30,13 +37,13 @@ interface PurchaseOrder {
 
 export default function PurchaseOrderDetailPage() {
     const params = useParams();
-    const router = useRouter();
     const id = params.id as string;
 
     const [po, setPo] = useState<PurchaseOrder | null>(null);
     const [items, setItems] = useState<POItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     // Item Search State
     const [searchTerm, setSearchTerm] = useState("");
@@ -46,6 +53,11 @@ export default function PurchaseOrderDetailPage() {
     // New Item Input State
     const [newItemQty, setNewItemQty] = useState(1);
     const [newItemPrice, setNewItemPrice] = useState(0);
+
+    // Header editing
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [showEditDetails, setShowEditDetails] = useState(false);
+    const [detailsForm, setDetailsForm] = useState({ supplierId: "", notes: "", terms: "" });
 
     useEffect(() => {
         fetchPO();
@@ -64,12 +76,26 @@ export default function PurchaseOrderDetailPage() {
                 pricePerUnit: parseFloat(i.pricePerUnit),
                 item: i.item
             })));
+            setDetailsForm({
+                supplierId: data.supplier?.id || "",
+                notes: data.notes || "",
+                terms: data.terms || "",
+            });
+            setError(null);
             setLoading(false);
         } catch (err) {
             console.error(err);
+            setError("Failed to load purchase order");
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetch("/api/suppliers?limit=500")
+            .then((res) => res.json())
+            .then((data) => setSuppliers(data.suppliers || []))
+            .catch(() => setSuppliers([]));
+    }, []);
 
     // Item Search
     useEffect(() => {
@@ -81,8 +107,8 @@ export default function PurchaseOrderDetailPage() {
             try {
                 const res = await fetch(`/api/items?search=${encodeURIComponent(searchTerm)}`);
                 const data = await res.json();
-                // data might be { items: [...] } or just array depending on API
-                setSearchResults(data.items || []);
+                const results = Array.isArray(data) ? data : (data.items || []);
+                setSearchResults(results);
                 setShowResults(true);
             } catch (e) {
                 console.error(e);
@@ -125,6 +151,33 @@ export default function PurchaseOrderDetailPage() {
         }
     };
 
+    const canEditDetails = po && po.status !== "received" && po.status !== "cancelled";
+
+    const handleSaveDetails = async () => {
+        if (!po) return;
+        setSaving(true);
+        setError(null);
+        try {
+            const res = await fetch(`/api/purchase-orders/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    supplierId: detailsForm.supplierId || null,
+                    notes: detailsForm.notes,
+                    terms: detailsForm.terms,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error || "Failed to update purchase order");
+            await fetchPO();
+            setShowEditDetails(false);
+        } catch (e: any) {
+            setError(e.message || "Failed to update purchase order");
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const handleStatusChange = async (newStatus: string) => {
         if (!confirm(`Are you sure you want to change status to ${newStatus}?`)) return;
 
@@ -135,11 +188,14 @@ export default function PurchaseOrderDetailPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status: newStatus }),
             });
-            if (!res.ok) throw new Error("Failed to update status");
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Failed to update status");
+            }
             await fetchPO();
         } catch (err) {
             console.error(err);
-            alert("Failed to update status");
+            alert((err as any).message || "Failed to update status");
         } finally {
             setSaving(false);
         }
@@ -172,11 +228,14 @@ export default function PurchaseOrderDetailPage() {
         setSaving(true);
         try {
             const res = await fetch(`/api/purchase-orders/${id}/cancel`, { method: "POST" });
-            if (!res.ok) throw new Error("Failed");
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Failed to cancel");
+            }
             await fetchPO();
         } catch (err) {
             console.error(err);
-            alert("Failed to cancel");
+            alert((err as any).message || "Failed to cancel");
         } finally {
             setSaving(false);
         }
@@ -184,13 +243,11 @@ export default function PurchaseOrderDetailPage() {
 
     if (loading || !po) return <div className="p-6">Loading...</div>;
 
-    const isEditable = po.status === "draft" || po.status === "pending";
-    // Assuming 'pending' can still edit items? Requirements say "Draft: edit items...".
-    // Let's restrict editing items to Draft only for safety, or allow Pending?
-    // User req: "Draft: edit items... Pending: approve or cancel". So Pending cannot edit items.
     const canEditItems = po.status === "draft";
 
     const totalAmount = items.reduce((sum, i) => sum + (i.qty * i.pricePerUnit), 0);
+    const supplierName = po.supplier?.name || "No Supplier";
+    const supplierIdCurrent = po.supplier?.id || "";
 
     return (
         <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -202,7 +259,7 @@ export default function PurchaseOrderDetailPage() {
                         <span className="text-gray-300">|</span>
                         <span className="text-gray-500">PO #{po.id}</span>
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900">{po.supplier.name}</h1>
+                    <h1 className="text-3xl font-bold text-gray-900">{supplierName}</h1>
                     <div className="mt-2 flex gap-2">
                         <span className={`px-2 py-1 rounded text-sm font-semibold uppercase ${po.status === 'received' ? 'bg-green-100 text-green-800' :
                                 po.status === 'cancelled' ? 'bg-red-100 text-red-800' :
@@ -243,6 +300,84 @@ export default function PurchaseOrderDetailPage() {
                         </button>
                     )}
                 </div>
+            </div>
+
+            {error && <ErrorDisplay message={error} />}
+
+            {/* PO Details */}
+            <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h2 className="font-semibold text-gray-700">Details</h2>
+                    {canEditDetails && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowEditDetails((v) => !v)}
+                            disabled={saving}
+                        >
+                            {showEditDetails ? "Close" : "Edit Details"}
+                        </Button>
+                    )}
+                </div>
+
+                {showEditDetails ? (
+                    <div className="p-4 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                                <select
+                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                    value={detailsForm.supplierId}
+                                    onChange={(e) => setDetailsForm((f) => ({ ...f, supplierId: e.target.value }))}
+                                >
+                                    <option value="">No supplier</option>
+                                    {suppliers.map((s) => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {supplierIdCurrent && !suppliers.some((s) => s.id === supplierIdCurrent) && (
+                                    <p className="text-xs text-amber-600 mt-1">Current supplier not in dropdown (may be deleted).</p>
+                                )}
+                            </div>
+                            <div className="flex items-end justify-end">
+                                <Button onClick={handleSaveDetails} isLoading={saving}>
+                                    Save Details
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                <textarea
+                                    className="w-full border border-gray-300 rounded-md p-2 h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                                    value={detailsForm.notes}
+                                    onChange={(e) => setDetailsForm((f) => ({ ...f, notes: e.target.value }))}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Terms</label>
+                                <textarea
+                                    className="w-full border border-gray-300 rounded-md p-2 h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                                    value={detailsForm.terms}
+                                    onChange={(e) => setDetailsForm((f) => ({ ...f, terms: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <div className="text-xs uppercase tracking-wide text-gray-500">Notes</div>
+                            <div className="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{po.notes || "—"}</div>
+                        </div>
+                        <div>
+                            <div className="text-xs uppercase tracking-wide text-gray-500">Terms</div>
+                            <div className="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{po.terms || "—"}</div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Items Section */}
@@ -318,7 +453,7 @@ export default function PurchaseOrderDetailPage() {
                                         min="1"
                                         className="w-20 border rounded px-2 py-1 text-right"
                                         value={newItemQty}
-                                        onChange={e => setNewItemQty(parseFloat(e.target.value))}
+                                        onChange={e => setNewItemQty(parseFloat(e.target.value) || 0)}
                                     />
                                 </td>
                                 <td className="px-4 py-3 text-right">
@@ -328,7 +463,7 @@ export default function PurchaseOrderDetailPage() {
                                         step="0.01"
                                         className="w-24 border rounded px-2 py-1 text-right"
                                         value={newItemPrice}
-                                        onChange={e => setNewItemPrice(parseFloat(e.target.value))}
+                                        onChange={e => setNewItemPrice(parseFloat(e.target.value) || 0)}
                                     />
                                 </td>
                                 <td className="px-4 py-3"></td>
@@ -344,18 +479,6 @@ export default function PurchaseOrderDetailPage() {
                         </tr>
                     </tfoot>
                 </table>
-            </div>
-
-            {/* Notes & Terms */}
-            <div className="grid grid-cols-2 gap-6">
-                <div className="bg-white p-4 rounded-lg shadow border">
-                    <h3 className="font-semibold mb-2">Notes</h3>
-                    <p className="text-gray-600 whitespace-pre-wrap">{po.notes || "None"}</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow border">
-                    <h3 className="font-semibold mb-2">Terms</h3>
-                    <p className="text-gray-600 whitespace-pre-wrap">{po.terms || "None"}</p>
-                </div>
             </div>
         </div>
     );

@@ -22,6 +22,8 @@ import {
 const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
     { name: "Inventory", href: "/items", icon: CubeIcon },
+    { name: "Purchase Orders", href: "/purchase-orders", icon: DocumentTextIcon },
+    { name: "Suppliers", href: "/suppliers", icon: UserCircleIcon },
     {
         name: "Ledger",
         href: "/ledger",
