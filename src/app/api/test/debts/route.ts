@@ -1,5 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
+
+type DebtWithPayments = Prisma.DebtGetPayload<{
+    include: { payments: true };
+}>;
+
+type DebtWithBalance = Omit<DebtWithPayments, 'amount'> & {
+    amount: number;
+    totalPaid: number;
+    balance: number;
+    isPaidOff: boolean;
+};
 
 // GET - List all debts with payments
 export async function GET() {
@@ -13,7 +25,7 @@ export async function GET() {
             orderBy: { createdAt: 'desc' },
         });
 
-        const debtsWithBalance = debts.map((debt) => {
+        const debtsWithBalance: DebtWithBalance[] = debts.map((debt: DebtWithPayments) => {
             const totalPaid = debt.payments.reduce((sum, p) => sum + Number(p.amount), 0);
             const balance = Number(debt.amount) - totalPaid;
             const isPaidOff = balance <= 0;
