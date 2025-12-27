@@ -154,7 +154,7 @@ export default function SuppliersPage() {
     };
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="space-y-6 min-w-0">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-900">Suppliers</h1>
                 <Button variant="primary" onClick={() => setShowCreate((v) => !v)}>
