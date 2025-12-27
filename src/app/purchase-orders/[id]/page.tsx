@@ -10,6 +10,7 @@ interface Item {
     id: string;
     name: string;
     sku?: string;
+    category?: { id: string; name: string } | null;
 }
 
 interface POItem {
@@ -99,13 +100,15 @@ export default function PurchaseOrderDetailPage() {
 
     // Item Search
     useEffect(() => {
+        const q = searchTerm.trim();
         const delayDebounceFn = setTimeout(async () => {
-            if (searchTerm.length < 2) {
+            if (q.length < 1) {
                 setSearchResults([]);
+                setShowResults(false);
                 return;
             }
             try {
-                const res = await fetch(`/api/items?search=${encodeURIComponent(searchTerm)}`);
+                const res = await fetch(`/api/items?search=${encodeURIComponent(q)}`);
                 const data = await res.json();
                 const results = Array.isArray(data) ? data : (data.items || []);
                 setSearchResults(results);
@@ -113,7 +116,7 @@ export default function PurchaseOrderDetailPage() {
             } catch (e) {
                 console.error(e);
             }
-        }, 300);
+        }, 250);
 
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm]);
@@ -130,6 +133,16 @@ export default function PurchaseOrderDetailPage() {
         const newItems = [...items];
         newItems.splice(index, 1);
         setItems(newItems);
+    };
+
+    const updateRow = (index: number, patch: Partial<Pick<POItem, "qty" | "pricePerUnit">>) => {
+        setItems((prev) => {
+            const next = [...prev];
+            const row = next[index];
+            if (!row) return prev;
+            next[index] = { ...row, ...patch };
+            return next;
+        });
     };
 
     const handleSaveItems = async () => {
@@ -245,9 +258,22 @@ export default function PurchaseOrderDetailPage() {
 
     const canEditItems = po.status === "draft";
 
-    const totalAmount = items.reduce((sum, i) => sum + (i.qty * i.pricePerUnit), 0);
+    // IMPORTANT: guard against undefined/NaN so footer doesn't fall back to 0
+    // (NaN is falsy and `formatPKR` uses `amount || 0`).
+    const totalAmount = items.reduce(
+        (sum, i) => sum + (Number(i.qty) || 0) * (Number(i.pricePerUnit) || 0),
+        0
+    );
     const supplierName = po.supplier?.name || "No Supplier";
     const supplierIdCurrent = po.supplier?.id || "";
+    const hasItems = items.length > 0;
+
+    const formatPKR = (amount: number) =>
+        new Intl.NumberFormat("en-PK", {
+            style: "currency",
+            currency: "PKR",
+            maximumFractionDigits: 2,
+        }).format(Number(amount || 0));
 
     return (
         <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -280,12 +306,22 @@ export default function PurchaseOrderDetailPage() {
                     </Link>
 
                     {po.status === 'draft' && (
-                        <button onClick={() => handleStatusChange('pending')} disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        <button
+                            onClick={() => handleStatusChange('pending')}
+                            disabled={saving || !hasItems}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                            title={!hasItems ? "Add at least one item before submitting" : undefined}
+                        >
                             Submit for Approval
                         </button>
                     )}
                     {po.status === 'pending' && (
-                        <button onClick={() => handleStatusChange('approved')} disabled={saving} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        <button
+                            onClick={() => handleStatusChange('approved')}
+                            disabled={saving || !hasItems}
+                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                            title={!hasItems ? "Add at least one item before approving" : undefined}
+                        >
                             Approve
                         </button>
                     )}
@@ -381,7 +417,8 @@ export default function PurchaseOrderDetailPage() {
             </div>
 
             {/* Items Section */}
-            <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+            {/* Must be overflow-visible so the search dropdown isn't clipped */}
+            <div className="bg-white rounded-lg shadow border border-gray-200 overflow-visible">
                 <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                     <h2 className="font-semibold text-gray-700">Items</h2>
                     {canEditItems && (
@@ -408,10 +445,43 @@ export default function PurchaseOrderDetailPage() {
                     <tbody className="divide-y divide-gray-200">
                         {items.map((item, idx) => (
                             <tr key={idx}>
-                                <td className="px-4 py-3 text-sm text-gray-900">{item.item?.name || "Unknown Item"}</td>
-                                <td className="px-4 py-3 text-sm text-gray-900 text-right">{item.qty}</td>
-                                <td className="px-4 py-3 text-sm text-gray-900 text-right">${item.pricePerUnit.toFixed(2)}</td>
-                                <td className="px-4 py-3 text-sm text-gray-900 text-right">${(item.qty * item.pricePerUnit).toFixed(2)}</td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                    <div className="font-medium">{item.item?.name || "Unknown Item"}</div>
+                                    {item.item?.category?.name ? (
+                                        <div className="text-xs text-gray-500">{item.item.category.name}</div>
+                                    ) : null}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                                    {canEditItems ? (
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            className="w-24 border rounded px-2 py-1 text-right"
+                                            value={Number.isFinite(item.qty) ? item.qty : 0}
+                                            onChange={(e) => updateRow(idx, { qty: parseFloat(e.target.value) || 0 })}
+                                        />
+                                    ) : (
+                                        item.qty
+                                    )}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 text-right whitespace-nowrap">
+                                    {canEditItems ? (
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            className="w-28 border rounded px-2 py-1 text-right"
+                                            value={Number.isFinite(item.pricePerUnit) ? item.pricePerUnit : 0}
+                                            onChange={(e) => updateRow(idx, { pricePerUnit: parseFloat(e.target.value) || 0 })}
+                                        />
+                                    ) : (
+                                        formatPKR(item.pricePerUnit)
+                                    )}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 text-right whitespace-nowrap">
+                                    {formatPKR((Number(item.qty) || 0) * (Number(item.pricePerUnit) || 0))}
+                                </td>
                                 {canEditItems && (
                                     <td className="px-4 py-3 text-right">
                                         <button onClick={() => handleRemoveItem(idx)} className="text-red-500 hover:text-red-700">
@@ -434,16 +504,26 @@ export default function PurchaseOrderDetailPage() {
                                         onChange={e => setSearchTerm(e.target.value)}
                                     />
                                     {showResults && searchResults.length > 0 && (
-                                        <div className="absolute z-10 left-0 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto ml-4">
+                                        <div className="absolute z-20 left-0 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto">
                                             {searchResults.map(res => (
                                                 <div
                                                     key={res.id}
                                                     className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
                                                     onClick={() => handleAddItem(res)}
                                                 >
-                                                    {res.name}
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="truncate">{res.name}</span>
+                                                        {res.category?.name ? (
+                                                            <span className="text-xs text-gray-500 truncate">{res.category.name}</span>
+                                                        ) : null}
+                                                    </div>
                                                 </div>
                                             ))}
+                                        </div>
+                                    )}
+                                    {showResults && searchResults.length === 0 && (
+                                        <div className="absolute z-20 left-0 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg p-2 text-sm text-gray-500">
+                                            No items found
                                         </div>
                                     )}
                                 </td>
@@ -466,7 +546,9 @@ export default function PurchaseOrderDetailPage() {
                                         onChange={e => setNewItemPrice(parseFloat(e.target.value) || 0)}
                                     />
                                 </td>
-                                <td className="px-4 py-3"></td>
+                                <td className="px-4 py-3 text-right text-sm text-gray-900 whitespace-nowrap">
+                                    {formatPKR((Number(newItemQty) || 0) * (Number(newItemPrice) || 0))}
+                                </td>
                                 <td className="px-4 py-3"></td>
                             </tr>
                         )}
@@ -474,7 +556,7 @@ export default function PurchaseOrderDetailPage() {
                     <tfoot className="bg-gray-50 font-semibold">
                         <tr>
                             <td colSpan={3} className="px-4 py-3 text-right text-gray-900">Total Amount:</td>
-                            <td className="px-4 py-3 text-right text-gray-900">${totalAmount.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-right text-gray-900">{formatPKR(totalAmount)}</td>
                             {canEditItems && <td></td>}
                         </tr>
                     </tfoot>

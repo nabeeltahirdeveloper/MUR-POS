@@ -58,6 +58,12 @@ export default function PrintPurchaseOrderPage() {
     const total = items.reduce((sum, i) => sum + (Number(i.qty) * Number(i.pricePerUnit)), 0);
     const supplier = po.supplier || {};
 
+    const fmt = (n: number) =>
+        new Intl.NumberFormat("en-PK", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(Number(n || 0));
+
     return (
         <>
             <style jsx global>{`
@@ -119,7 +125,7 @@ export default function PrintPurchaseOrderPage() {
 
                     <div className="text-center">
                         <div className="text-lg font-bold">Moon Traders</div>
-                        <div className="text-sm">Purchase Order</div>
+                        <div className="text-sm">Purchase Order (PKR)</div>
                     </div>
 
                     <div className="my-3 border-t border-b border-dashed border-gray-400 py-2 text-sm">
@@ -160,8 +166,8 @@ export default function PrintPurchaseOrderPage() {
                                     <div key={idx} className="grid grid-cols-[1fr_4ch_8ch_9ch] gap-2">
                                         <div className="truncate">{it.item?.name || "Unknown Item"}</div>
                                         <div className="text-right">{qty}</div>
-                                        <div className="text-right">{price.toFixed(2)}</div>
-                                        <div className="text-right">{amt.toFixed(2)}</div>
+                                        <div className="text-right">{fmt(price)}</div>
+                                        <div className="text-right">{fmt(amt)}</div>
                                     </div>
                                 );
                             })}
@@ -171,7 +177,7 @@ export default function PrintPurchaseOrderPage() {
                     <div className="mt-3 border-t border-dashed border-gray-400 pt-2 text-sm">
                         <div className="flex justify-between font-bold">
                             <span>TOTAL</span>
-                            <span>{total.toFixed(2)}</span>
+                            <span>PKR {fmt(total)}</span>
                         </div>
                     </div>
 
