@@ -4,10 +4,10 @@ import type { FirestorePurchaseOrder, FirestoreSupplier, FirestorePurchaseOrderI
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
 
         const purchaseOrder = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
 
@@ -64,10 +64,10 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
         const body = await request.json();
         const { supplierId, notes, terms } = body;
 

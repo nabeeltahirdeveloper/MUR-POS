@@ -5,9 +5,9 @@ import type { FirestoreStockLog, FirestoreItem } from "@/types/firestore";
  * Calculates current stock for an item by summing up all stock logs.
  * Returns the quantity in BASE unit.
  */
-export async function calculateCurrentStock(itemId: string): Promise<number> {
+export async function calculateCurrentStock(itemId: string | number): Promise<number> {
     const logs = await queryDocs<FirestoreStockLog>('stock_logs', [
-        { field: 'itemId', operator: '==', value: itemId }
+        { field: 'itemId', operator: '==', value: String(itemId) }
     ]);
 
     let totalStock = 0;
@@ -26,8 +26,8 @@ export async function calculateCurrentStock(itemId: string): Promise<number> {
 /**
  * Checks if an item is low on stock.
  */
-export async function checkLowStock(itemId: string, currentStock?: number): Promise<boolean> {
-    const item = await getDocById<FirestoreItem>('items', itemId);
+export async function checkLowStock(itemId: string | number, currentStock?: number): Promise<boolean> {
+    const item = await getDocById<FirestoreItem>('items', String(itemId));
 
     if (!item || item.minStockLevel === null || item.minStockLevel === undefined) {
         return false;

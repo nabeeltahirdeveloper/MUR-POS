@@ -6,7 +6,7 @@ import { Button } from "../ui/Button";
 
 interface ItemTableProps {
     items: Item[];
-    onDelete?: (id: number) => void;
+    onDelete?: (id: string) => void;
 }
 
 export function ItemTable({ items, onDelete }: ItemTableProps) {
