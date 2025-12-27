@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAllDocs, createDoc } from "@/lib/firestore-helpers";
 import type { FirestoreSupplier } from "@/types/firestore";
 
+export const runtime = "nodejs";
+
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || "";

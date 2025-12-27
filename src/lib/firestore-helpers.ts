@@ -1,10 +1,10 @@
-import { db } from './firebase-admin';
-import { Timestamp, Query, DocumentSnapshot, QuerySnapshot } from 'firebase-admin/firestore';
+import { db, Timestamp } from './firebase-admin';
+import type { firestore } from 'firebase-admin';
 
 /**
  * Convert Firestore Timestamp to JavaScript Date
  */
-export function timestampToDate(timestamp: Timestamp | Date | null | undefined): Date | null {
+export function timestampToDate(timestamp: firestore.Timestamp | Date | null | undefined): Date | null {
     if (!timestamp) return null;
     if (timestamp instanceof Date) return timestamp;
     if (timestamp instanceof Timestamp) return timestamp.toDate();
@@ -14,7 +14,7 @@ export function timestampToDate(timestamp: Timestamp | Date | null | undefined):
 /**
  * Convert JavaScript Date to Firestore Timestamp
  */
-export function dateToTimestamp(date: Date | string | null | undefined): Timestamp | null {
+export function dateToTimestamp(date: Date | string | null | undefined): firestore.Timestamp | null {
     if (!date) return null;
     if (date instanceof Date) return Timestamp.fromDate(date);
     if (typeof date === 'string') return Timestamp.fromDate(new Date(date));
@@ -25,7 +25,7 @@ export function dateToTimestamp(date: Date | string | null | undefined): Timesta
  * Convert Firestore document to plain object with proper type conversions
  */
 export function docToObject<T extends Record<string, any>>(
-    doc: DocumentSnapshot,
+    doc: firestore.DocumentSnapshot,
     options: { convertTimestamps?: boolean; convertDecimals?: boolean } = {}
 ): T & { id: string } {
     const { convertTimestamps = true, convertDecimals = true } = options;
@@ -57,7 +57,7 @@ export function docToObject<T extends Record<string, any>>(
  * Convert array of Firestore documents to array of objects
  */
 export function docsToArray<T extends Record<string, any>>(
-    snapshot: QuerySnapshot,
+    snapshot: firestore.QuerySnapshot,
     options?: { convertTimestamps?: boolean; convertDecimals?: boolean }
 ): (T & { id: string })[] {
     return snapshot.docs.map((doc) => docToObject<T>(doc, options));
@@ -116,7 +116,7 @@ export async function getAllDocs<T extends Record<string, any>>(
     collection: string,
     options?: { orderBy?: string; orderDirection?: 'asc' | 'desc' }
 ): Promise<(T & { id: string })[]> {
-    let query: Query = db.collection(collection);
+    let query: firestore.Query = db.collection(collection);
     
     if (options?.orderBy) {
         query = query.orderBy(options.orderBy, options.orderDirection || 'asc');
@@ -172,7 +172,7 @@ export async function queryDocs<T extends Record<string, any>>(
     filters: Array<{ field: string; operator: '<' | '<=' | '==' | '>' | '>=' | '!=' | 'array-contains' | 'in' | 'array-contains-any'; value: any }>,
     options?: { orderBy?: string; orderDirection?: 'asc' | 'desc'; limit?: number }
 ): Promise<(T & { id: string })[]> {
-    let query: Query = db.collection(collection);
+    let query: firestore.Query = db.collection(collection);
 
     filters.forEach((filter) => {
         query = query.where(filter.field, filter.operator, filter.value);
