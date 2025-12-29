@@ -43,11 +43,16 @@ function LoginForm() {
             }
 
             // Configure sign-in options
+            // Ensure callbackUrl uses the current origin so production doesn't redirect to localhost
+            const resolvedCallbackUrl = callbackUrl && (callbackUrl.startsWith('http://') || callbackUrl.startsWith('https://'))
+                ? callbackUrl
+                : `${typeof window !== 'undefined' ? window.location.origin : ''}${callbackUrl}`;
+
             const signInOptions: any = {
                 redirect: false,
                 email,
                 password,
-                callbackUrl: callbackUrl,
+                callbackUrl: resolvedCallbackUrl,
             };
             
             if (rememberMe) {
