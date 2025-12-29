@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firestore";
 import { queryDocs, getAllDocs, getDocById } from "@/lib/firestore-helpers";
 import { calculateCurrentStock, checkLowStock } from "@/lib/inventory";
+import { getReminderById, reminderDocId, upsertReminder } from "@/lib/reminders";
 import type { FirestoreItem, FirestoreCategory, FirestoreUnit } from "@/types/firestore";
 
 export async function GET(request: NextRequest) {
@@ -45,6 +46,26 @@ export async function GET(request: NextRequest) {
 
                 const currentStock = await calculateCurrentStock(item.id);
                 const isLowStock = await checkLowStock(item.id, currentStock);
+
+                // Keep reminders consistent with the same low-stock flag the UI uses.
+                // This also backfills reminders for already-low items without waiting for cron.
+                if (isLowStock) {
+                    const reminderId = reminderDocId("low_stock", item.id);
+                    const existing = await getReminderById(reminderId);
+                    if (!existing || existing.resolvedAt !== null || !existing.triggered) {
+                        const min = Number(item.minStockLevel ?? 0);
+                        await upsertReminder({
+                            id: reminderId,
+                            type: "low_stock",
+                            source: { collection: "items", id: item.id },
+                            title: `Low stock: ${item.name}`,
+                            message: `Current stock is ${currentStock}. Minimum is ${min}.`,
+                            triggerAt: new Date(),
+                            triggered: true,
+                            resolvedAt: null,
+                        });
+                    }
+                }
 
                 return {
                     ...item,

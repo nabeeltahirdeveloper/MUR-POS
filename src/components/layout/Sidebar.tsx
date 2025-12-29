@@ -17,6 +17,7 @@ import {
     ChevronDownIcon,
     CalendarDaysIcon,
     CalendarIcon,
+    BellAlertIcon,
 } from "@heroicons/react/24/outline";
 
 const navigation = [
@@ -34,6 +35,7 @@ const navigation = [
             { name: "Monthly Summary", href: "/ledger/summary/monthly", icon: CalendarDaysIcon },
         ],
     },
+    { name: "Reminders", href: "/reminders", icon: BellAlertIcon },
 ];
 
 export default function Sidebar({
