@@ -1,11 +1,22 @@
 "use client";
 
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
     Bars3Icon,
     BellIcon,
     MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { reminderTypeLabel } from "@/lib/reminders-shared";
+
+type HeaderReminder = {
+    id: string;
+    type: "low_stock" | "bill_due" | "debt_due";
+    source?: { collection: string; id: string };
+    title: string;
+    message?: string | null;
+};
 
 export default function Header({
     setSidebarOpen,
@@ -13,6 +24,72 @@ export default function Header({
     setSidebarOpen: (open: boolean) => void;
 }) {
     const { data: session, status } = useSession();
+    const [panelOpen, setPanelOpen] = useState(false);
+    const [loadingReminders, setLoadingReminders] = useState(false);
+    const [reminders, setReminders] = useState<HeaderReminder[]>([]);
+    const [remindersError, setRemindersError] = useState<string | null>(null);
+    const panelRef = useRef<HTMLDivElement | null>(null);
+
+    const refreshReminders = async () => {
+        try {
+            setLoadingReminders(true);
+            setRemindersError(null);
+            const res = await fetch("/api/reminders?status=triggered&limit=50");
+            if (!res.ok) throw new Error(`Failed to load reminders (${res.status})`);
+            const data = await res.json();
+            setReminders(Array.isArray(data?.reminders) ? data.reminders : []);
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : "Failed to load reminders";
+            setRemindersError(msg);
+            setReminders([]);
+        } finally {
+            setLoadingReminders(false);
+        }
+    };
+
+    const resolveFromHeader = async (id: string) => {
+        try {
+            await fetch(`/api/reminders/${encodeURIComponent(id)}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ resolved: true }),
+            });
+            await refreshReminders();
+        } catch {
+            // UI will refresh on next poll/open; keep silent.
+        }
+    };
+
+    // Load on mount (if authenticated) and keep fresh.
+    useEffect(() => {
+        if (status !== "authenticated") return;
+        refreshReminders();
+        const t = setInterval(() => refreshReminders(), 60_000);
+        return () => clearInterval(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [status]);
+
+    // Close on outside click / escape.
+    useEffect(() => {
+        if (!panelOpen) return;
+        const onDown = (e: MouseEvent) => {
+            const el = panelRef.current;
+            if (!el) return;
+            if (e.target instanceof Node && !el.contains(e.target)) setPanelOpen(false);
+        };
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setPanelOpen(false);
+        };
+        document.addEventListener("mousedown", onDown);
+        document.addEventListener("keydown", onKey);
+        return () => {
+            document.removeEventListener("mousedown", onDown);
+            document.removeEventListener("keydown", onKey);
+        };
+    }, [panelOpen]);
+
+    const visibleCount = reminders.length;
+    const badgeText = visibleCount >= 50 ? "50+" : String(visibleCount);
 
     return (
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
@@ -50,15 +127,107 @@ export default function Header({
 
                 <div className="flex items-center gap-x-4 lg:gap-x-6">
                     {/* Notification button */}
-                    <button
-                        type="button"
-                        className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative"
-                    >
-                        <span className="sr-only">View notifications</span>
-                        <BellIcon className="h-6 w-6" aria-hidden="true" />
-                        {/* Notification badge */}
-                        <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-                    </button>
+                    <div className="relative" ref={panelRef}>
+                        <button
+                            type="button"
+                            className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative"
+                            onClick={() => {
+                                const next = !panelOpen;
+                                setPanelOpen(next);
+                                if (next && status === "authenticated") refreshReminders();
+                            }}
+                        >
+                            <span className="sr-only">View notifications</span>
+                            <BellIcon className="h-6 w-6" aria-hidden="true" />
+                            {/* Notification badge */}
+                            {visibleCount > 0 && (
+                                <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-semibold flex items-center justify-center ring-2 ring-white">
+                                    {badgeText}
+                                </span>
+                            )}
+                        </button>
+
+                        {panelOpen && (
+                            <div className="absolute right-0 mt-2 w-96 max-w-[90vw] rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+                                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                                    <div className="text-sm font-semibold text-gray-900">Notifications</div>
+                                    <Link
+                                        href="/reminders"
+                                        className="text-xs font-medium text-blue-600 hover:underline"
+                                        onClick={() => setPanelOpen(false)}
+                                    >
+                                        View all
+                                    </Link>
+                                </div>
+
+                                <div className="max-h-96 overflow-y-auto">
+                                    {status !== "authenticated" && (
+                                        <div className="px-4 py-6 text-sm text-gray-500">
+                                            Sign in to view reminders.
+                                        </div>
+                                    )}
+
+                                    {status === "authenticated" && loadingReminders && (
+                                        <div className="px-4 py-6 text-sm text-gray-500">Loading...</div>
+                                    )}
+
+                                    {status === "authenticated" && !loadingReminders && remindersError && (
+                                        <div className="px-4 py-6 text-sm text-red-600">{remindersError}</div>
+                                    )}
+
+                                    {status === "authenticated" && !loadingReminders && !remindersError && reminders.length === 0 && (
+                                        <div className="px-4 py-6 text-sm text-gray-500">
+                                            No active notifications.
+                                        </div>
+                                    )}
+
+                                    {status === "authenticated" &&
+                                        !loadingReminders &&
+                                        !remindersError &&
+                                        reminders.map((r) => (
+                                            <div
+                                                key={r.id}
+                                                className="px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700">
+                                                                {reminderTypeLabel(r.type)}
+                                                            </span>
+                                                            <div className="text-sm font-semibold text-gray-900 truncate">
+                                                                {r.title}
+                                                            </div>
+                                                        </div>
+                                                        {r.message && (
+                                                            <div className="mt-1 text-xs text-gray-600 line-clamp-2">
+                                                                {r.message}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {r.type === "low_stock" && r.source?.id ? (
+                                                        <Link
+                                                            href={`/items/${encodeURIComponent(r.source.id)}/stock`}
+                                                            className="shrink-0 text-xs font-medium text-blue-700 hover:underline"
+                                                            onClick={() => setPanelOpen(false)}
+                                                        >
+                                                            Restock
+                                                        </Link>
+                                                    ) : (
+                                                        <button
+                                                            className="shrink-0 text-xs font-medium text-green-700 hover:underline"
+                                                            onClick={() => resolveFromHeader(r.id)}
+                                                        >
+                                                            Resolve
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Separator */}
                     <div

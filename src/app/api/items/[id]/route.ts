@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDocById } from "@/lib/firestore-helpers";
 import { calculateCurrentStock, checkLowStock } from "@/lib/inventory";
+import { syncLowStockReminderForItem } from "@/lib/reminders";
 import type { FirestoreItem, FirestoreCategory, FirestoreUnit } from "@/types/firestore";
 
 export async function GET(
@@ -67,10 +68,19 @@ export async function PUT(
         if (baseUnitId !== undefined) updateData.baseUnitId = baseUnitId || null;
         if (saleUnitId !== undefined) updateData.saleUnitId = saleUnitId || null;
         if (conversionFactor !== undefined) updateData.conversionFactor = conversionFactor ? Number(conversionFactor) : null;
-        if (minStockLevel !== undefined) updateData.minStockLevel = minStockLevel ? Number(minStockLevel) : null;
+        if (minStockLevel !== undefined) {
+            updateData.minStockLevel = (minStockLevel === null || minStockLevel === "")
+                ? null
+                : Number(minStockLevel);
+        }
 
         const { updateDoc } = await import('@/lib/firestore-helpers');
         await updateDoc<Partial<FirestoreItem>>('items', id, updateData);
+
+        // If threshold changed (or item got updated), sync low-stock reminder immediately.
+        if (minStockLevel !== undefined || name !== undefined) {
+            await syncLowStockReminderForItem(id);
+        }
 
         // Fetch updated item with relations
         const updatedItem = await getDocById<FirestoreItem>('items', id);

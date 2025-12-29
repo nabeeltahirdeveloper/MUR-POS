@@ -1,0 +1,35 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { listReminders } from "@/lib/reminders";
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const statusParam = (searchParams.get("status") || "all").toLowerCase();
+    const status =
+      statusParam === "triggered" || statusParam === "pending" || statusParam === "all"
+        ? (statusParam as "triggered" | "pending" | "all")
+        : "all";
+
+    const limit = Number(searchParams.get("limit") || "20");
+    const cursor = searchParams.get("cursor");
+
+    const result = await listReminders({
+      status,
+      limit: Number.isFinite(limit) ? limit : 20,
+      cursor,
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("[reminders GET] failed:", error);
+    return NextResponse.json({ error: "Failed to fetch reminders" }, { status: 500 });
+  }
+}
+
+

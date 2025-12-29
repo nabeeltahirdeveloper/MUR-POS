@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createDoc } from "@/lib/firestore-helpers";
 import { calculateCurrentStock } from "@/lib/inventory";
+import { syncLowStockReminderForItem } from "@/lib/reminders";
 import type { FirestoreStockLog } from "@/types/firestore";
 
 export async function POST(request: NextRequest) {
@@ -36,6 +37,9 @@ export async function POST(request: NextRequest) {
 
         // Return updated stock
         const currentStock = await calculateCurrentStock(String(itemId));
+
+        // Sync low-stock reminder immediately (so notifications show without waiting for cron)
+        await syncLowStockReminderForItem(String(itemId));
 
         return NextResponse.json({
             message: "Stock added successfully",

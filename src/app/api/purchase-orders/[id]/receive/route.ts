@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDocById, queryDocs, updateDoc, createDoc } from "@/lib/firestore-helpers";
 import { db } from "@/lib/firestore";
 import type { FirestorePurchaseOrder, FirestorePurchaseOrderItem, FirestoreStockLog } from "@/types/firestore";
+import { syncLowStockReminderForItem } from "@/lib/reminders";
 
 export async function POST(
     request: NextRequest,
@@ -57,6 +58,10 @@ export async function POST(
         }
 
         await batch.commit();
+
+        // Sync low-stock reminders for affected items (in case the receive changes low-stock status).
+        const uniqueItemIds = Array.from(new Set(poItems.map((i) => String(i.itemId))));
+        await Promise.all(uniqueItemIds.map((itemId) => syncLowStockReminderForItem(itemId)));
 
         const updatedPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
 
