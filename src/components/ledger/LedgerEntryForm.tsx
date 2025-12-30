@@ -22,6 +22,15 @@ type Item = {
     category?: { name: string };
 };
 
+type CartItem = {
+    tempId: string;
+    item: Item;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+    note?: string; // Additional details if needed
+};
+
 export default function LedgerEntryForm({
     initialData,
 }: {
@@ -34,18 +43,17 @@ export default function LedgerEntryForm({
         (typeParam === "credit" || typeParam === "debit" ? typeParam : initialData?.type) || "debit"
     );
 
-    // Form State
-    const [amount, setAmount] = useState<string>(
-        initialData?.amount?.toString() || ""
-    );
-    const [note, setNote] = useState(initialData?.note || "");
+    // Form Fields
+    const [orderNumber, setOrderNumber] = useState("");
+    const [customerName, setCustomerName] = useState("");
     const [date, setDate] = useState(
         initialData?.date
             ? new Date(initialData.date).toISOString().split("T")[0]
             : new Date().toISOString().split("T")[0]
     );
+    const [time, setTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
 
-    // Item Search State
+    // Item Search
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState<Item[]>([]);
     const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -53,17 +61,23 @@ export default function LedgerEntryForm({
     const [showResults, setShowResults] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
 
-    // Calculations State
+    // Current Line Item State
     const [quantity, setQuantity] = useState<string>("1");
     const [unitPrice, setUnitPrice] = useState<number>(0);
+    const [lineAmount, setLineAmount] = useState<string>("");
 
+    // Cart / Items List
+    const [cartItems, setCartItems] = useState<CartItem[]>([]);
+    const [editingCartId, setEditingCartId] = useState<string | null>(null);
+
+    // General Form State
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [recentTransactions, setRecentTransactions] = useState<LedgerEntry[]>([]);
 
     const isEdit = !!initialData?.id;
 
-    // Close search results on click outside
+    // --- Search Logic ---
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -74,7 +88,6 @@ export default function LedgerEntryForm({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // Item Search Handler
     useEffect(() => {
         const delayDebounceFn = setTimeout(async () => {
             if (searchTerm.length >= 1 && !selectedItem) {
@@ -91,7 +104,7 @@ export default function LedgerEntryForm({
                 } finally {
                     setIsSearching(false);
                 }
-            } else if (searchTerm.length === 0) { // Only clear if empty, 1 char is valid
+            } else if (searchTerm.length === 0) {
                 setSearchResults([]);
                 setShowResults(false);
             }
@@ -100,15 +113,11 @@ export default function LedgerEntryForm({
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm, selectedItem]);
 
-    // Update Price when Type or Item Changes
+    // --- Price Logic ---
     useEffect(() => {
-        if (selectedItem) {
-            // Debit (Out/Expense) usually implies we are buying? 
-            // The user prompt implies: "price of that item shown in the amount field".
-            // Context: Ledger usually tracks money. 
-            // Credit (Money In) -> Sale -> Use Sale Price (firstSalePrice)
-            // Debit (Money Out) -> Expense/Purchase -> Use Purchase Price (secondPurchasePrice)
-
+        if (selectedItem && !editingCartId) { // Only update price automatically if not editing (or we can discuss edit logic)
+            // If editing, we might want to keep the old price, but effectively we load it.
+            // When selecting a NEW item:
             let price = 0;
             if (type === "credit") {
                 price = Number(selectedItem.firstSalePrice || 0);
@@ -117,18 +126,16 @@ export default function LedgerEntryForm({
             }
             setUnitPrice(price);
         }
-    }, [selectedItem, type]);
+    }, [selectedItem, type, editingCartId]);
 
-    // Calculate Total Amount
+    // Calculate Line Amount
     useEffect(() => {
-        if (unitPrice > 0 && quantity) {
-            const qty = parseFloat(quantity);
-            if (!isNaN(qty)) {
-                const total = (qty * unitPrice).toFixed(2);
-                setAmount(total);
-            }
-        }
+        const qty = parseFloat(quantity) || 0;
+        const total = (qty * unitPrice).toFixed(2);
+        setLineAmount(total);
     }, [unitPrice, quantity]);
+
+    // --- Handlers ---
 
     const handleSelectItem = (item: Item) => {
         setSelectedItem(item);
@@ -136,72 +143,153 @@ export default function LedgerEntryForm({
         setShowResults(false);
     };
 
-    const handleClearItem = () => {
+    const handleAddOrUpdateItem = () => {
+        if (!selectedItem) return;
+        if (!quantity || Number(quantity) <= 0) return;
+        if (!lineAmount || Number(lineAmount) <= 0) return;
+
+        const newItem: CartItem = {
+            tempId: editingCartId || Date.now().toString(),
+            item: selectedItem,
+            quantity: Number(quantity),
+            unitPrice: unitPrice,
+            amount: Number(lineAmount),
+        };
+
+        if (editingCartId) {
+            setCartItems(prev => prev.map(i => i.tempId === editingCartId ? newItem : i));
+            setEditingCartId(null);
+        } else {
+            setCartItems(prev => [...prev, newItem]);
+        }
+
+        // Reset Line Item Fields
         setSelectedItem(null);
         setSearchTerm("");
-        setUnitPrice(0);
-        setAmount("");
         setQuantity("1");
+        setUnitPrice(0);
+        setLineAmount("");
+        setEditingCartId(null);
     };
+
+    const handleEditItem = (id: string) => {
+        const itemToEdit = cartItems.find(i => i.tempId === id);
+        if (itemToEdit) {
+            setSelectedItem(itemToEdit.item);
+            setSearchTerm(itemToEdit.item.name);
+            setQuantity(itemToEdit.quantity.toString());
+            setUnitPrice(itemToEdit.unitPrice);
+            setEditingCartId(itemToEdit.tempId);
+        }
+    };
+
+    const handleDeleteItem = (id: string) => {
+        setCartItems(prev => prev.filter(i => i.tempId !== id));
+        if (editingCartId === id) {
+            setEditingCartId(null);
+            setSelectedItem(null);
+            setSearchTerm("");
+            setQuantity("1");
+            setUnitPrice(0);
+            setLineAmount("");
+        }
+    };
+
+    // Receipt State
+    const [showReceipt, setShowReceipt] = useState(false);
+    const [receiptData, setReceiptData] = useState<{
+        customerName: string;
+        orderNumber: string;
+        date: string;
+        time: string;
+        items: CartItem[];
+        total: number;
+    } | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
         setLoading(true);
 
-        if (!amount || Number(amount) <= 0) {
-            setError("Amount must be greater than 0");
+        const itemsToSave = [...cartItems];
+
+        if (itemsToSave.length === 0 && selectedItem && Number(lineAmount) > 0) {
+            itemsToSave.push({
+                tempId: 'single-entry',
+                item: selectedItem,
+                quantity: Number(quantity),
+                unitPrice: unitPrice,
+                amount: Number(lineAmount),
+            });
+        }
+
+        if (itemsToSave.length === 0) {
+            setError("Please add at least one item or fill the transaction details.");
             setLoading(false);
             return;
         }
 
         try {
-            // Construct the final note
-            let finalNote = note;
-            if (selectedItem) {
-                const itemDetails = `Item: ${selectedItem.name} (Qty: ${quantity} @ ${unitPrice})`;
-                finalNote = finalNote ? `${finalNote}\n${itemDetails}` : itemDetails;
-            }
+            const dateTime = new Date(`${date}T${time}`);
+            const promises = itemsToSave.map(cartItem => {
+                const parts = [];
+                if (orderNumber) parts.push(`Order #${orderNumber}`);
+                if (customerName) parts.push(`Customer: ${customerName}`);
+                parts.push(`Item: ${cartItem.item.name} (Qty: ${cartItem.quantity} @ ${cartItem.unitPrice})`);
+                const finalNote = parts.join('\n');
 
-            const payload = {
-                type,
-                amount: Number(amount),
-                categoryId: null, // Category removed as requested
-                note: finalNote,
-                date,
-            };
+                const payload = {
+                    type,
+                    amount: cartItem.amount,
+                    categoryId: null,
+                    note: finalNote,
+                    date: dateTime.toISOString(),
+                };
 
-            const url = isEdit ? `/api/ledger/${initialData.id}` : "/api/ledger";
-            const method = isEdit ? "PUT" : "POST";
+                const url = isEdit && itemsToSave.length === 1 ? `/api/ledger/${initialData!.id}` : "/api/ledger";
+                const method = isEdit && itemsToSave.length === 1 ? "PUT" : "POST";
 
-            const res = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                return fetch(url, {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                }).then(async res => {
+                    if (!res.ok) {
+                        const d = await res.json();
+                        throw new Error(d.error || "Failed");
+                    }
+                    return res.json();
+                });
             });
 
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || "Failed to save entry");
-            }
+            const results = await Promise.all(promises);
 
-            const newEntry = await res.json();
+            // Set Receipt Data BEFORE clearing state
+            setReceiptData({
+                customerName,
+                orderNumber,
+                date,
+                time,
+                items: itemsToSave,
+                total: itemsToSave.reduce((sum, item) => sum + item.amount, 0)
+            });
+            setShowReceipt(true);
 
-            // Add to recent transactions list
-            setRecentTransactions(prev => [newEntry, ...prev]);
+            // Update Recent list
+            setRecentTransactions(prev => [...results.reverse(), ...prev]);
 
-            // Reset Form instead of redirecting
-            setAmount("");
-            setQuantity("1");
-            setUnitPrice(0);
-            setNote("");
-            setSelectedItem(null);
+            // Clear Form
+            setCartItems([]);
+            setOrderNumber("");
+            setCustomerName("");
             setSelectedItem(null);
             setSearchTerm("");
-            setLoading(false);
+            setQuantity("1");
+            setUnitPrice(0);
+            setLineAmount("");
 
-            // Optional: Show success feedback?
-            // For now, the new card appearing at the bottom is the feedback.
+            // Note: We stay on the page to show the receipt, so no router.back() here unless New Transaction is clicked.
+            setLoading(false);
 
         } catch (err: unknown) {
             if (err instanceof Error) {
@@ -213,229 +301,481 @@ export default function LedgerEntryForm({
         }
     };
 
+    // Helper to parse existing notes for printing
+    const parseTransactionNote = (note: string) => {
+        const lines = note.split('\n');
+        let orderNumber = "";
+        let customerName = "";
+        let itemName = "Item";
+        let quantity = 1;
+        let unitPrice = 0;
+
+        lines.forEach(line => {
+            if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
+            else if (line.startsWith("Customer: ")) customerName = line.replace("Customer: ", "").trim();
+            else if (line.startsWith("Item: ")) {
+                // Item: Name (Qty: X @ Y)
+                const match = line.match(/Item: (.*) \(Qty: (\d+) @ (.*)\)/);
+                if (match) {
+                    itemName = match[1];
+                    quantity = Number(match[2]);
+                    unitPrice = Number(match[3]);
+                } else {
+                    itemName = line.replace("Item: ", "").trim();
+                }
+            }
+        });
+
+        return { orderNumber, customerName, itemName, quantity, unitPrice };
+    };
+
+    const handlePrintHistory = (tx: LedgerEntry) => {
+        const { orderNumber, customerName, itemName, quantity, unitPrice } = parseTransactionNote(tx.note);
+
+        // Reconstruct item for receipt
+        const item: CartItem = {
+            tempId: tx.id?.toString() || 'history',
+            item: { id: 'history', name: itemName },
+            quantity: quantity,
+            unitPrice: unitPrice || Number(tx.amount), // Fallback if parse fails
+            amount: Number(tx.amount)
+        };
+
+        setReceiptData({
+            customerName,
+            orderNumber,
+            date: tx.date.split('T')[0],
+            time: new Date(tx.date).toLocaleTimeString(),
+            items: [item],
+            total: Number(tx.amount)
+        });
+        setShowReceipt(true);
+    };
+
+    // Calculate Grand Total
+    const grandTotal = cartItems.reduce((acc, curr) => acc + curr.amount, 0) + ((itemsToSave => itemsToSave.length === 0 && selectedItem ? Number(lineAmount) : 0)(cartItems));
+    const displayTotal = cartItems.reduce((acc, curr) => acc + curr.amount, 0);
+
+    // --- Render Receipt View ---
+    // Scroll to receipt when it appears
+    const receiptRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (showReceipt && receiptRef.current) {
+            receiptRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [showReceipt]);
+
     return (
-        <div className="max-w-3xl mx-auto space-y-8">
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-                {/* Header */}
-                <div className={`px-8 py-6 ${type === 'credit' ? 'bg-emerald-600' : 'bg-red-600'} transition-colors duration-300`}>
-                    <h2 className="text-2xl font-bold text-white">
-                        {isEdit ? "Edit Transaction" : `New ${type === 'credit' ? 'Credit (In)' : 'Debit (Out)'} Entry`}
+        <div className="w-full min-h-[85vh] flex flex-col gap-4">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex-1 flex flex-col print:hidden">
+                {/* Header Row */}
+                <div className={`px-8 py-5 ${type === 'credit' ? 'bg-gradient-to-r from-emerald-600 to-emerald-500' : 'bg-gradient-to-r from-red-600 to-red-500'} flex flex-wrap items-center justify-between gap-4`}>
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                        {isEdit ? "Edit Transaction" : (type === 'credit' ? 'Credit Sale Entry' : 'Debit Entry')}
                     </h2>
-                    <p className="text-white/80 text-sm mt-1">
-                        Enter the details of the transaction below.
-                    </p>
+
+                    {/* Row 1: Order Number */}
+                    <div className="flex items-center gap-3">
+                        <label className="text-white/90 text-sm font-semibold">Order #</label>
+                        <input
+                            type="text"
+                            value={orderNumber}
+                            onChange={(e) => setOrderNumber(e.target.value)}
+                            className="bg-white/20 border border-white/30 text-white placeholder-white/70 text-sm rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 w-36 transition-all"
+                            placeholder="Auto"
+                        />
+                    </div>
                 </div>
 
-                <div className="p-8">
+                <div className="p-6 flex-1 flex flex-col">
                     {error && (
-                        <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 flex items-center shadow-sm">
-                            <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {error}
+                        <div className="mb-8 p-4 bg-red-50 text-red-600 rounded-xl border border-gray-100 flex items-center shadow-sm animate-pulse-fast">
+                            <span className="mr-2 text-xl">⚠️</span> {error}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-8">
-                        {/* Top Section: Search & Date */}
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                            {/* Search Bar - Larger Width */}
-                            <div className="md:col-span-8 relative" ref={searchRef}>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-2">
+
+                        {/* Row 2: Customer Name | Date | Time */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                            {/* Customer Search */}
+                            <div className="md:col-span-6 relative">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Customer / Payee</label>
+                                <div className="relative group">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-blue-500 transition-colors">
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                         </svg>
                                     </span>
                                     <input
                                         type="text"
-                                        value={searchTerm}
-                                        onChange={(e) => {
-                                            setSearchTerm(e.target.value);
-                                            if (selectedItem && e.target.value !== selectedItem.name) {
-                                                setSelectedItem(null); // Reset selection if typing
-                                            }
-                                        }}
-                                        onFocus={() => {
-                                            if (searchTerm.length >= 1) setShowResults(true);
-                                        }}
-                                        placeholder="Search for items..."
-                                        className="w-full pl-11 pr-10 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm text-gray-800 placeholder-gray-400"
+                                        value={customerName}
+                                        onChange={(e) => setCustomerName(e.target.value)}
+                                        placeholder="Search Customer..."
+                                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
                                     />
-                                    {selectedItem && (
-                                        <button
-                                            type="button"
-                                            onClick={handleClearItem}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                        >
-                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                    )}
                                 </div>
-
-                                {/* Search Results Dropdown */}
-                                {showResults && (
-                                    <div className="absolute z-10 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto">
-                                        {isSearching ? (
-                                            <div className="p-4 text-center text-gray-500 text-sm">Searching...</div>
-                                        ) : searchResults.length > 0 ? (
-                                            <ul className="py-2">
-                                                {searchResults.map((item) => (
-                                                    <li
-                                                        key={item.id}
-                                                        onClick={() => handleSelectItem(item)}
-                                                        className="px-4 py-3 hover:bg-gray-50 cursor-pointer flex justify-between items-center group transition-colors"
-                                                    >
-                                                        <div>
-                                                            <p className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
-                                                                {item.name}
-                                                            </p>
-                                                        </div>
-                                                        <div className="text-right text-sm">
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                                {item.category?.name || "Uncategorized"}
-                                                            </span>
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        ) : (
-                                            <div className="p-4 text-center text-gray-500 text-sm">No items found</div>
-                                        )}
-                                    </div>
-                                )}
                             </div>
 
-                            {/* Date Field - Smaller Width, Next to Search */}
-                            <div className="md:col-span-4">
+                            {/* Date */}
+                            <div className="md:col-span-3">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Date</label>
                                 <input
                                     type="date"
                                     value={date}
                                     onChange={(e) => setDate(e.target.value)}
-                                    className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all shadow-sm h-full"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                />
+                            </div>
+
+                            {/* Time */}
+                            <div className="md:col-span-3">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Time</label>
+                                <input
+                                    type="time"
+                                    value={time}
+                                    onChange={(e) => setTime(e.target.value)}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
                                 />
                             </div>
                         </div>
 
-                        {/* Quantity & Amount Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 rounded-xl border border-slate-100">
-                            <div className="relative">
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                                    Quantity
-                                </label>
-                                <input
-                                    type="number"
-                                    value={quantity}
-                                    onChange={(e) => setQuantity(e.target.value)}
-                                    min="1"
-                                    step="any"
-                                    className="w-full p-3 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all font-medium text-lg text-slate-700"
-                                    placeholder="1"
-                                />
-                            </div>
+                        {/* Row 3: Item Search | Qty | Amount | Actions */}
+                        {/* Removed background, added equal spacing */}
+                        <div className="pt-2"> {/* Optional spacing wrapper */}
+                            <div className="flex flex-col md:flex-row gap-4 items-end">
+                                {/* Item Search */}
+                                <div className="w-full md:flex-1 relative" ref={searchRef}>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Item Search</label>
+                                    <input
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => {
+                                            setSearchTerm(e.target.value);
+                                            if (selectedItem && e.target.value !== selectedItem.name) setSelectedItem(null);
+                                        }}
+                                        onFocus={() => { if (searchTerm.length >= 1) setShowResults(true); }}
+                                        placeholder="Scan or Type Item..."
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                    />
+                                    {/* Dropdown Results */}
+                                    {showResults && (
+                                        <div className="absolute z-30 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto ring-1 ring-black/5">
+                                            {isSearching ? <div className="p-4 text-center text-sm text-gray-500">Searching...</div> :
+                                                searchResults.length > 0 ? (
+                                                    <ul>{searchResults.map(item => (
+                                                        <li key={item.id} onClick={() => handleSelectItem(item)} className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm flex justify-between items-center group transition-colors border-b border-gray-50 last:border-0">
+                                                            <span className="font-medium text-gray-700 group-hover:text-blue-600">{item.name}</span>
+                                                            <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded-full text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">{item.category?.name}</span>
+                                                        </li>
+                                                    ))}</ul>
+                                                ) : <div className="p-4 text-center text-sm text-gray-500">No items found</div>}
+                                        </div>
+                                    )}
+                                </div>
 
-                            <div className="relative">
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                                    Total Amount
-                                </label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">Rs.</span>
+                                {/* Qty */}
+                                <div className="w-full md:w-32">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
                                     <input
                                         type="number"
-                                        value={amount}
-                                        onChange={(e) => setAmount(e.target.value)}
-                                        step="0.01"
-                                        min="0"
-                                        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all font-bold text-lg text-slate-800"
-                                        placeholder="0.00"
+                                        value={quantity}
+                                        onChange={(e) => setQuantity(e.target.value)}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center"
                                     />
+                                </div>
+
+                                {/* Amount */}
+                                <div className="w-full md:w-56">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Amount</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rs.</span>
+                                        <input
+                                            type="number"
+                                            value={lineAmount}
+                                            onChange={(e) => setLineAmount(e.target.value)}
+                                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm font-bold text-lg text-gray-800"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="w-full md:w-auto md:shrink-0 flex items-end justify-end">
+                                    {editingCartId ? (
+                                        <div className="flex gap-2 w-full md:w-auto">
+                                            <button type="button" onClick={handleAddOrUpdateItem} className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-medium text-sm transition-all shadow-md active:scale-95 whitespace-nowrap">
+                                                Update
+                                            </button>
+                                            <button type="button" onClick={() => {
+                                                setEditingCartId(null);
+                                                setSelectedItem(null);
+                                                setSearchTerm("");
+                                                setQuantity("1");
+                                                setUnitPrice(0);
+                                                setLineAmount("");
+                                            }} className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-3 rounded-xl transition-all shadow-sm">
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button type="button" onClick={handleAddOrUpdateItem} className="w-full md:w-auto px-8 bg-slate-900 hover:bg-black text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 group whitespace-nowrap">
+                                            <div className="bg-white/20 rounded-full p-1 group-hover:bg-white/30 transition-colors">
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                            </div>
+                                            ADD ITEM
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Note Section (Date moved up) */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Note / Description
-                            </label>
-                            <textarea
-                                value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                                placeholder="Add any details here..."
-                                className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all shadow-sm min-h-[50px] resize-y"
-                                rows={2}
-                            />
-                        </div>
+                        {/* Cart Items List */}
+                        {cartItems.length > 0 && (
+                            <div className="border border-gray-100 rounded-xl overflow-hidden overflow-x-auto">
+                                <table className="w-full text-sm text-left min-w-[600px]">
+                                    <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-4 py-3">Item</th>
+                                            <th className="px-4 py-3 text-center">Qty</th>
+                                            <th className="px-4 py-3 text-right">Price</th>
+                                            <th className="px-4 py-3 text-right">Amount</th>
+                                            <th className="px-4 py-3 text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {cartItems.map((item) => (
+                                            <tr key={item.tempId} className="hover:bg-blue-50/50 transition-colors">
+                                                <td className="px-4 py-3 font-medium text-gray-800">{item.item.name}</td>
+                                                <td className="px-4 py-3 text-center">{item.quantity}</td>
+                                                <td className="px-4 py-3 text-right text-gray-500">{item.unitPrice}</td>
+                                                <td className="px-4 py-3 text-right font-bold text-gray-800">{item.amount.toLocaleString()}</td>
+                                                <td className="px-4 py-3 text-center space-x-2">
+                                                    <button type="button" onClick={() => handleEditItem(item.tempId)} className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-100 rounded">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                    </button>
+                                                    <button type="button" onClick={() => handleDeleteItem(item.tempId)} className="text-red-600 hover:text-red-800 p-1 hover:bg-red-100 rounded">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="bg-gray-50 border-t border-gray-100">
+                                        <tr>
+                                            <td colSpan={3} className="px-4 py-3 text-right font-bold text-gray-600">Total:</td>
+                                            <td className="px-4 py-3 text-right font-bold text-lg text-emerald-600">{displayTotal.toLocaleString()}</td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        )}
 
-                        {/* Actions */}
-                        <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-4">
-                            <button
-                                type="button"
-                                onClick={() => router.back()}
-                                className="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                                Cancel
-                            </button>
+                        {/* Bottom Right SAVE OPTIONS */}
+                        <div className="flex justify-end pt-4 gap-3 mt-auto">
+                            {/* Optional: Print or other options */}
+                            {/* <button type="button" className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">draft</button> */}
+
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`px-8 py-2.5 rounded-lg font-semibold text-white shadow-lg shadow-blue-500/30 transition-all transform active:scale-95 ${loading
-                                    ? "bg-blue-400 cursor-not-allowed"
-                                    : "bg-blue-600 hover:bg-blue-700"
-                                    }`}
+                                className={`w-full md:w-auto px-8 py-3 rounded-lg font-semibold text-white shadow-lg shadow-emerald-500/30 transition-all transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700"}`}
                             >
-                                {loading ? (
-                                    <span className="flex items-center gap-2">
-                                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                        </svg>
-                                        Saving...
-                                    </span>
-                                ) : (
-                                    "Save Transaction"
-                                )}
+                                {loading && <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>}
+                                {isEdit ? 'Update Transaction' : 'Save Transaction'}
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            {/* Recent Transactions List */}
-            {recentTransactions.length > 0 && (
-                <div className="mt-8">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4 px-2">Recent Transactions</h3>
-                    <div className="space-y-4">
-                        {recentTransactions.map((tx, index) => (
-                            <div key={tx.id || index} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between animate-fadeIn">
-                                <div className="flex items-center gap-4">
-                                    <div className={`p-3 rounded-full ${tx.type === 'credit' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                                        {tx.type === 'credit' ? (
-                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
-                                            </svg>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-gray-900">
-                                            {tx.note ? tx.note.split('\n')[0] : (tx.type === 'credit' ? 'Income' : 'Expense')}
-                                        </p>
-                                        <p className="text-sm text-gray-500">
-                                            {new Date(tx.date).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className={`text-lg font-bold ${tx.type === 'credit' ? 'text-emerald-600' : 'text-red-600'}`}>
-                                    {tx.type === 'credit' ? '+' : '-'} {Number(tx.amount).toLocaleString()}
+            {/* RECEIPT VIEW (Appears at Bottom - Thermal Printer Style) */}
+            {showReceipt && receiptData && (
+                <div ref={receiptRef} className="mt-8 mb-16 animate-slide-in-up flex flex-col items-center">
+                    {/* Thermal Receipt Container */}
+                    <div className="bg-white p-4 shadow-xl max-w-[350px] w-full print:shadow-none print:max-w-none print:w-[80mm] print:mx-auto font-mono text-xs font-bold uppercase text-black leading-tight">
+
+                        {/* Header */}
+                        <div className="flex flex-col items-center mb-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <svg className="w-6 h-6 text-black transform -rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                <h1 className="text-xl font-black tracking-tight">Moon Traders</h1>
+                            </div>
+                            <p className="text-[10px] tracking-widest border-b border-black w-full text-center pb-1 mb-1">PURCHASE ORDER</p>
+                            <div className="w-full border-t border-black"></div>
+                        </div>
+
+                        {/* QR Code */}
+                        <div className="flex justify-center mb-6">
+                            <div className="p-1">
+                                <div className="w-24 h-24 bg-black/10 flex items-center justify-center border-2 border-black/10">
+                                    <svg className="w-24 h-24 text-black" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 15h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v2h-3v-2zm-3 2h2v2h-2v-2zm-3 2h2v2h-2v-2zm3 2h3v2h-3v-2zM15 3h2v2h-2V3zm-6 8h2v2H9v-2zm6 0h2v2h-2v-2zm-6 4h2v2H9v-2zm2-2h2v2h-2v-2zm-4 4H5v2h2v-2z" /></svg>
                                 </div>
                             </div>
-                        ))}
+                        </div>
+
+                        {/* Date / Time / Status */}
+                        <div className="mb-3 space-y-1.5 font-bold">
+                            <div className="flex justify-between">
+                                <span>Date:</span>
+                                <span>{new Date(receiptData.date).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Time:</span>
+                                <span>{receiptData.time}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Status:</span>
+                                <span>RECEIVED</span>
+                            </div>
+                        </div>
+
+                        <div className="border-b border-black mb-3"></div>
+
+                        {/* Customer Info */}
+                        <div className="mb-3 space-y-1.5 font-bold">
+                            <div className="flex justify-between">
+                                <span>Name:</span>
+                                <span className="text-right max-w-[65%] truncate">{receiptData.customerName || 'Walk-in'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Contact:</span>
+                                <span>{receiptData.orderNumber || '-'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Detail:</span>
+                                <span className="text-right max-w-[65%] truncate">-</span>
+                            </div>
+                        </div>
+
+                        <div className="border-b border-black mb-1"></div>
+                        <div className="border-b border-black mb-3"></div>
+
+                        {/* Items Table */}
+                        <table className="w-full mb-3">
+                            <thead>
+                                <tr className="text-left border-b border-black">
+                                    <th className="pb-2 w-[35%]">ITEM</th>
+                                    <th className="pb-2 text-center w-[15%]">QTY</th>
+                                    <th className="pb-2 text-right w-[20%]">PRICE</th>
+                                    <th className="pb-2 text-right w-[30%]">AMT</th>
+                                </tr>
+                            </thead>
+                            <tbody className="">
+                                {receiptData.items.map((item, idx) => (
+                                    <tr key={idx} className="align-top">
+                                        <td className="py-1.5 pr-1 font-bold truncate max-w-[80px]">{item.item.name}</td>
+                                        <td className="py-1.5 text-center">{item.quantity}</td>
+                                        <td className="py-1.5 text-right">{item.unitPrice.toFixed(2)}</td>
+                                        <td className="py-1.5 text-right">{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        <div className="border-t border-black mb-1"></div>
+                        <div className="border-t border-black mb-3"></div>
+
+                        {/* Totals */}
+                        <div className="flex justify-between items-center text-sm font-black mb-3">
+                            <span>TOTAL</span>
+                            <span>PKR {receiptData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+
+                        <div className="border-b border-black mb-3"></div>
+
+                        {/* Notes & Terms */}
+                        <div className="mb-6 space-y-2 font-bold">
+                            <div className="flex justify-between">
+                                <span>Notes:</span>
+                                <span className="text-right">something</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Terms:</span>
+                                <span className="text-right">nothing</span>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="text-center text-[10px] mb-6 flex items-center justify-center gap-2">
+                            <span>- - -</span> <span>END</span> <span>- - -</span>
+                        </div>
+
+                        {/* On-Screen Only Actions */}
+                        <div className="print:hidden flex flex-col gap-2 mt-4 border-t border-gray-200 pt-4">
+                            <button
+                                onClick={() => window.print()}
+                                className="w-full bg-black text-white py-2 rounded font-bold hover:bg-gray-800 transition-colors"
+                            >
+                                Print Receipt
+                            </button>
+                            <button
+                                onClick={() => { setShowReceipt(false); setReceiptData(null); }}
+                                className="w-full bg-gray-200 text-black py-2 rounded font-bold hover:bg-gray-300 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Recent Transactions (Detailed Table) */}
+            {recentTransactions.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col print:hidden mt-4 mb-12">
+                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                        <h3 className="text-lg font-bold text-gray-800">Recent Transactions</h3>
+                        <span className="text-xs font-medium text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200">Session History</span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100 uppercase text-xs tracking-wider">
+                                <tr>
+                                    <th className="px-6 py-3">Customer</th>
+                                    <th className="px-6 py-3">Date & Time</th>
+                                    <th className="px-6 py-3">Item</th>
+                                    <th className="px-6 py-3 text-center">Qty</th>
+                                    <th className="px-6 py-3 text-right">Amount</th>
+                                    <th className="px-6 py-3 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {recentTransactions.map((tx, i) => {
+                                    const { itemName, customerName, quantity } = parseTransactionNote(tx.note);
+                                    return (
+                                        <tr key={tx.id || i} className="hover:bg-blue-50/30 transition-colors group">
+                                            <td className="px-6 py-4 font-semibold text-gray-700">
+                                                {customerName || 'Walk-in'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                                                <div>{new Date(tx.date).toLocaleDateString()}</div>
+                                                <div className="text-xs text-gray-400">{new Date(tx.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-900 font-medium">
+                                                {itemName}
+                                            </td>
+                                            <td className="px-6 py-4 text-center text-gray-600">
+                                                {quantity}
+                                            </td>
+                                            <td className={`px-6 py-4 text-right font-bold ${tx.type === 'credit' ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                {Number(tx.amount).toLocaleString()}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <button
+                                                    onClick={() => handlePrintHistory(tx)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-800 hover:text-white text-gray-700 rounded-lg text-xs font-bold transition-all shadow-sm"
+                                                    title="Print Receipt"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                                                    Print
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             )}

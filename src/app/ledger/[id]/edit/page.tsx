@@ -33,7 +33,7 @@ export default function EditLedgerEntryPage() {
 
     return (
         <DashboardLayout>
-            <div className="max-w-2xl mx-auto">
+            <div className="w-full h-full">
                 {loading ? (
                     <LoadingSpinner />
                 ) : entry ? (
