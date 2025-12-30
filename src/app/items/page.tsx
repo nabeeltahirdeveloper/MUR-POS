@@ -66,7 +66,7 @@ export default function ItemsPage() {
                     <Link href="/items/new">
                         <Button>
                             <PlusIcon className="h-5 w-5 mr-2" />
-                            Add Item
+                            Add
                         </Button>
                     </Link>
                 </div>
