@@ -57,6 +57,8 @@ export async function PUT(
             saleUnitId,
             conversionFactor,
             minStockLevel,
+            firstSalePrice,
+            secondPurchasePrice,
         } = body;
 
         // TODO: Add check if we can change units safely if stock exists?
@@ -72,6 +74,12 @@ export async function PUT(
             updateData.minStockLevel = (minStockLevel === null || minStockLevel === "")
                 ? null
                 : Number(minStockLevel);
+        }
+        if (firstSalePrice !== undefined) {
+            updateData.firstSalePrice = (firstSalePrice === null || firstSalePrice === "") ? null : Number(firstSalePrice);
+        }
+        if (secondPurchasePrice !== undefined) {
+            updateData.secondPurchasePrice = (secondPurchasePrice === null || secondPurchasePrice === "") ? null : Number(secondPurchasePrice);
         }
 
         const { updateDoc } = await import('@/lib/firestore-helpers');
