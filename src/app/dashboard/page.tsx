@@ -152,7 +152,7 @@ export default function DashboardPage() {
                                 <BanknotesIcon className="h-8 w-8 text-white" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-semibold text-white">Add Entry</h2>
+                                <h2 className="text-lg font-semibold text-white">Make Bill</h2>
                                 <p className="text-sm text-white/80">Record a new transaction</p>
                             </div>
                         </div>
@@ -173,14 +173,14 @@ export default function DashboardPage() {
                                     className="flex flex-col items-center justify-center p-6 rounded-xl bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-100 transition-all group"
                                 >
                                     <ArrowTrendingUpIcon className="h-10 w-10 text-emerald-600 mb-3 group-hover:scale-110 transition-transform" />
-                                    <span className="font-bold text-emerald-700">Credit (In)</span>
+                                    <span className="font-bold text-emerald-700">Cash (In)</span>
                                 </button>
                                 <button
                                     onClick={() => router.push("/ledger/new?type=debit")}
                                     className="flex flex-col items-center justify-center p-6 rounded-xl bg-red-50 border-2 border-red-100 hover:border-red-500 hover:bg-red-100 transition-all group"
                                 >
                                     <ArrowTrendingDownIcon className="h-10 w-10 text-red-600 mb-3 group-hover:scale-110 transition-transform" />
-                                    <span className="font-bold text-red-700">Debit (Out)</span>
+                                    <span className="font-bold text-red-700">Cash (Out)</span>
                                 </button>
                             </div>
                             <div className="p-4 bg-gray-50 text-center">
