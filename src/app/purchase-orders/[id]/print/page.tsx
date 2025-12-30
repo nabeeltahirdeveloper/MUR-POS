@@ -180,7 +180,7 @@ export default function PrintPurchaseOrderPage() {
 
                     <div className="text-base mb-3 border-t-2 border-gray-800 pt-2 text-gray-900">
                         <div className="flex justify-between mb-1">
-                            <span className="font-bold">Supplier:</span>
+                            <span className="font-bold">Name:</span>
                             <span className="font-semibold text-right">{supplier.name || "—"}</span>
                         </div>
                         {supplier.phone && (
@@ -191,7 +191,7 @@ export default function PrintPurchaseOrderPage() {
                         )}
                         {supplier.address && (
                             <div className="flex justify-between">
-                                <span className="font-bold">Address:</span>
+                                <span className="font-bold">Detail:</span>
                                 <span className="whitespace-pre-wrap text-sm font-semibold text-right">{supplier.address}</span>
                             </div>
                         )}
@@ -233,14 +233,18 @@ export default function PrintPurchaseOrderPage() {
                         <div className="mt-3 border-t-2 border-gray-800 pt-2 text-sm font-semibold text-gray-900">
                             {po.notes ? (
                                 <div className="mb-2">
-                                    <div className="font-bold text-base">NOTES</div>
-                                    <div className="whitespace-pre-wrap text-sm">{po.notes}</div>
+                                    <div className="flex justify-between items-start">
+                                        <span className="font-bold">Notes:</span>
+                                        <span className="whitespace-pre-wrap text-sm text-right">{po.notes}</span>
+                                    </div>
                                 </div>
                             ) : null}
                             {po.terms ? (
                                 <div>
-                                    <div className="font-bold text-base">TERMS</div>
-                                    <div className="whitespace-pre-wrap text-sm">{po.terms}</div>
+                                    <div className="flex justify-between items-start">
+                                        <span className="font-bold">Terms:</span>
+                                        <span className="whitespace-pre-wrap text-sm text-right">{po.terms}</span>
+                                    </div>
                                 </div>
                             ) : null}
                         </div>
