@@ -17,6 +17,8 @@ export interface Item {
     saleUnitId: string | null;
     conversionFactor: number;
     minStockLevel: number | null;
+    firstSalePrice?: number | null;
+    secondPurchasePrice?: number | null;
     createdAt: string;
 
     category?: Category;

@@ -98,6 +98,8 @@ export async function POST(request: NextRequest) {
             saleUnitId,
             conversionFactor,
             minStockLevel,
+            firstSalePrice,
+            secondPurchasePrice,
         } = body;
 
         if (!name || !baseUnitId || !saleUnitId) {
@@ -114,6 +116,8 @@ export async function POST(request: NextRequest) {
             saleUnitId: saleUnitId || null,
             conversionFactor: conversionFactor ? Number(conversionFactor) : 1,
             minStockLevel: minStockLevel ? Number(minStockLevel) : 0,
+            firstSalePrice: firstSalePrice !== undefined && firstSalePrice !== null ? Number(firstSalePrice) : null,
+            secondPurchasePrice: secondPurchasePrice !== undefined && secondPurchasePrice !== null ? Number(secondPurchasePrice) : null,
             createdAt: new Date(),
         };
 

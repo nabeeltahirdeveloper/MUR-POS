@@ -41,6 +41,8 @@ export interface FirestoreItem {
     saleUnitId?: string | null;
     conversionFactor?: number | null;
     minStockLevel?: number | null;
+    firstSalePrice?: number | null;
+    secondPurchasePrice?: number | null;
     createdAt: Date | any;
 }
 
