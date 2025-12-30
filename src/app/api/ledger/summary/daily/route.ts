@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db, Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById } from "@/lib/firestore-helpers";
-import type { FirestoreLedger, FirestoreLedgerCategory } from "@/types/firestore";
+import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -39,9 +39,14 @@ export async function GET(req: NextRequest) {
         // Fetch categories for entries
         const entriesWithCategories = await Promise.all(
             entries.map(async (entry) => {
-                const category = entry.categoryId 
-                    ? await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId)
-                    : null;
+                let category: FirestoreLedgerCategory | FirestoreCategory | null = null;
+                if (entry.categoryId) {
+                    category = await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId);
+                    if (!category) {
+                        // If not found in ledger categories, check inventory categories
+                        category = await getDocById<FirestoreCategory>('categories', entry.categoryId);
+                    }
+                }
                 return {
                     ...entry,
                     category,

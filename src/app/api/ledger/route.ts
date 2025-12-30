@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById, getAllDocs } from "@/lib/firestore-helpers";
-import type { FirestoreLedger, FirestoreLedgerCategory } from "@/types/firestore";
+import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -119,9 +119,13 @@ export async function GET(req: NextRequest) {
         // Fetch categories for entries
         const entriesWithCategories = await Promise.all(
             paginatedEntries.map(async (entry) => {
-                const category = entry.categoryId
-                    ? await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId)
-                    : null;
+                let category: FirestoreLedgerCategory | FirestoreCategory | null = null;
+                if (entry.categoryId) {
+                    category = await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId);
+                    if (!category) {
+                        category = await getDocById<FirestoreCategory>('categories', entry.categoryId);
+                    }
+                }
                 return {
                     ...entry,
                     category,
@@ -190,7 +194,12 @@ export async function POST(req: NextRequest) {
         // Category is now optional
         if (categoryId) {
             // Verify category exists if provided
-            const categoryExists = await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId);
+            let categoryExists: boolean = !!(await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
+
+            if (!categoryExists) {
+                // Check inventory categories
+                categoryExists = !!(await getDocById<FirestoreCategory>('categories', categoryId));
+            }
 
             if (!categoryExists) {
                 return NextResponse.json(
