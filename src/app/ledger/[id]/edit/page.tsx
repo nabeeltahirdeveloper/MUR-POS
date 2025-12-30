@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import LedgerEntryForm from "@/components/ledger/LedgerEntryForm";
 import { useParams } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -37,7 +37,9 @@ export default function EditLedgerEntryPage() {
                 {loading ? (
                     <LoadingSpinner />
                 ) : entry ? (
-                    <LedgerEntryForm initialData={entry} />
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <LedgerEntryForm initialData={entry} />
+                    </Suspense>
                 ) : (
                     <div className="text-center py-12 text-gray-500">Entry not found</div>
                 )}

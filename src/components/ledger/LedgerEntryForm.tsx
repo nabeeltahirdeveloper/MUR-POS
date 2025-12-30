@@ -8,7 +8,7 @@ type LedgerEntry = {
     id?: number;
     type: "debit" | "credit";
     amount: number | string;
-    categoryId: string;
+    categoryId: string | null;
     note: string;
     date: string;
 };
@@ -19,6 +19,7 @@ type Item = {
     firstSalePrice?: number;
     secondPurchasePrice?: number;
     currentStock?: number;
+    categoryId?: string;
     category?: { name: string };
 };
 
@@ -74,6 +75,37 @@ export default function LedgerEntryForm({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [recentTransactions, setRecentTransactions] = useState<LedgerEntry[]>([]);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    useEffect(() => {
+        const saved = sessionStorage.getItem("recentTransactions");
+        if (saved) {
+            try {
+                setRecentTransactions(JSON.parse(saved));
+            } catch (e) {
+                console.error("Failed to parse recent transactions", e);
+            }
+        }
+        setIsLoaded(true);
+
+        // Fetch Next Order Number
+        if (!initialData?.id) {
+            fetch('/api/ledger/next-order')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.nextOrderNumber) {
+                        setOrderNumber(data.nextOrderNumber.toString());
+                    }
+                })
+                .catch(err => console.error("Failed to fetch next order number", err));
+        }
+    }, [initialData?.id]);
+
+    useEffect(() => {
+        if (isLoaded) {
+            sessionStorage.setItem("recentTransactions", JSON.stringify(recentTransactions));
+        }
+    }, [recentTransactions, isLoaded]);
 
     const isEdit = !!initialData?.id;
 
@@ -195,6 +227,22 @@ export default function LedgerEntryForm({
         }
     };
 
+    const handleDeleteRecentTransaction = async (id: number) => {
+        if (!confirm("Delete this transaction?")) return;
+        try {
+            const res = await fetch(`/api/ledger/${id}`, { method: "DELETE" });
+            if (res.ok) {
+                // Update local state and (implicitly) session storage via existing useEffect
+                setRecentTransactions(prev => prev.filter(tx => tx.id !== id));
+            } else {
+                alert("Failed to delete transaction");
+            }
+        } catch (error) {
+            console.error("Error deleting transaction:", error);
+            alert("Error deleting transaction");
+        }
+    };
+
     // Receipt State
     const [showReceipt, setShowReceipt] = useState(false);
     const [receiptData, setReceiptData] = useState<{
@@ -241,7 +289,7 @@ export default function LedgerEntryForm({
                 const payload = {
                     type,
                     amount: cartItem.amount,
-                    categoryId: null,
+                    categoryId: cartItem.item.categoryId || null,
                     note: finalNote,
                     date: dateTime.toISOString(),
                 };
@@ -263,17 +311,6 @@ export default function LedgerEntryForm({
             });
 
             const results = await Promise.all(promises);
-
-            // Set Receipt Data BEFORE clearing state
-            setReceiptData({
-                customerName,
-                orderNumber,
-                date,
-                time,
-                items: itemsToSave,
-                total: itemsToSave.reduce((sum, item) => sum + item.amount, 0)
-            });
-            setShowReceipt(true);
 
             // Update Recent list
             setRecentTransactions(prev => [...results.reverse(), ...prev]);
@@ -329,28 +366,7 @@ export default function LedgerEntryForm({
         return { orderNumber, customerName, itemName, quantity, unitPrice };
     };
 
-    const handlePrintHistory = (tx: LedgerEntry) => {
-        const { orderNumber, customerName, itemName, quantity, unitPrice } = parseTransactionNote(tx.note);
 
-        // Reconstruct item for receipt
-        const item: CartItem = {
-            tempId: tx.id?.toString() || 'history',
-            item: { id: 'history', name: itemName },
-            quantity: quantity,
-            unitPrice: unitPrice || Number(tx.amount), // Fallback if parse fails
-            amount: Number(tx.amount)
-        };
-
-        setReceiptData({
-            customerName,
-            orderNumber,
-            date: tx.date.split('T')[0],
-            time: new Date(tx.date).toLocaleTimeString(),
-            items: [item],
-            total: Number(tx.amount)
-        });
-        setShowReceipt(true);
-    };
 
     // Calculate Grand Total
     const grandTotal = cartItems.reduce((acc, curr) => acc + curr.amount, 0) + ((itemsToSave => itemsToSave.length === 0 && selectedItem ? Number(lineAmount) : 0)(cartItems));
@@ -588,137 +604,6 @@ export default function LedgerEntryForm({
                 </div>
             </div>
 
-            {/* RECEIPT VIEW (Appears at Bottom - Thermal Printer Style) */}
-            {showReceipt && receiptData && (
-                <div ref={receiptRef} className="mt-8 mb-16 animate-slide-in-up flex flex-col items-center">
-                    {/* Thermal Receipt Container */}
-                    <div className="bg-white p-4 shadow-xl max-w-[350px] w-full print:shadow-none print:max-w-none print:w-[80mm] print:mx-auto font-mono text-xs font-bold uppercase text-black leading-tight">
-
-                        {/* Header */}
-                        <div className="flex flex-col items-center mb-4">
-                            <div className="flex items-center gap-2 mb-2">
-                                <svg className="w-6 h-6 text-black transform -rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                <h1 className="text-xl font-black tracking-tight">Moon Traders</h1>
-                            </div>
-                            <p className="text-[10px] tracking-widest border-b border-black w-full text-center pb-1 mb-1">PURCHASE ORDER</p>
-                            <div className="w-full border-t border-black"></div>
-                        </div>
-
-                        {/* QR Code */}
-                        <div className="flex justify-center mb-6">
-                            <div className="p-1">
-                                <div className="w-24 h-24 bg-black/10 flex items-center justify-center border-2 border-black/10">
-                                    <svg className="w-24 h-24 text-black" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 15h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v2h-3v-2zm-3 2h2v2h-2v-2zm-3 2h2v2h-2v-2zm3 2h3v2h-3v-2zM15 3h2v2h-2V3zm-6 8h2v2H9v-2zm6 0h2v2h-2v-2zm-6 4h2v2H9v-2zm2-2h2v2h-2v-2zm-4 4H5v2h2v-2z" /></svg>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Date / Time / Status */}
-                        <div className="mb-3 space-y-1.5 font-bold">
-                            <div className="flex justify-between">
-                                <span>Date:</span>
-                                <span>{new Date(receiptData.date).toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Time:</span>
-                                <span>{receiptData.time}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Status:</span>
-                                <span>RECEIVED</span>
-                            </div>
-                        </div>
-
-                        <div className="border-b border-black mb-3"></div>
-
-                        {/* Customer Info */}
-                        <div className="mb-3 space-y-1.5 font-bold">
-                            <div className="flex justify-between">
-                                <span>Name:</span>
-                                <span className="text-right max-w-[65%] truncate">{receiptData.customerName || 'Walk-in'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Contact:</span>
-                                <span>{receiptData.orderNumber || '-'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Detail:</span>
-                                <span className="text-right max-w-[65%] truncate">-</span>
-                            </div>
-                        </div>
-
-                        <div className="border-b border-black mb-1"></div>
-                        <div className="border-b border-black mb-3"></div>
-
-                        {/* Items Table */}
-                        <table className="w-full mb-3">
-                            <thead>
-                                <tr className="text-left border-b border-black">
-                                    <th className="pb-2 w-[35%]">ITEM</th>
-                                    <th className="pb-2 text-center w-[15%]">QTY</th>
-                                    <th className="pb-2 text-right w-[20%]">PRICE</th>
-                                    <th className="pb-2 text-right w-[30%]">AMT</th>
-                                </tr>
-                            </thead>
-                            <tbody className="">
-                                {receiptData.items.map((item, idx) => (
-                                    <tr key={idx} className="align-top">
-                                        <td className="py-1.5 pr-1 font-bold truncate max-w-[80px]">{item.item.name}</td>
-                                        <td className="py-1.5 text-center">{item.quantity}</td>
-                                        <td className="py-1.5 text-right">{item.unitPrice.toFixed(2)}</td>
-                                        <td className="py-1.5 text-right">{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-
-                        <div className="border-t border-black mb-1"></div>
-                        <div className="border-t border-black mb-3"></div>
-
-                        {/* Totals */}
-                        <div className="flex justify-between items-center text-sm font-black mb-3">
-                            <span>TOTAL</span>
-                            <span>PKR {receiptData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </div>
-
-                        <div className="border-b border-black mb-3"></div>
-
-                        {/* Notes & Terms */}
-                        <div className="mb-6 space-y-2 font-bold">
-                            <div className="flex justify-between">
-                                <span>Notes:</span>
-                                <span className="text-right">something</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Terms:</span>
-                                <span className="text-right">nothing</span>
-                            </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="text-center text-[10px] mb-6 flex items-center justify-center gap-2">
-                            <span>- - -</span> <span>END</span> <span>- - -</span>
-                        </div>
-
-                        {/* On-Screen Only Actions */}
-                        <div className="print:hidden flex flex-col gap-2 mt-4 border-t border-gray-200 pt-4">
-                            <button
-                                onClick={() => window.print()}
-                                className="w-full bg-black text-white py-2 rounded font-bold hover:bg-gray-800 transition-colors"
-                            >
-                                Print Receipt
-                            </button>
-                            <button
-                                onClick={() => { setShowReceipt(false); setReceiptData(null); }}
-                                className="w-full bg-gray-200 text-black py-2 rounded font-bold hover:bg-gray-300 transition-colors"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Recent Transactions (Detailed Table) */}
             {recentTransactions.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col print:hidden mt-4 mb-12">
@@ -761,14 +646,26 @@ export default function LedgerEntryForm({
                                                 {Number(tx.amount).toLocaleString()}
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <button
-                                                    onClick={() => handlePrintHistory(tx)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-800 hover:text-white text-gray-700 rounded-lg text-xs font-bold transition-all shadow-sm"
-                                                    title="Print Receipt"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                                                    Print
-                                                </button>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            if (tx.id) window.open(`/ledger/receipt/${tx.id}`, '_blank');
+                                                        }}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-800 hover:text-white text-gray-700 rounded-lg text-xs font-bold transition-all shadow-sm"
+                                                        title="Open Receipt"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                                                        Print
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteRecentTransaction(tx.id!)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 rounded-lg text-xs font-bold transition-all shadow-sm"
+                                                        title="Delete Transaction"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                        Del
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

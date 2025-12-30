@@ -68,11 +68,26 @@ function LedgerPageContent() {
         }
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: number | string) => {
         if (!confirm("Delete this entry?")) return;
         try {
             const res = await fetch(`/api/ledger/${id}`, { method: "DELETE" });
-            if (res.ok) fetchEntries();
+            if (res.ok) {
+                // Update local list
+                fetchEntries();
+
+                // Update session storage for Recent Transactions in other views
+                try {
+                    const saved = sessionStorage.getItem("recentTransactions");
+                    if (saved) {
+                        const recent = JSON.parse(saved);
+                        const updated = recent.filter((tx: any) => String(tx.id) !== String(id));
+                        sessionStorage.setItem("recentTransactions", JSON.stringify(updated));
+                    }
+                } catch (e) {
+                    console.error("Failed to update recent transactions storage", e);
+                }
+            }
         } catch (error) {
             console.error(error);
         }

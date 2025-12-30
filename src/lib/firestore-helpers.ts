@@ -30,7 +30,7 @@ export function docToObject<T extends Record<string, any>>(
 ): T & { id: string } {
     const { convertTimestamps = true, convertDecimals = true } = options;
     const data = doc.data();
-    
+
     if (!data) {
         return { id: doc.id } as T & { id: string };
     }
@@ -117,7 +117,7 @@ export async function getAllDocs<T extends Record<string, any>>(
     options?: { orderBy?: string; orderDirection?: 'asc' | 'desc' }
 ): Promise<(T & { id: string })[]> {
     let query: firestore.Query = db.collection(collection);
-    
+
     if (options?.orderBy) {
         query = query.orderBy(options.orderBy, options.orderDirection || 'asc');
     }
@@ -135,7 +135,7 @@ export async function createDoc<T extends Record<string, any>>(
     id?: string
 ): Promise<string> {
     const firestoreData = objectToFirestore(data);
-    
+
     if (id) {
         await db.collection(collection).doc(id).set(firestoreData);
         return id;
