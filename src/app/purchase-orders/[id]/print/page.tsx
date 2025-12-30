@@ -85,7 +85,7 @@ export default function PrintPurchaseOrderPage() {
                     .receipt {
                         width: var(--paper-width) !important;
                         margin: 0 auto !important;
-                        padding: 8mm 6mm !important;
+                        padding: 30px 6mm !important;
                         box-shadow: none !important;
                         border: none !important;
                         position: relative !important;
@@ -118,7 +118,7 @@ export default function PrintPurchaseOrderPage() {
             <div className="bg-gray-100 text-black py-6 print:bg-white print:py-0">
                 <div
                     className="receipt mx-auto bg-white border border-gray-200 shadow-sm rounded-md"
-                    style={{ width: paperWidth, padding: "10mm 6mm", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace" }}
+                    style={{ width: paperWidth, padding: "30px 6mm", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace" }}
                 >
                     <div className="print-hide mb-4 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
