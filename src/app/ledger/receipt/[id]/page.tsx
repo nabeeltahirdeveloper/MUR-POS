@@ -53,19 +53,21 @@ export default function ReceiptPage() {
 
                 // Construct data for ThermalReceipt
                 const item = {
-                    item: { name: itemName },
+                    name: itemName,
                     quantity: quantity,
                     unitPrice: unitPrice || (entry.amount / quantity) || 0,
                     amount: Number(entry.amount)
                 };
 
                 setData({
-                    customerName,
-                    orderNumber: orderNumber || entry.id?.substring(0, 8).toUpperCase(),
+                    title: "PAYMENT RECEIPT",
+                    id: entry.id, // Use actual transaction ID as requested
                     date: entry.date,
-                    time: new Date(entry.date).toLocaleTimeString(),
+                    status: "COMPLETED",
+                    customerName: customerName,
                     items: [item],
-                    total: Number(entry.amount)
+                    total: Number(entry.amount),
+                    notes: entry.note // Pass original note if needed, or structured one
                 });
             })
             .catch(err => setError(err.message))
