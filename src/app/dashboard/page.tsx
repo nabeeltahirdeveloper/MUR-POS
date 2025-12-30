@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout";
 import {
@@ -12,7 +13,9 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function DashboardPage() {
+    const router = useRouter(); // Initialize router
     const [dailySummary, setDailySummary] = useState<any>(null);
+    const [showTransactionModal, setShowTransactionModal] = useState(false);
 
     useEffect(() => {
         const today = new Date().toISOString().split("T")[0];
@@ -76,8 +79,8 @@ export default function DashboardPage() {
                                 <p className="text-sm font-medium text-gray-500">Net Balance</p>
                                 <p
                                     className={`text-2xl font-bold mt-1 ${(dailySummary?.summary?.net || 0) >= 0
-                                            ? "text-blue-600"
-                                            : "text-red-600"
+                                        ? "text-blue-600"
+                                        : "text-red-600"
                                         }`}
                                 >
                                     {dailySummary?.summary?.net?.toFixed(2) || "0.00"}
@@ -140,9 +143,9 @@ export default function DashboardPage() {
                     </Link>
 
                     {/* Add Entry Card */}
-                    <Link
-                        href="/ledger/new"
-                        className="block p-6 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-xl shadow-sm hover:shadow-md transition-all group"
+                    <button
+                        onClick={() => setShowTransactionModal(true)}
+                        className="block w-full text-left p-6 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-xl shadow-sm hover:shadow-md transition-all group"
                     >
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
@@ -153,8 +156,44 @@ export default function DashboardPage() {
                                 <p className="text-sm text-white/80">Record a new transaction</p>
                             </div>
                         </div>
-                    </Link>
+                    </button>
                 </div>
+
+                {/* Transaction Type Selection Modal */}
+                {showTransactionModal && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-fadeIn scale-100">
+                            <div className="p-6 text-center border-b border-gray-100">
+                                <h3 className="text-xl font-bold text-gray-900">Select Transaction Type</h3>
+                                <p className="text-sm text-gray-500 mt-1">Is money coming in or going out?</p>
+                            </div>
+                            <div className="p-6 grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => router.push("/ledger/new?type=credit")}
+                                    className="flex flex-col items-center justify-center p-6 rounded-xl bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-100 transition-all group"
+                                >
+                                    <ArrowTrendingUpIcon className="h-10 w-10 text-emerald-600 mb-3 group-hover:scale-110 transition-transform" />
+                                    <span className="font-bold text-emerald-700">Credit (In)</span>
+                                </button>
+                                <button
+                                    onClick={() => router.push("/ledger/new?type=debit")}
+                                    className="flex flex-col items-center justify-center p-6 rounded-xl bg-red-50 border-2 border-red-100 hover:border-red-500 hover:bg-red-100 transition-all group"
+                                >
+                                    <ArrowTrendingDownIcon className="h-10 w-10 text-red-600 mb-3 group-hover:scale-110 transition-transform" />
+                                    <span className="font-bold text-red-700">Debit (Out)</span>
+                                </button>
+                            </div>
+                            <div className="p-4 bg-gray-50 text-center">
+                                <button
+                                    onClick={() => setShowTransactionModal(false)}
+                                    className="text-gray-500 hover:text-gray-700 font-medium text-sm"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Category Breakdown */}
                 {dailySummary?.breakdown && dailySummary.breakdown.length > 0 && (
@@ -180,8 +219,8 @@ export default function DashboardPage() {
                                         <span className="text-red-500">-{cat.debit.toFixed(2)}</span>
                                         <span
                                             className={`font-medium ${cat.credit - cat.debit >= 0
-                                                    ? "text-blue-600"
-                                                    : "text-red-600"
+                                                ? "text-blue-600"
+                                                : "text-red-600"
                                                 }`}
                                         >
                                             Net: {(cat.credit - cat.debit).toFixed(2)}

@@ -30,9 +30,15 @@ export async function GET(request: NextRequest) {
         // Filter by search term if provided (case-insensitive)
         if (search) {
             const searchLower = search.toLowerCase();
-            items = items.filter(item => 
-                item.name.toLowerCase().includes(searchLower)
-            );
+            items = items.filter(item => {
+                const nameLower = item.name.toLowerCase();
+                // If single letter, only show items STARTING with that letter
+                if (searchLower.length === 1) {
+                    return nameLower.startsWith(searchLower);
+                }
+                // Otherwise normal includes search
+                return nameLower.includes(searchLower);
+            });
         }
 
         // Fetch related data (category, baseUnit, saleUnit)

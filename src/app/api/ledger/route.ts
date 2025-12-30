@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db, Timestamp } from "@/lib/firestore";
+import { Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById, getAllDocs } from "@/lib/firestore-helpers";
 import type { FirestoreLedger, FirestoreLedgerCategory } from "@/types/firestore";
 
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
         console.debug('[ledger GET] params:', { page, limit, type, categoryId, search, from, to });
 
         // Build filters
-        const filters: Array<{ field: string; operator: '<' | '<=' | '==' | '>' | '>=' | '!=' | 'array-contains' | 'in' | 'array-contains-any'; value: any }> = [];
+        const filters: Array<{ field: string; operator: '<' | '<=' | '==' | '>' | '>=' | '!=' | 'array-contains' | 'in' | 'array-contains-any'; value: unknown }> = [];
 
         if (type && (type === "debit" || type === "credit")) {
             filters.push({ field: 'type', operator: '==', value: type });
@@ -74,12 +74,21 @@ export async function GET(req: NextRequest) {
 
                         if (field === 'date') {
                             const entryDate = entry.date instanceof Date ? entry.date : new Date(entry.date);
-                            const compDate = val && val.toDate ? val.toDate() : new Date(val);
+                            // Handle both Firestore Timestamp (has .toDate()) and standard Date/string
+                            const valUnknown = val as unknown;
+                            const hasToDate = valUnknown && typeof (valUnknown as { toDate: unknown }).toDate === 'function';
+                            const compDate = hasToDate
+                                ? (valUnknown as { toDate: () => Date }).toDate()
+                                : new Date(val as string | number | Date);
+
                             if (op === '>=' && entryDate < compDate) return false;
                             if (op === '<=' && entryDate > compDate) return false;
                         } else if (op === '==') {
                             // simple equality check (convert both to string for safety)
-                            if (String((entry as any)[field]) !== String(val)) return false;
+                            // Use Type Assertion for generic property access
+                            const entryRecord = entry as unknown as Record<string, unknown>;
+                            const entryValue = entryRecord[field];
+                            if (String(entryValue) !== String(val)) return false;
                         } else {
                             // unsupported operator in fallback — be conservative and skip the entry
                             return false;
@@ -98,7 +107,7 @@ export async function GET(req: NextRequest) {
         // Filter by search term if provided (case-insensitive)
         if (search) {
             const searchLower = search.toLowerCase();
-            entries = entries.filter(entry => 
+            entries = entries.filter(entry =>
                 entry.note?.toLowerCase().includes(searchLower)
             );
         }
@@ -110,7 +119,7 @@ export async function GET(req: NextRequest) {
         // Fetch categories for entries
         const entriesWithCategories = await Promise.all(
             paginatedEntries.map(async (entry) => {
-                const category = entry.categoryId 
+                const category = entry.categoryId
                     ? await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId)
                     : null;
                 return {
@@ -120,7 +129,16 @@ export async function GET(req: NextRequest) {
             })
         );
 
-        const payload: any = {
+        const payload: {
+            data: typeof entriesWithCategories;
+            meta: {
+                total: number;
+                page: number;
+                limit: number;
+                totalPages: number;
+                debug?: unknown;
+            };
+        } = {
             data: entriesWithCategories,
             meta: {
                 total,
@@ -169,21 +187,17 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (!categoryId) {
-            return NextResponse.json(
-                { error: "Category is required" },
-                { status: 400 }
-            );
-        }
+        // Category is now optional
+        if (categoryId) {
+            // Verify category exists if provided
+            const categoryExists = await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId);
 
-        // Verify category exists
-        const categoryExists = await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId);
-
-        if (!categoryExists) {
-            return NextResponse.json(
-                { error: "Invalid Category ID" },
-                { status: 400 }
-            );
+            if (!categoryExists) {
+                return NextResponse.json(
+                    { error: "Invalid Category ID" },
+                    { status: 400 }
+                );
+            }
         }
 
         const { createDoc } = await import('@/lib/firestore-helpers');
