@@ -183,10 +183,10 @@ export default function DashboardPage() {
                                     <span className="font-bold text-red-700">Cash (Out)</span>
                                 </button>
                             </div>
-                            <div className="p-4 bg-gray-50 text-center">
+                            <div className="p-4 bg-gray-50/50 border-t border-gray-100">
                                 <button
                                     onClick={() => setShowTransactionModal(false)}
-                                    className="text-gray-500 hover:text-gray-700 font-medium text-sm"
+                                    className="w-full py-3 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-200/50 transition-all duration-200 font-bold text-sm uppercase tracking-widest active:scale-[0.98]"
                                 >
                                     Cancel
                                 </button>
