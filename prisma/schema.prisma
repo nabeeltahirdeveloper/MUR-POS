@@ -180,6 +180,15 @@ model Supplier {
   @@map("suppliers")
 }
 
+model Customer {
+  id      Int     @id @default(autoincrement())
+  name    String
+  phone   String?
+  address String?
+
+  @@map("customers")
+}
+
 model PurchaseOrder {
   id          Int      @id @default(autoincrement())
   supplierId  Int?     @map("supplier_id")

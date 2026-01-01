@@ -77,6 +77,13 @@ export interface FirestoreSupplier {
     address?: string | null;
 }
 
+export interface FirestoreCustomer {
+    id: string;
+    name: string;
+    phone?: string | null;
+    address?: string | null;
+}
+
 export interface FirestorePurchaseOrder {
     id: string;
     supplierId?: string | null;

@@ -14,6 +14,7 @@ import {
     BoltIcon,
     ArrowRightOnRectangleIcon,
     UserCircleIcon,
+    UserGroupIcon,
     ChevronDownIcon,
     CalendarDaysIcon,
     CalendarIcon,
@@ -25,6 +26,7 @@ const navigation = [
     { name: "Inventory", href: "/items", icon: CubeIcon },
     { name: "Purchase Orders", href: "/purchase-orders", icon: DocumentTextIcon },
     { name: "Suppliers", href: "/suppliers", icon: UserCircleIcon },
+    { name: "Customers", href: "/customers", icon: UserGroupIcon },
     {
         name: "Ledger",
         href: "/ledger",
@@ -83,8 +85,8 @@ export default function Sidebar({
                                 <button
                                     onClick={() => toggleExpanded(item.name)}
                                     className={`w-full group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
-                                            ? "bg-slate-800 text-white"
-                                            : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                                        ? "bg-slate-800 text-white"
+                                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
@@ -101,8 +103,8 @@ export default function Sidebar({
                                     href={item.href}
                                     onClick={() => setSidebarOpen(false)}
                                     className={`group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
-                                            ? "bg-amber-500/10 text-amber-500 border-l-2 border-amber-500"
-                                            : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                                        ? "bg-amber-500/10 text-amber-500 border-l-2 border-amber-500"
+                                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
                                         }`}
                                 >
                                     <item.icon className="h-5 w-5 shrink-0" />
@@ -121,8 +123,8 @@ export default function Sidebar({
                                                 href={child.href}
                                                 onClick={() => setSidebarOpen(false)}
                                                 className={`group flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ${childActive
-                                                        ? "bg-amber-500/10 text-amber-500"
-                                                        : "text-slate-500 hover:bg-slate-800/50 hover:text-white"
+                                                    ? "bg-amber-500/10 text-amber-500"
+                                                    : "text-slate-500 hover:bg-slate-800/50 hover:text-white"
                                                     }`}
                                             >
                                                 {child.icon && <child.icon className="h-4 w-4" />}

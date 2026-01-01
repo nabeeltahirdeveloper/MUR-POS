@@ -6,20 +6,20 @@ import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 
-interface Supplier {
+interface Customer {
     id: string;
     name: string;
     phone?: string | null;
     address?: string | null;
 }
 
-interface SuppliersResponse {
-    suppliers: Supplier[];
+interface CustomersResponse {
+    customers: Customer[];
     pagination: { total: number; pages: number; page: number; limit: number };
 }
 
-export default function SuppliersPage() {
-    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+export default function CustomersPage() {
+    const [customers, setCustomers] = useState<Customer[]>([]);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
     const limit = 10;
@@ -31,7 +31,7 @@ export default function SuppliersPage() {
     const [showCreate, setShowCreate] = useState(false);
     const [form, setForm] = useState({ name: "", phone: "", address: "" });
 
-    const fetchSuppliers = async () => {
+    const fetchCustomers = async () => {
         setLoading(true);
         setError(null);
         try {
@@ -40,19 +40,19 @@ export default function SuppliersPage() {
             params.set("page", String(page));
             params.set("limit", String(limit));
 
-            const res = await fetch(`/api/suppliers?${params.toString()}`);
-            if (!res.ok) throw new Error("Failed to fetch suppliers");
-            const data = (await res.json()) as SuppliersResponse;
-            setSuppliers(data.suppliers);
+            const res = await fetch(`/api/customers?${params.toString()}`);
+            if (!res.ok) throw new Error("Failed to fetch customers");
+            const data = (await res.json()) as CustomersResponse;
+            setCustomers(data.customers);
         } catch (e: any) {
-            setError(e.message || "Failed to fetch suppliers");
+            setError(e.message || "Failed to fetch customers");
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchSuppliers();
+        fetchCustomers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page]);
 
@@ -60,7 +60,7 @@ export default function SuppliersPage() {
     useEffect(() => {
         const t = setTimeout(() => {
             setPage(1);
-            fetchSuppliers();
+            fetchCustomers();
         }, 300);
         return () => clearTimeout(t);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,10 +80,10 @@ export default function SuppliersPage() {
             {
                 key: "actions",
                 header: "Actions",
-                render: (_: any, row: Supplier) => (
+                render: (_: any, row: Customer) => (
                     <div className="flex gap-2">
                         <Link
-                            href={`/suppliers/${row.id}/edit`}
+                            href={`/customers/${row.id}/edit`}
                             className="text-blue-600 hover:text-blue-800 font-medium"
                         >
                             Edit
@@ -99,7 +99,7 @@ export default function SuppliersPage() {
             },
         ],
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [suppliers]
+        [customers]
     );
 
     const handleCreate = async (e: React.FormEvent) => {
@@ -109,7 +109,7 @@ export default function SuppliersPage() {
         setSaving(true);
         setError(null);
         try {
-            const res = await fetch("/api/suppliers", {
+            const res = await fetch("/api/customers", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -120,34 +120,34 @@ export default function SuppliersPage() {
             });
             const data = await res.json();
             if (!res.ok) {
-                throw new Error(data?.error || "Failed to create supplier");
+                throw new Error(data?.error || "Failed to create customer");
             }
 
             setForm({ name: "", phone: "", address: "" });
             setShowCreate(false);
-            await fetchSuppliers();
+            await fetchCustomers();
         } catch (e: any) {
-            setError(e.message || "Failed to create supplier");
+            setError(e.message || "Failed to create customer");
         } finally {
             setSaving(false);
         }
     };
 
-    const handleDelete = async (supplier: Supplier) => {
-        const ok = confirm(`Delete supplier "${supplier.name}"?`);
+    const handleDelete = async (customer: Customer) => {
+        const ok = confirm(`Delete customer "${customer.name}"?`);
         if (!ok) return;
 
         setSaving(true);
         setError(null);
         try {
-            const res = await fetch(`/api/suppliers/${supplier.id}`, { method: "DELETE" });
+            const res = await fetch(`/api/customers/${customer.id}`, { method: "DELETE" });
             const data = await res.json();
             if (!res.ok) {
-                throw new Error(data?.error || "Failed to delete supplier");
+                throw new Error(data?.error || "Failed to delete customer");
             }
-            await fetchSuppliers();
+            await fetchCustomers();
         } catch (e: any) {
-            setError(e.message || "Failed to delete supplier");
+            setError(e.message || "Failed to delete customer");
         } finally {
             setSaving(false);
         }
@@ -156,9 +156,9 @@ export default function SuppliersPage() {
     return (
         <div className="space-y-6 min-w-0">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-900">Suppliers</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
                 <Button variant="primary" onClick={() => setShowCreate((v) => !v)}>
-                    {showCreate ? "Close" : "New Supplier"}
+                    {showCreate ? "Close" : "New Customer"}
                 </Button>
             </div>
 
@@ -197,7 +197,7 @@ export default function SuppliersPage() {
                     </div>
                     <div className="flex justify-end">
                         <Button type="submit" isLoading={saving}>
-                            Create Supplier
+                            Create Customer
                         </Button>
                     </div>
                 </form>
@@ -208,7 +208,7 @@ export default function SuppliersPage() {
                     <div className="flex-1 relative md:max-w-md">
                         <input
                             className="w-full border border-gray-300 rounded-md p-2 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                            placeholder="Search suppliers..."
+                            placeholder="Search customers..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -227,10 +227,10 @@ export default function SuppliersPage() {
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-10">Loading suppliers...</div>
+                    <div className="text-center py-10">Loading customers...</div>
                 ) : (
                     <>
-                        <Table data={suppliers} columns={columns} emptyMessage="No suppliers found." />
+                        <Table data={customers} columns={columns} emptyMessage="No customers found." />
                         <div className="flex justify-end gap-2 mt-4">
                             <Button
                                 variant="secondary"
@@ -242,7 +242,7 @@ export default function SuppliersPage() {
                             <Button
                                 variant="secondary"
                                 onClick={() => setPage((p) => p + 1)}
-                                disabled={loading || suppliers.length < limit}
+                                disabled={loading || customers.length < limit}
                             >
                                 Next
                             </Button>
@@ -253,5 +253,3 @@ export default function SuppliersPage() {
         </div>
     );
 }
-
-
