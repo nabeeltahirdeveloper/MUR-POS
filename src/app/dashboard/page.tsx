@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
 import { DashboardLayout } from "@/components/layout";
 import {
     CubeIcon,
@@ -12,10 +12,17 @@ import {
     ArrowTrendingDownIcon,
 } from "@heroicons/react/24/outline";
 
-export default function DashboardPage() {
-    const router = useRouter(); // Initialize router
+function DashboardContent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [dailySummary, setDailySummary] = useState<any>(null);
     const [showTransactionModal, setShowTransactionModal] = useState(false);
+
+    useEffect(() => {
+        if (searchParams.get("select") === "type") {
+            setShowTransactionModal(true);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         const today = new Date().toISOString().split("T")[0];
@@ -173,14 +180,14 @@ export default function DashboardPage() {
                                     className="flex flex-col items-center justify-center p-6 rounded-xl bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-100 transition-all group"
                                 >
                                     <ArrowTrendingUpIcon className="h-10 w-10 text-emerald-600 mb-3 group-hover:scale-110 transition-transform" />
-                                    <span className="font-bold text-emerald-700">Cash (In)</span>
+                                    <span className="font-bold text-emerald-700">Cash-In-Entry</span>
                                 </button>
                                 <button
                                     onClick={() => router.push("/ledger/new?type=debit")}
                                     className="flex flex-col items-center justify-center p-6 rounded-xl bg-red-50 border-2 border-red-100 hover:border-red-500 hover:bg-red-100 transition-all group"
                                 >
                                     <ArrowTrendingDownIcon className="h-10 w-10 text-red-600 mb-3 group-hover:scale-110 transition-transform" />
-                                    <span className="font-bold text-red-700">Cash (Out)</span>
+                                    <span className="font-bold text-red-700">Cash-Out-Entry</span>
                                 </button>
                             </div>
                             <div className="p-4 bg-gray-50/50 border-t border-gray-100">
@@ -233,5 +240,13 @@ export default function DashboardPage() {
                 )}
             </div>
         </DashboardLayout>
+    );
+}
+
+export default function DashboardPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <DashboardContent />
+        </Suspense>
     );
 }

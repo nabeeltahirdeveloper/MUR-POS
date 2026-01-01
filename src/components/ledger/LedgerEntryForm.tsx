@@ -23,7 +23,7 @@ type Item = {
     category?: { name: string };
 };
 
-type Customer = {
+type Party = {
     id: string;
     name: string;
     phone?: string;
@@ -53,9 +53,9 @@ export default function LedgerEntryForm({
 
     // Form Fields
     const [orderNumber, setOrderNumber] = useState("");
-    const [customerName, setCustomerName] = useState("");
-    const [customerPhone, setCustomerPhone] = useState("");
-    const [customerAddress, setCustomerAddress] = useState("");
+    const [partyName, setPartyName] = useState("");
+    const [partyPhone, setPartyPhone] = useState("");
+    const [partyAddress, setPartyAddress] = useState("");
     const [paymentType, setPaymentType] = useState<"Cash" | "Online">("Cash");
     const [date, setDate] = useState(
         initialData?.date
@@ -72,11 +72,11 @@ export default function LedgerEntryForm({
     const [showResults, setShowResults] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
 
-    // Customer Search
-    const [customerSearchResults, setCustomerSearchResults] = useState<Customer[]>([]);
-    const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
-    const [showCustomerResults, setShowCustomerResults] = useState(false);
-    const customerSearchRef = useRef<HTMLDivElement>(null);
+    // Party Search (Customer/Supplier)
+    const [partySearchResults, setPartySearchResults] = useState<Party[]>([]);
+    const [isSearchingParty, setIsSearchingParty] = useState(false);
+    const [showPartyResults, setShowPartyResults] = useState(false);
+    const partySearchRef = useRef<HTMLDivElement>(null);
 
     // Current Line Item State
     const [quantity, setQuantity] = useState<string>("1");
@@ -131,8 +131,8 @@ export default function LedgerEntryForm({
             if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
                 setShowResults(false);
             }
-            if (customerSearchRef.current && !customerSearchRef.current.contains(event.target as Node)) {
-                setShowCustomerResults(false);
+            if (partySearchRef.current && !partySearchRef.current.contains(event.target as Node)) {
+                setShowPartyResults(false);
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
@@ -164,27 +164,28 @@ export default function LedgerEntryForm({
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm, selectedItem]);
 
-    // Customer Search Effect
+    // Party Search Effect
     useEffect(() => {
         const delayDebounceFn = setTimeout(async () => {
-            if (customerName.length >= 1 && showCustomerResults) {
-                setIsSearchingCustomer(true);
+            if (partyName.length >= 1 && showPartyResults) {
+                setIsSearchingParty(true);
                 try {
-                    const res = await fetch(`/api/customers?search=${encodeURIComponent(customerName)}`);
+                    const endpoint = type === "credit" ? "/api/customers" : "/api/suppliers";
+                    const res = await fetch(`${endpoint}?search=${encodeURIComponent(partyName)}`);
                     if (res.ok) {
                         const data = await res.json();
-                        setCustomerSearchResults(data.customers || []);
+                        setPartySearchResults(type === "credit" ? data.customers || [] : data.suppliers || []);
                     }
                 } catch (err) {
-                    console.error("Failed to search customers", err);
+                    console.error("Failed to search party", err);
                 } finally {
-                    setIsSearchingCustomer(false);
+                    setIsSearchingParty(false);
                 }
             }
         }, 300);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [customerName, showCustomerResults]);
+    }, [partyName, showPartyResults, type]);
 
     // --- Price Logic ---
     useEffect(() => {
@@ -216,11 +217,11 @@ export default function LedgerEntryForm({
         setShowResults(false);
     };
 
-    const handleSelectCustomer = (customer: Customer) => {
-        setCustomerName(customer.name);
-        setCustomerPhone(customer.phone || "");
-        setCustomerAddress(customer.address || "");
-        setShowCustomerResults(false);
+    const handleSelectParty = (party: Party) => {
+        setPartyName(party.name);
+        setPartyPhone(party.phone || "");
+        setPartyAddress(party.address || "");
+        setShowPartyResults(false);
     };
 
     const handleAddOrUpdateItem = () => {
@@ -294,7 +295,7 @@ export default function LedgerEntryForm({
     // Receipt State
     const [showReceipt, setShowReceipt] = useState(false);
     const [receiptData, setReceiptData] = useState<{
-        customerName: string;
+        partyName: string;
         orderNumber: string;
         date: string;
         time: string;
@@ -330,9 +331,9 @@ export default function LedgerEntryForm({
             const promises = itemsToSave.map(cartItem => {
                 const parts = [];
                 if (orderNumber) parts.push(`Order #${orderNumber}`);
-                if (customerName) parts.push(`Customer: ${customerName}`);
-                if (customerPhone) parts.push(`Phone: ${customerPhone}`);
-                if (customerAddress) parts.push(`Address: ${customerAddress}`);
+                if (partyName) parts.push(`${type === 'credit' ? 'Customer' : 'Supplier'}: ${partyName}`);
+                if (partyPhone) parts.push(`Phone: ${partyPhone}`);
+                if (partyAddress) parts.push(`Address: ${partyAddress}`);
                 parts.push(`Payment: ${paymentType}`);
                 parts.push(`Item: ${cartItem.item.name} (Qty: ${cartItem.quantity} @ ${cartItem.unitPrice})`);
                 const finalNote = parts.join('\n');
@@ -369,9 +370,9 @@ export default function LedgerEntryForm({
             // Clear Form
             setCartItems([]);
             setOrderNumber("");
-            setCustomerName("");
-            setCustomerPhone("");
-            setCustomerAddress("");
+            setPartyName("");
+            setPartyPhone("");
+            setPartyAddress("");
             setSelectedItem(null);
             setSearchTerm("");
             setQuantity("1");
@@ -395,7 +396,7 @@ export default function LedgerEntryForm({
     const parseTransactionNote = (note: string) => {
         const lines = note.split('\n');
         let orderNumber = "";
-        let customerName = "";
+        let partyName = "";
         let customerPhone = "";
         let customerAddress = "";
         let paymentType = "Cash";
@@ -405,7 +406,8 @@ export default function LedgerEntryForm({
 
         lines.forEach(line => {
             if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
-            else if (line.startsWith("Customer: ")) customerName = line.replace("Customer: ", "").trim();
+            else if (line.startsWith("Customer: ")) partyName = line.replace("Customer: ", "").trim();
+            else if (line.startsWith("Supplier: ")) partyName = line.replace("Supplier: ", "").trim();
             else if (line.startsWith("Phone: ")) customerPhone = line.replace("Phone: ", "").trim();
             else if (line.startsWith("Address: ")) customerAddress = line.replace("Address: ", "").trim();
             else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
@@ -422,7 +424,7 @@ export default function LedgerEntryForm({
             }
         });
 
-        return { orderNumber, customerName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice };
+        return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice };
     };
 
 
@@ -445,9 +447,21 @@ export default function LedgerEntryForm({
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex-1 flex flex-col print:hidden">
                 {/* Header Row */}
                 <div className={`px-8 py-5 ${type === 'credit' ? 'bg-gradient-to-r from-emerald-600 to-emerald-500' : 'bg-gradient-to-r from-red-600 to-red-500'} flex flex-wrap items-center justify-between gap-4`}>
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                        {isEdit ? "Edit Transaction" : (type === 'credit' ? 'Credit Sale Entry' : 'Debit Entry')}
-                    </h2>
+                    <div className="flex items-center gap-4">
+                        <button
+                            type="button"
+                            onClick={() => router.push('/dashboard?select=type')}
+                            className="p-2 hover:bg-white/20 rounded-lg transition-colors text-white group"
+                            title="Back to Dashboard"
+                        >
+                            <svg className="w-6 h-6 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                        </button>
+                        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                            {isEdit ? "Edit Transaction" : (type === 'credit' ? 'Cash-In-Entry' : 'Cash-Out-Entry')}
+                        </h2>
+                    </div>
 
                     {/* Row 1: Order Number */}
                     <div className="flex items-center gap-3">
@@ -473,27 +487,29 @@ export default function LedgerEntryForm({
 
                         {/* Row 2: Customer Name | Date | Time */}
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                            {/* Customer Search */}
-                            <div className="md:col-span-6 relative" ref={customerSearchRef}>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Customer / Payee</label>
+                            {/* Party Search */}
+                            <div className="md:col-span-6 relative" ref={partySearchRef}>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                                    {type === 'credit' ? 'Customer' : 'Supplier'} Search
+                                </label>
                                 <div className="relative group">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-blue-500 transition-colors">
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                         </svg>
                                     </span>
                                     <input
                                         type="text"
-                                        value={customerName}
+                                        value={partyName}
                                         onChange={(e) => {
-                                            setCustomerName(e.target.value);
-                                            setShowCustomerResults(true);
+                                            setPartyName(e.target.value);
+                                            setShowPartyResults(true);
                                         }}
-                                        onFocus={() => { if (customerName.length >= 1) setShowCustomerResults(true); }}
-                                        placeholder="Search Customer..."
+                                        onFocus={() => { if (partyName.length >= 1) setShowPartyResults(true); }}
+                                        placeholder={`Search ${type === 'credit' ? 'Customer' : 'Supplier'}...`}
                                         className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
                                     />
-                                    {isSearchingCustomer && (
+                                    {isSearchingParty && (
                                         <span className="absolute right-3 top-1/2 -translate-y-1/2">
                                             <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -501,31 +517,31 @@ export default function LedgerEntryForm({
                                             </svg>
                                         </span>
                                     )}
-                                    {/* Customer Dropdown Results */}
-                                    {showCustomerResults && (
+                                    {/* Party Dropdown Results */}
+                                    {showPartyResults && (
                                         <div className="absolute z-40 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto ring-1 ring-black/5">
-                                            {isSearchingCustomer ? (
-                                                <div className="p-4 text-center text-sm text-gray-500">Searching customers...</div>
-                                            ) : customerSearchResults.length > 0 ? (
+                                            {isSearchingParty ? (
+                                                <div className="p-4 text-center text-sm text-gray-500">Searching...</div>
+                                            ) : partySearchResults.length > 0 ? (
                                                 <ul>
-                                                    {customerSearchResults.map((customer) => (
+                                                    {partySearchResults.map((party) => (
                                                         <li
-                                                            key={customer.id}
-                                                            onClick={() => handleSelectCustomer(customer)}
+                                                            key={party.id}
+                                                            onClick={() => handleSelectParty(party)}
                                                             className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm flex justify-between items-center group transition-colors border-b border-gray-50 last:border-0"
                                                         >
                                                             <span className="font-medium text-gray-700 group-hover:text-blue-600">
-                                                                {customer.name}
+                                                                {party.name}
                                                             </span>
                                                         </li>
                                                     ))}
                                                 </ul>
-                                            ) : customerName.length > 0 ? (
+                                            ) : partyName.length > 0 ? (
                                                 <div className="p-4 text-center text-sm text-gray-500 flex flex-col gap-2">
-                                                    <span>No customers found</span>
+                                                    <span>No {type === 'credit' ? 'customers' : 'suppliers'} found</span>
                                                     <button
                                                         type="button"
-                                                        onClick={() => setShowCustomerResults(false)}
+                                                        onClick={() => setShowPartyResults(false)}
                                                         className="text-blue-600 hover:text-blue-700 text-xs font-bold"
                                                     >
                                                         + Use as Walk-in / New Name
@@ -743,7 +759,7 @@ export default function LedgerEntryForm({
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100 uppercase text-xs tracking-wider">
                                 <tr>
-                                    <th className="px-6 py-3">Customer</th>
+                                    <th className="px-6 py-3">{type === 'credit' ? 'Customer' : 'Supplier'}</th>
                                     <th className="px-6 py-3">Date & Time</th>
                                     <th className="px-6 py-3">Item</th>
                                     <th className="px-6 py-3 text-center">Qty</th>
@@ -753,11 +769,11 @@ export default function LedgerEntryForm({
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                                 {recentTransactions.map((tx, i) => {
-                                    const { itemName, customerName, quantity } = parseTransactionNote(tx.note);
+                                    const { itemName, partyName, quantity } = parseTransactionNote(tx.note);
                                     return (
                                         <tr key={tx.id || i} className="hover:bg-blue-50/30 transition-colors group">
                                             <td className="px-6 py-4 font-semibold text-gray-700">
-                                                {customerName || 'Walk-in'}
+                                                {partyName || 'Walk-in'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                                                 <div>{new Date(tx.date).toLocaleDateString()}</div>
