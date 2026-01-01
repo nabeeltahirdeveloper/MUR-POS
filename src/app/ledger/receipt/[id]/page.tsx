@@ -10,6 +10,9 @@ const parseTransactionNote = (note: string) => {
     const lines = note.split('\n');
     let orderNumber = "";
     let customerName = "";
+    let customerPhone = "";
+    let customerAddress = "";
+    let paymentType = "Cash";
     let itemName = "Item";
     let quantity = 1;
     let unitPrice = 0;
@@ -17,6 +20,9 @@ const parseTransactionNote = (note: string) => {
     lines.forEach(line => {
         if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
         else if (line.startsWith("Customer: ")) customerName = line.replace("Customer: ", "").trim();
+        else if (line.startsWith("Phone: ")) customerPhone = line.replace("Phone: ", "").trim();
+        else if (line.startsWith("Address: ")) customerAddress = line.replace("Address: ", "").trim();
+        else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
         else if (line.startsWith("Item: ")) {
             // Item: Name (Qty: X @ Y)
             const match = line.match(/Item: (.*) \(Qty: (\d+) @ (.*)\)/);
@@ -30,7 +36,7 @@ const parseTransactionNote = (note: string) => {
         }
     });
 
-    return { orderNumber, customerName, itemName, quantity, unitPrice };
+    return { orderNumber, customerName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice };
 };
 
 export default function ReceiptPage() {
@@ -49,7 +55,7 @@ export default function ReceiptPage() {
                 return res.json();
             })
             .then(entry => {
-                const { orderNumber, customerName, itemName, quantity, unitPrice } = parseTransactionNote(entry.note || "");
+                const { orderNumber, customerName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice } = parseTransactionNote(entry.note || "");
 
                 // Construct data for ThermalReceipt
                 const item = {
@@ -61,13 +67,15 @@ export default function ReceiptPage() {
 
                 setData({
                     title: "PAYMENT RECEIPT",
-                    id: entry.id, // Use actual transaction ID as requested
+                    id: entry.id,
                     date: entry.date,
-                    status: "COMPLETED",
+                    status: paymentType, // Use payment type as status (Online/Cash)
                     customerName: customerName,
+                    customerPhone: customerPhone,
+                    customerAddress: customerAddress,
                     items: [item],
                     total: Number(entry.amount),
-                    notes: entry.note // Pass original note if needed, or structured one
+                    notes: entry.note
                 });
             })
             .catch(err => setError(err.message))

@@ -1,0 +1,80 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getAllDocs, createDoc } from "@/lib/firestore-helpers";
+import type { FirestoreCustomer } from "@/types/firestore";
+
+export const runtime = "nodejs";
+
+export async function GET(request: NextRequest) {
+    const searchParams = request.nextUrl.searchParams;
+    const search = searchParams.get("search") || "";
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+
+    try {
+        let customers = await getAllDocs<FirestoreCustomer>('customers', {
+            orderBy: 'name',
+            orderDirection: 'asc',
+        });
+
+        // Filter by search term if provided (case-insensitive)
+        if (search) {
+            const searchLower = search.toLowerCase();
+            customers = customers.filter(customer =>
+                customer.name.toLowerCase().includes(searchLower) ||
+                customer.phone?.toLowerCase().includes(searchLower)
+            );
+        }
+
+        const total = customers.length;
+        const skip = (page - 1) * limit;
+        const paginatedCustomers = customers.slice(skip, skip + limit);
+
+        return NextResponse.json({
+            customers: paginatedCustomers,
+            pagination: {
+                total,
+                pages: Math.ceil(total / limit),
+                page,
+                limit,
+            },
+        });
+    } catch (error) {
+        console.error("Error fetching customers:", error);
+        return NextResponse.json(
+            { error: "Failed to fetch customers" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function POST(request: NextRequest) {
+    try {
+        const body = await request.json();
+        const { name, phone, address } = body;
+
+        if (!name) {
+            return NextResponse.json(
+                { error: "Name is required" },
+                { status: 400 }
+            );
+        }
+
+        const customerData: Omit<FirestoreCustomer, 'id'> = {
+            name,
+            phone: phone || null,
+            address: address || null,
+        };
+
+        const customerId = await createDoc<Omit<FirestoreCustomer, 'id'>>('customers', customerData);
+        const { getDocById } = await import('@/lib/firestore-helpers');
+        const customer = await getDocById<FirestoreCustomer>('customers', customerId);
+
+        return NextResponse.json(customer, { status: 201 });
+    } catch (error) {
+        console.error("Error creating customer:", error);
+        return NextResponse.json(
+            { error: "Failed to create customer" },
+            { status: 500 }
+        );
+    }
+}

@@ -23,6 +23,13 @@ type Item = {
     category?: { name: string };
 };
 
+type Customer = {
+    id: string;
+    name: string;
+    phone?: string;
+    address?: string;
+};
+
 type CartItem = {
     tempId: string;
     item: Item;
@@ -47,6 +54,9 @@ export default function LedgerEntryForm({
     // Form Fields
     const [orderNumber, setOrderNumber] = useState("");
     const [customerName, setCustomerName] = useState("");
+    const [customerPhone, setCustomerPhone] = useState("");
+    const [customerAddress, setCustomerAddress] = useState("");
+    const [paymentType, setPaymentType] = useState<"Cash" | "Online">("Cash");
     const [date, setDate] = useState(
         initialData?.date
             ? new Date(initialData.date).toISOString().split("T")[0]
@@ -61,6 +71,12 @@ export default function LedgerEntryForm({
     const [isSearching, setIsSearching] = useState(false);
     const [showResults, setShowResults] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
+
+    // Customer Search
+    const [customerSearchResults, setCustomerSearchResults] = useState<Customer[]>([]);
+    const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
+    const [showCustomerResults, setShowCustomerResults] = useState(false);
+    const customerSearchRef = useRef<HTMLDivElement>(null);
 
     // Current Line Item State
     const [quantity, setQuantity] = useState<string>("1");
@@ -115,6 +131,9 @@ export default function LedgerEntryForm({
             if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
                 setShowResults(false);
             }
+            if (customerSearchRef.current && !customerSearchRef.current.contains(event.target as Node)) {
+                setShowCustomerResults(false);
+            }
         }
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -145,6 +164,28 @@ export default function LedgerEntryForm({
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm, selectedItem]);
 
+    // Customer Search Effect
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            if (customerName.length >= 1 && showCustomerResults) {
+                setIsSearchingCustomer(true);
+                try {
+                    const res = await fetch(`/api/customers?search=${encodeURIComponent(customerName)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setCustomerSearchResults(data.customers || []);
+                    }
+                } catch (err) {
+                    console.error("Failed to search customers", err);
+                } finally {
+                    setIsSearchingCustomer(false);
+                }
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [customerName, showCustomerResults]);
+
     // --- Price Logic ---
     useEffect(() => {
         if (selectedItem && !editingCartId) { // Only update price automatically if not editing (or we can discuss edit logic)
@@ -173,6 +214,13 @@ export default function LedgerEntryForm({
         setSelectedItem(item);
         setSearchTerm(item.name);
         setShowResults(false);
+    };
+
+    const handleSelectCustomer = (customer: Customer) => {
+        setCustomerName(customer.name);
+        setCustomerPhone(customer.phone || "");
+        setCustomerAddress(customer.address || "");
+        setShowCustomerResults(false);
     };
 
     const handleAddOrUpdateItem = () => {
@@ -283,6 +331,9 @@ export default function LedgerEntryForm({
                 const parts = [];
                 if (orderNumber) parts.push(`Order #${orderNumber}`);
                 if (customerName) parts.push(`Customer: ${customerName}`);
+                if (customerPhone) parts.push(`Phone: ${customerPhone}`);
+                if (customerAddress) parts.push(`Address: ${customerAddress}`);
+                parts.push(`Payment: ${paymentType}`);
                 parts.push(`Item: ${cartItem.item.name} (Qty: ${cartItem.quantity} @ ${cartItem.unitPrice})`);
                 const finalNote = parts.join('\n');
 
@@ -319,6 +370,8 @@ export default function LedgerEntryForm({
             setCartItems([]);
             setOrderNumber("");
             setCustomerName("");
+            setCustomerPhone("");
+            setCustomerAddress("");
             setSelectedItem(null);
             setSearchTerm("");
             setQuantity("1");
@@ -343,6 +396,9 @@ export default function LedgerEntryForm({
         const lines = note.split('\n');
         let orderNumber = "";
         let customerName = "";
+        let customerPhone = "";
+        let customerAddress = "";
+        let paymentType = "Cash";
         let itemName = "Item";
         let quantity = 1;
         let unitPrice = 0;
@@ -350,6 +406,9 @@ export default function LedgerEntryForm({
         lines.forEach(line => {
             if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
             else if (line.startsWith("Customer: ")) customerName = line.replace("Customer: ", "").trim();
+            else if (line.startsWith("Phone: ")) customerPhone = line.replace("Phone: ", "").trim();
+            else if (line.startsWith("Address: ")) customerAddress = line.replace("Address: ", "").trim();
+            else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
             else if (line.startsWith("Item: ")) {
                 // Item: Name (Qty: X @ Y)
                 const match = line.match(/Item: (.*) \(Qty: (\d+) @ (.*)\)/);
@@ -363,7 +422,7 @@ export default function LedgerEntryForm({
             }
         });
 
-        return { orderNumber, customerName, itemName, quantity, unitPrice };
+        return { orderNumber, customerName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice };
     };
 
 
@@ -415,7 +474,7 @@ export default function LedgerEntryForm({
                         {/* Row 2: Customer Name | Date | Time */}
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                             {/* Customer Search */}
-                            <div className="md:col-span-6 relative">
+                            <div className="md:col-span-6 relative" ref={customerSearchRef}>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Customer / Payee</label>
                                 <div className="relative group">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-blue-500 transition-colors">
@@ -426,10 +485,55 @@ export default function LedgerEntryForm({
                                     <input
                                         type="text"
                                         value={customerName}
-                                        onChange={(e) => setCustomerName(e.target.value)}
+                                        onChange={(e) => {
+                                            setCustomerName(e.target.value);
+                                            setShowCustomerResults(true);
+                                        }}
+                                        onFocus={() => { if (customerName.length >= 1) setShowCustomerResults(true); }}
                                         placeholder="Search Customer..."
-                                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                        className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
                                     />
+                                    {isSearchingCustomer && (
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </span>
+                                    )}
+                                    {/* Customer Dropdown Results */}
+                                    {showCustomerResults && (
+                                        <div className="absolute z-40 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto ring-1 ring-black/5">
+                                            {isSearchingCustomer ? (
+                                                <div className="p-4 text-center text-sm text-gray-500">Searching customers...</div>
+                                            ) : customerSearchResults.length > 0 ? (
+                                                <ul>
+                                                    {customerSearchResults.map((customer) => (
+                                                        <li
+                                                            key={customer.id}
+                                                            onClick={() => handleSelectCustomer(customer)}
+                                                            className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm flex justify-between items-center group transition-colors border-b border-gray-50 last:border-0"
+                                                        >
+                                                            <span className="font-medium text-gray-700 group-hover:text-blue-600">
+                                                                {customer.name}
+                                                            </span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : customerName.length > 0 ? (
+                                                <div className="p-4 text-center text-sm text-gray-500 flex flex-col gap-2">
+                                                    <span>No customers found</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowCustomerResults(false)}
+                                                        className="text-blue-600 hover:text-blue-700 text-xs font-bold"
+                                                    >
+                                                        + Use as Walk-in / New Name
+                                                    </button>
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -463,17 +567,27 @@ export default function LedgerEntryForm({
                                 {/* Item Search */}
                                 <div className="w-full md:flex-1 relative" ref={searchRef}>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Item Search</label>
-                                    <input
-                                        type="text"
-                                        value={searchTerm}
-                                        onChange={(e) => {
-                                            setSearchTerm(e.target.value);
-                                            if (selectedItem && e.target.value !== selectedItem.name) setSelectedItem(null);
-                                        }}
-                                        onFocus={() => { if (searchTerm.length >= 1) setShowResults(true); }}
-                                        placeholder="Scan or Type Item..."
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={searchTerm}
+                                            onChange={(e) => {
+                                                setSearchTerm(e.target.value);
+                                                if (selectedItem && e.target.value !== selectedItem.name) setSelectedItem(null);
+                                            }}
+                                            onFocus={() => { if (searchTerm.length >= 1) setShowResults(true); }}
+                                            placeholder="Scan or Type Item..."
+                                            className="w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                        />
+                                        {isSearching && (
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            </span>
+                                        )}
+                                    </div>
                                     {/* Dropdown Results */}
                                     {showResults && (
                                         <div className="absolute z-30 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto ring-1 ring-black/5">
@@ -488,6 +602,19 @@ export default function LedgerEntryForm({
                                                 ) : <div className="p-4 text-center text-sm text-gray-500">No items found</div>}
                                         </div>
                                     )}
+                                </div>
+
+                                {/* Payment Type */}
+                                <div className="w-full md:w-32">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Payment</label>
+                                    <select
+                                        value={paymentType}
+                                        onChange={(e) => setPaymentType(e.target.value as "Cash" | "Online")}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm font-semibold"
+                                    >
+                                        <option value="Cash">Cash</option>
+                                        <option value="Online">Online</option>
+                                    </select>
                                 </div>
 
                                 {/* Qty */}
