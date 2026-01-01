@@ -9,7 +9,7 @@ import { DashboardLayout } from "@/components/layout";
 const parseTransactionNote = (note: string) => {
     const lines = note.split('\n');
     let orderNumber = "";
-    let customerName = "";
+    let partyName = "";
     let customerPhone = "";
     let customerAddress = "";
     let paymentType = "Cash";
@@ -19,7 +19,8 @@ const parseTransactionNote = (note: string) => {
 
     lines.forEach(line => {
         if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
-        else if (line.startsWith("Customer: ")) customerName = line.replace("Customer: ", "").trim();
+        else if (line.startsWith("Customer: ")) partyName = line.replace("Customer: ", "").trim();
+        else if (line.startsWith("Supplier: ")) partyName = line.replace("Supplier: ", "").trim();
         else if (line.startsWith("Phone: ")) customerPhone = line.replace("Phone: ", "").trim();
         else if (line.startsWith("Address: ")) customerAddress = line.replace("Address: ", "").trim();
         else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
@@ -36,7 +37,7 @@ const parseTransactionNote = (note: string) => {
         }
     });
 
-    return { orderNumber, customerName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice };
+    return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice };
 };
 
 export default function ReceiptPage() {
@@ -55,7 +56,7 @@ export default function ReceiptPage() {
                 return res.json();
             })
             .then(entry => {
-                const { orderNumber, customerName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice } = parseTransactionNote(entry.note || "");
+                const { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice } = parseTransactionNote(entry.note || "");
 
                 // Construct data for ThermalReceipt
                 const item = {
@@ -70,7 +71,7 @@ export default function ReceiptPage() {
                     id: entry.id,
                     date: entry.date,
                     status: paymentType, // Use payment type as status (Online/Cash)
-                    customerName: customerName,
+                    customerName: partyName,
                     customerPhone: customerPhone,
                     customerAddress: customerAddress,
                     items: [item],
