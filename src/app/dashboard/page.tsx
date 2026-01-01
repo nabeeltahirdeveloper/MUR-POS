@@ -16,6 +16,7 @@ function DashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [dailySummary, setDailySummary] = useState<any>(null);
+    const [totalSummary, setTotalSummary] = useState<any>(null);
     const [showTransactionModal, setShowTransactionModal] = useState(false);
 
     useEffect(() => {
@@ -29,6 +30,11 @@ function DashboardContent() {
         fetch(`/api/ledger/summary/daily?date=${today}`)
             .then((res) => res.json())
             .then((data) => setDailySummary(data))
+            .catch((err) => console.error(err));
+
+        fetch('/api/ledger/summary/total')
+            .then((res) => res.json())
+            .then((data) => setTotalSummary(data))
             .catch((err) => console.error(err));
     }, []);
 
@@ -83,14 +89,14 @@ function DashboardContent() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Net Balance</p>
+                                <p className="text-sm font-medium text-gray-500">Total Balance</p>
                                 <p
-                                    className={`text-2xl font-bold mt-1 ${(dailySummary?.summary?.net || 0) >= 0
+                                    className={`text-2xl font-bold mt-1 ${(totalSummary?.summary?.net || 0) >= 0
                                         ? "text-blue-600"
                                         : "text-red-600"
                                         }`}
                                 >
-                                    {dailySummary?.summary?.net?.toFixed(2) || "0.00"}
+                                    {totalSummary?.summary?.net?.toFixed(2) || "0.00"}
                                 </p>
                             </div>
                             <div className="p-3 bg-blue-100 rounded-lg">
@@ -180,14 +186,14 @@ function DashboardContent() {
                                     className="flex flex-col items-center justify-center p-6 rounded-xl bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-100 transition-all group"
                                 >
                                     <ArrowTrendingUpIcon className="h-10 w-10 text-emerald-600 mb-3 group-hover:scale-110 transition-transform" />
-                                    <span className="font-bold text-emerald-700">Cash-In-Entry</span>
+                                    <span className="font-bold text-emerald-700">Cash-In</span>
                                 </button>
                                 <button
                                     onClick={() => router.push("/ledger/new?type=debit")}
                                     className="flex flex-col items-center justify-center p-6 rounded-xl bg-red-50 border-2 border-red-100 hover:border-red-500 hover:bg-red-100 transition-all group"
                                 >
                                     <ArrowTrendingDownIcon className="h-10 w-10 text-red-600 mb-3 group-hover:scale-110 transition-transform" />
-                                    <span className="font-bold text-red-700">Cash-Out-Entry</span>
+                                    <span className="font-bold text-red-700">Cash-Out</span>
                                 </button>
                             </div>
                             <div className="p-4 bg-gray-50/50 border-t border-gray-100">
