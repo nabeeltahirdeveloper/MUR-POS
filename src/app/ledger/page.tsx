@@ -154,7 +154,7 @@ function LedgerPageContent() {
                             </label>
                             <input
                                 type="text"
-                                className="w-full p-2 pr-10 border rounded-md text-sm"
+                                className="w-full p-2 pr-10 border rounded-md text-sm text-gray-900"
                                 placeholder="Search..."
                                 value={filters.search}
                                 onChange={(e) => updateFilter("search", e.target.value)}

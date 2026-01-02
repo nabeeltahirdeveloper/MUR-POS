@@ -270,7 +270,7 @@ export default function DebtsPage() {
                                     <input
                                         type="text"
                                         placeholder="Enter name"
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900"
                                         value={form.personName}
                                         onChange={(e) => setForm({ ...form, personName: e.target.value })}
                                         required
@@ -279,7 +279,7 @@ export default function DebtsPage() {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Transaction Type</label>
                                     <select
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900"
                                         value={form.type}
                                         onChange={(e) => setForm({ ...form, type: e.target.value as any })}
                                     >
@@ -294,7 +294,7 @@ export default function DebtsPage() {
                                         <input
                                             type="number"
                                             placeholder="0"
-                                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900"
                                             value={form.amount}
                                             onChange={(e) => setForm({ ...form, amount: e.target.value })}
                                             required
@@ -305,7 +305,7 @@ export default function DebtsPage() {
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Due Date (Optional)</label>
                                     <input
                                         type="date"
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900"
                                         value={form.dueDate}
                                         onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
                                     />
@@ -315,7 +315,7 @@ export default function DebtsPage() {
                                     <input
                                         type="text"
                                         placeholder="Add any additional details"
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900"
                                         value={form.note}
                                         onChange={(e) => setForm({ ...form, note: e.target.value })}
                                     />

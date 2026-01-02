@@ -288,9 +288,9 @@ export default function PurchaseOrderDetailPage() {
                     <h1 className="text-3xl font-bold text-gray-900">{supplierName}</h1>
                     <div className="mt-2 flex gap-2">
                         <span className={`px-2 py-1 rounded text-sm font-semibold uppercase ${po.status === 'received' ? 'bg-green-100 text-green-800' :
-                                po.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                    po.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                                        'bg-yellow-100 text-yellow-800'
+                            po.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                po.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                                    'bg-yellow-100 text-yellow-800'
                             }`}>
                             {po.status}
                         </span>
@@ -362,7 +362,7 @@ export default function PurchaseOrderDetailPage() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
                                 <select
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
                                     value={detailsForm.supplierId}
                                     onChange={(e) => setDetailsForm((f) => ({ ...f, supplierId: e.target.value }))}
                                 >
@@ -387,7 +387,7 @@ export default function PurchaseOrderDetailPage() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                                 <textarea
-                                    className="w-full border border-gray-300 rounded-md p-2 h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                                    className="w-full border border-gray-300 rounded-md p-2 h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none text-gray-900"
                                     value={detailsForm.notes}
                                     onChange={(e) => setDetailsForm((f) => ({ ...f, notes: e.target.value }))}
                                 />
@@ -395,7 +395,7 @@ export default function PurchaseOrderDetailPage() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Terms</label>
                                 <textarea
-                                    className="w-full border border-gray-300 rounded-md p-2 h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                                    className="w-full border border-gray-300 rounded-md p-2 h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none text-gray-900"
                                     value={detailsForm.terms}
                                     onChange={(e) => setDetailsForm((f) => ({ ...f, terms: e.target.value }))}
                                 />
@@ -457,7 +457,7 @@ export default function PurchaseOrderDetailPage() {
                                             type="number"
                                             min="0"
                                             step="0.01"
-                                            className="w-24 border rounded px-2 py-1 text-right"
+                                            className="w-24 border rounded px-2 py-1 text-right text-gray-900"
                                             value={Number.isFinite(item.qty) ? item.qty : 0}
                                             onChange={(e) => updateRow(idx, { qty: parseFloat(e.target.value) || 0 })}
                                         />
@@ -471,7 +471,7 @@ export default function PurchaseOrderDetailPage() {
                                             type="number"
                                             min="0"
                                             step="0.01"
-                                            className="w-28 border rounded px-2 py-1 text-right"
+                                            className="w-28 border rounded px-2 py-1 text-right text-gray-900"
                                             value={Number.isFinite(item.pricePerUnit) ? item.pricePerUnit : 0}
                                             onChange={(e) => updateRow(idx, { pricePerUnit: parseFloat(e.target.value) || 0 })}
                                         />
@@ -498,7 +498,7 @@ export default function PurchaseOrderDetailPage() {
                                 <td className="px-4 py-3 relative">
                                     <input
                                         type="text"
-                                        className="w-full border rounded px-2 py-1"
+                                        className="w-full border rounded px-2 py-1 text-gray-900"
                                         placeholder="Search items..."
                                         value={searchTerm}
                                         onChange={e => setSearchTerm(e.target.value)}
@@ -531,7 +531,7 @@ export default function PurchaseOrderDetailPage() {
                                     <input
                                         type="number"
                                         min="1"
-                                        className="w-20 border rounded px-2 py-1 text-right"
+                                        className="w-20 border rounded px-2 py-1 text-right text-gray-900"
                                         value={newItemQty}
                                         onChange={e => setNewItemQty(parseFloat(e.target.value) || 0)}
                                     />
@@ -541,7 +541,7 @@ export default function PurchaseOrderDetailPage() {
                                         type="number"
                                         min="0"
                                         step="0.01"
-                                        className="w-24 border rounded px-2 py-1 text-right"
+                                        className="w-24 border rounded px-2 py-1 text-right text-gray-900"
                                         value={newItemPrice}
                                         onChange={e => setNewItemPrice(parseFloat(e.target.value) || 0)}
                                     />

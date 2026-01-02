@@ -170,7 +170,7 @@ export default function SuppliersPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                             <input
-                                className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
                                 value={form.name}
                                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                                 required
@@ -179,7 +179,7 @@ export default function SuppliersPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                             <input
-                                className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
                                 value={form.phone}
                                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                                 placeholder="Optional"
@@ -189,7 +189,7 @@ export default function SuppliersPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                         <textarea
-                            className="w-full border border-gray-300 rounded-md p-2 h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                            className="w-full border border-gray-300 rounded-md p-2 h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none text-gray-900"
                             value={form.address}
                             onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
                             placeholder="Optional"
@@ -207,7 +207,7 @@ export default function SuppliersPage() {
                 <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-4">
                     <div className="flex-1 relative md:max-w-md">
                         <input
-                            className="w-full border border-gray-300 rounded-md p-2 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            className="w-full border border-gray-300 rounded-md p-2 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
                             placeholder="Search suppliers..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}

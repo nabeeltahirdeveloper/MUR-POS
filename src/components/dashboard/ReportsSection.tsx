@@ -95,7 +95,7 @@ export default function ReportsSection() {
                             <span className="text-xs font-medium text-gray-500">From:</span>
                             <input
                                 type="date"
-                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
                                 value={filters.from}
                                 onChange={(e) => setFilters(f => ({ ...f, from: e.target.value }))}
                             />
@@ -104,7 +104,7 @@ export default function ReportsSection() {
                             <span className="text-xs font-medium text-gray-500">To:</span>
                             <input
                                 type="date"
-                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
                                 value={filters.to}
                                 onChange={(e) => setFilters(f => ({ ...f, to: e.target.value }))}
                             />
@@ -112,7 +112,7 @@ export default function ReportsSection() {
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-medium text-gray-500">Category:</span>
                             <select
-                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
                                 value={filters.categoryId}
                                 onChange={(e) => setFilters(f => ({ ...f, categoryId: e.target.value }))}
                             >

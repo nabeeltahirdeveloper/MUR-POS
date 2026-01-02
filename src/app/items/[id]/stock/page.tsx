@@ -155,8 +155,8 @@ export default function ItemStockPage({ params }: { params: Promise<{ id: string
                                 <button
                                     onClick={() => setActiveTab("logs")}
                                     className={`${activeTab === "logs"
-                                            ? "border-blue-500 text-blue-600"
-                                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                        ? "border-blue-500 text-blue-600"
+                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                                         } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                                 >
                                     <ClockIcon className="h-5 w-5" />
@@ -165,8 +165,8 @@ export default function ItemStockPage({ params }: { params: Promise<{ id: string
                                 <button
                                     onClick={() => setActiveTab("add")}
                                     className={`${activeTab === "add"
-                                            ? "border-green-500 text-green-600"
-                                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                        ? "border-green-500 text-green-600"
+                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                                         } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                                 >
                                     <PlusIcon className="h-5 w-5" />
@@ -175,8 +175,8 @@ export default function ItemStockPage({ params }: { params: Promise<{ id: string
                                 <button
                                     onClick={() => setActiveTab("remove")}
                                     className={`${activeTab === "remove"
-                                            ? "border-red-500 text-red-600"
-                                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                        ? "border-red-500 text-red-600"
+                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                                         } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                                 >
                                     <MinusIcon className="h-5 w-5" />
@@ -214,7 +214,7 @@ export default function ItemStockPage({ params }: { params: Promise<{ id: string
                                             step="any"
                                             value={quantity}
                                             onChange={(e) => setQuantity(e.target.value)}
-                                            className="block w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                            className="block w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900"
                                             placeholder="0.00"
                                         />
                                     </div>
@@ -226,7 +226,7 @@ export default function ItemStockPage({ params }: { params: Promise<{ id: string
                                             value={description}
                                             onChange={(e) => setDescription(e.target.value)}
                                             rows={3}
-                                            className="block w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                            className="block w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900"
                                             placeholder="e.g. Received shipment #123"
                                         />
                                     </div>

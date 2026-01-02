@@ -528,7 +528,7 @@ export default function LedgerEntryForm({
                                         }}
                                         onFocus={() => { if (partyName.length >= 1 && !isNewParty) setShowPartyResults(true); }}
                                         placeholder={`Search ${type === 'credit' ? 'Customer' : 'Supplier'}...`}
-                                        className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                        className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                     />
                                     {isSearchingParty && (
                                         <span className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -599,7 +599,7 @@ export default function LedgerEntryForm({
                                                 value={partyPhone}
                                                 onChange={(e) => setPartyPhone(e.target.value)}
                                                 placeholder="Enter phone..."
-                                                className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                                className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                             />
                                         </div>
                                         <div>
@@ -609,7 +609,7 @@ export default function LedgerEntryForm({
                                                 value={partyAddress}
                                                 onChange={(e) => setPartyAddress(e.target.value)}
                                                 placeholder="Enter address..."
-                                                className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                                className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                             />
                                         </div>
                                     </div>
@@ -623,7 +623,7 @@ export default function LedgerEntryForm({
                                     type="date"
                                     value={date}
                                     onChange={(e) => setDate(e.target.value)}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                 />
                             </div>
 
@@ -634,7 +634,7 @@ export default function LedgerEntryForm({
                                     type="time"
                                     value={time}
                                     onChange={(e) => setTime(e.target.value)}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                 />
                             </div>
                         </div>
@@ -656,7 +656,7 @@ export default function LedgerEntryForm({
                                             }}
                                             onFocus={() => { if (searchTerm.length >= 1) setShowResults(true); }}
                                             placeholder="Scan or Type Item..."
-                                            className="w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                            className="w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                         />
                                         {isSearching && (
                                             <span className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -689,7 +689,7 @@ export default function LedgerEntryForm({
                                     <select
                                         value={paymentType}
                                         onChange={(e) => setPaymentType(e.target.value as "Cash" | "Online")}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm font-semibold"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-gray-900"
                                     >
                                         <option value="Cash">Cash</option>
                                         <option value="Online">Online</option>
@@ -703,7 +703,7 @@ export default function LedgerEntryForm({
                                         type="number"
                                         value={quantity}
                                         onChange={(e) => setQuantity(e.target.value)}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
                                     />
                                 </div>
 
