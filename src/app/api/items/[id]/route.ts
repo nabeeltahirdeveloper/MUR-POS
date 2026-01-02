@@ -17,10 +17,11 @@ export async function GET(
         }
 
         // Fetch related data
-        const [category, baseUnit, saleUnit] = await Promise.all([
+        const [category, baseUnit, saleUnit, supplier] = await Promise.all([
             item.categoryId ? getDocById<FirestoreCategory>('categories', item.categoryId) : null,
             item.baseUnitId ? getDocById<FirestoreUnit>('units', item.baseUnitId) : null,
             item.saleUnitId ? getDocById<FirestoreUnit>('units', item.saleUnitId) : null,
+            item.supplierId ? getDocById<{ id: string; name: string }>('suppliers', item.supplierId) : null,
         ]);
 
         const currentStock = await calculateCurrentStock(item.id);
@@ -31,6 +32,7 @@ export async function GET(
             category,
             baseUnit,
             saleUnit,
+            supplier,
             currentStock,
             isLowStock,
         });
@@ -59,6 +61,8 @@ export async function PUT(
             minStockLevel,
             firstSalePrice,
             secondPurchasePrice,
+            supplierId,
+            orderNumber,
         } = body;
 
         // TODO: Add check if we can change units safely if stock exists?
@@ -81,6 +85,8 @@ export async function PUT(
         if (secondPurchasePrice !== undefined) {
             updateData.secondPurchasePrice = (secondPurchasePrice === null || secondPurchasePrice === "") ? null : Number(secondPurchasePrice);
         }
+        if (supplierId !== undefined) updateData.supplierId = supplierId || null;
+        if (orderNumber !== undefined) updateData.orderNumber = orderNumber || null;
 
         const { updateDoc } = await import('@/lib/firestore-helpers');
         await updateDoc<Partial<FirestoreItem>>('items', id, updateData);
@@ -96,10 +102,11 @@ export async function PUT(
             return NextResponse.json({ error: "Item not found" }, { status: 404 });
         }
 
-        const [category, baseUnit, saleUnit] = await Promise.all([
+        const [category, baseUnit, saleUnit, supplier] = await Promise.all([
             updatedItem.categoryId ? getDocById<FirestoreCategory>('categories', updatedItem.categoryId) : null,
             updatedItem.baseUnitId ? getDocById<FirestoreUnit>('units', updatedItem.baseUnitId) : null,
             updatedItem.saleUnitId ? getDocById<FirestoreUnit>('units', updatedItem.saleUnitId) : null,
+            updatedItem.supplierId ? getDocById<{ id: string; name: string }>('suppliers', updatedItem.supplierId) : null,
         ]);
 
         return NextResponse.json({
@@ -107,6 +114,7 @@ export async function PUT(
             category,
             baseUnit,
             saleUnit,
+            supplier,
         });
     } catch (error) {
         console.error("Error updating item:", error);
@@ -137,7 +145,7 @@ export async function DELETE(
 
         // Delete associated stock logs
         const stockLogDeletions = stockLogsSnapshot.docs.map(doc => doc.ref.delete());
-        
+
         // Delete associated purchase order items
         const poItemDeletions = poItemsSnapshot.docs.map(doc => doc.ref.delete());
 
@@ -152,9 +160,9 @@ export async function DELETE(
             purchaseOrderItems: poItemsSnapshot.size,
         };
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             message: "Item deleted successfully",
-            deletedCounts 
+            deletedCounts
         });
     } catch (error) {
         console.error("Error deleting item:", error);

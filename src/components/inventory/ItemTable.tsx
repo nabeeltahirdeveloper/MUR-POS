@@ -15,10 +15,24 @@ export function ItemTable({ items, onDelete }: ItemTableProps) {
             data={items}
             columns={[
                 {
+                    key: "orderNumber",
+                    header: "Order #",
+                    render: (_value, _row, index) => (
+                        <div className="text-gray-500 font-medium">{index + 1}</div>
+                    ),
+                },
+                {
                     key: "name",
                     header: "Name",
                     render: (value, row) => (
                         <div className="font-medium text-gray-900">{row.name}</div>
+                    ),
+                },
+                {
+                    key: "supplier",
+                    header: "Supplier",
+                    render: (value, row) => (
+                        <span className="text-gray-600">{row.supplier?.name || "—"}</span>
                     ),
                 },
                 {

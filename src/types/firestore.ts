@@ -43,6 +43,8 @@ export interface FirestoreItem {
     minStockLevel?: number | null;
     firstSalePrice?: number | null;
     secondPurchasePrice?: number | null;
+    supplierId?: string | null;
+    orderNumber?: number | null;
     createdAt: Date | any;
 }
 
