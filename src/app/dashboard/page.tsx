@@ -11,6 +11,7 @@ import {
     ArrowTrendingUpIcon,
     ArrowTrendingDownIcon,
     BoltIcon,
+    CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 
 function DashboardContent() {
@@ -19,6 +20,7 @@ function DashboardContent() {
     const [dailySummary, setDailySummary] = useState<any>(null);
     const [totalSummary, setTotalSummary] = useState<any>(null);
     const [upcomingUtilities, setUpcomingUtilities] = useState<any[]>([]);
+    const [debtSummary, setDebtSummary] = useState<any[]>([]);
     const [showTransactionModal, setShowTransactionModal] = useState(false);
 
     useEffect(() => {
@@ -56,6 +58,15 @@ function DashboardContent() {
                         })
                         .slice(0, 5);
                     setUpcomingUtilities(upcoming);
+                }
+            })
+            .catch((err) => console.error(err));
+        fetch('/api/debts')
+            .then((res) => res.json())
+            .then((data) => {
+                if (Array.isArray(data)) {
+                    const active = data.filter((d: any) => d.status === 'active').slice(0, 5);
+                    setDebtSummary(active);
                 }
             })
             .catch((err) => console.error(err));
@@ -238,7 +249,7 @@ function DashboardContent() {
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div className="flex items-center gap-2">
                                 <BoltIcon className="h-5 w-5 text-amber-500" />
-                                <h3 className="font-bold text-gray-900">Upcoming Bills</h3>
+                                <h3 className="font-bold text-gray-900">Utilities Bills</h3>
                             </div>
                             <Link
                                 href="/utilities"
@@ -284,6 +295,60 @@ function DashboardContent() {
                                     </div>
                                     <p className="text-gray-500 font-medium">All caught up!</p>
                                     <p className="text-xs text-gray-400 mt-1">No bills due in the next 7 days.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Loan & Debt Summary Widget */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <div className="flex items-center gap-2">
+                                <BanknotesIcon className="h-5 w-5 text-blue-500" />
+                                <h3 className="font-bold text-gray-900">Active Loans</h3>
+                            </div>
+                            <Link
+                                href="/debts"
+                                className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                            >
+                                View All →
+                            </Link>
+                        </div>
+                        <div className="flex-1">
+                            {debtSummary.length > 0 ? (
+                                <div className="divide-y divide-gray-100">
+                                    {debtSummary.map((debt) => (
+                                        <div
+                                            key={debt.id}
+                                            className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/80 transition-colors"
+                                        >
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-gray-900">{debt.personName}</span>
+                                                <span className={`text-[10px] uppercase tracking-wider font-bold ${debt.type === 'loaned_out' ? 'text-blue-500' : 'text-purple-500'
+                                                    }`}>
+                                                    {debt.type === 'loaned_out' ? 'Loan-Out' : 'Loan-In'}
+                                                </span>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-mono font-bold text-gray-900">
+                                                    Rs. {debt.amount.toLocaleString()}
+                                                </p>
+                                                {debt.dueDate && (
+                                                    <p className="text-[10px] text-gray-400">
+                                                        Due: {new Date(debt.dueDate).toLocaleDateString()}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                                    <div className="p-3 bg-blue-50 rounded-full mb-3">
+                                        <CheckCircleIcon className="h-6 w-6 text-blue-500" />
+                                    </div>
+                                    <p className="text-gray-500 font-medium">Clear Records</p>
+                                    <p className="text-xs text-gray-400 mt-1">No active loans or debts found.</p>
                                 </div>
                             )}
                         </div>
