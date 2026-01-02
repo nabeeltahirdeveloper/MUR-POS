@@ -38,7 +38,7 @@ const features = [
   {
     Icon: BellAlertIcon,
     title: "Smart Reminders",
-    description: "Automated alerts for low stock, upcoming bills, and debt payments.",
+    description: "Automated alerts for low stock, utilities bills, and debt payments.",
   },
 ];
 

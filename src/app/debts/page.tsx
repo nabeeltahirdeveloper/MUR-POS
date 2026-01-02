@@ -146,11 +146,11 @@ export default function DebtsPage() {
             header: "Type",
             render: (value: string) => (
                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${value === "loaned_out"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-purple-100 text-purple-800"
+                    ? "bg-blue-100 text-blue-800"
+                    : "bg-purple-100 text-purple-800"
                     }`}>
                     {value === "loaned_out" ? <ArrowUpCircleIcon className="h-3.5 w-3.5" /> : <ArrowDownCircleIcon className="h-3.5 w-3.5" />}
-                    {value === "loaned_out" ? "LOAN GIVEN" : "LOAN TAKEN"}
+                    {value === "loaned_out" ? "LOAN-OUT" : "LOAN-IN"}
                 </span>
             )
         },
@@ -171,8 +171,8 @@ export default function DebtsPage() {
             header: "Status",
             render: (value: string) => (
                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${value === "paid"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-amber-100 text-amber-800"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-amber-100 text-amber-800"
                     }`}>
                     {value === "paid" ? <CheckCircleIcon className="h-3.5 w-3.5" /> : <ExclamationTriangleIcon className="h-3.5 w-3.5" />}
                     {value.toUpperCase()}
@@ -211,7 +211,7 @@ export default function DebtsPage() {
             <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Loan & Debt Management</h1>
+                        <h1 className="text-2xl font-bold text-gray-900">Loans Management</h1>
                         <p className="text-sm text-gray-500">Track money given to others and money taken from others</p>
                     </div>
                     <Button
@@ -220,7 +220,7 @@ export default function DebtsPage() {
                         className="flex items-center gap-2"
                     >
                         {showForm ? <XCircleIcon className="h-5 w-5" /> : <PlusIcon className="h-5 w-5" />}
-                        {showForm ? "Cancel" : "Record New Loan/Debt"}
+                        {showForm ? "Cancel" : "Record New"}
                     </Button>
                 </div>
 
@@ -261,7 +261,7 @@ export default function DebtsPage() {
                     <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 animate-fadeIn">
                         <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
                             <PlusIcon className="h-5 w-5" />
-                            Record New Loan or Debt
+                            Record New Loan-In or Loan-Out
                         </h3>
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -283,8 +283,8 @@ export default function DebtsPage() {
                                         value={form.type}
                                         onChange={(e) => setForm({ ...form, type: e.target.value as any })}
                                     >
-                                        <option value="loaned_out">Loan Out (Money Given)</option>
-                                        <option value="loaned_in">Loan In (Money Taken)</option>
+                                        <option value="loaned_out">Loan-Out (Money Given)</option>
+                                        <option value="loaned_in">Loan-In (Money Taken)</option>
                                     </select>
                                 </div>
                                 <div>
@@ -332,7 +332,7 @@ export default function DebtsPage() {
 
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
-                        <h3 className="font-bold text-gray-900 text-lg">Loan & Debt Records</h3>
+                        <h3 className="font-bold text-gray-900 text-lg">Loan-In & Loan-Out Records</h3>
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                             <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
                             {debts.length} Records

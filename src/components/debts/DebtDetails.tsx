@@ -102,7 +102,7 @@ export default function DebtDetails({ debt, isOpen, onClose }: DebtDetailsProps)
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">{debt.personName}</h2>
                             <p className="text-sm text-gray-500 flex items-center gap-1">
-                                {debt.type === 'loaned_out' ? "Loan Given" : "Loan Taken"} •
+                                {debt.type === 'loaned_out' ? "Loan-Out" : "Loan-In"} •
                                 Record Date: {new Date(debt.createdAt).toLocaleDateString()}
                             </p>
                         </div>
