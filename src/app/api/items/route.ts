@@ -17,12 +17,12 @@ export async function GET(request: NextRequest) {
             items = await queryDocs<FirestoreItem>('items', [
                 { field: 'categoryId', operator: '==', value: categoryId }
             ], {
-                orderBy: 'name',
+                orderBy: 'orderNumber',
                 orderDirection: 'asc',
             });
         } else {
             items = await getAllDocs<FirestoreItem>('items', {
-                orderBy: 'name',
+                orderBy: 'orderNumber',
                 orderDirection: 'asc',
             });
         }
@@ -44,10 +44,11 @@ export async function GET(request: NextRequest) {
         // Fetch related data (category, baseUnit, saleUnit)
         const itemsWithRelations = await Promise.all(
             items.map(async (item) => {
-                const [category, baseUnit, saleUnit] = await Promise.all([
+                const [category, baseUnit, saleUnit, supplier] = await Promise.all([
                     item.categoryId ? getDocById<FirestoreCategory>('categories', item.categoryId) : null,
                     item.baseUnitId ? getDocById<FirestoreUnit>('units', item.baseUnitId) : null,
                     item.saleUnitId ? getDocById<FirestoreUnit>('units', item.saleUnitId) : null,
+                    item.supplierId ? getDocById<{ id: string; name: string }>('suppliers', item.supplierId) : null,
                 ]);
 
                 const currentStock = await calculateCurrentStock(item.id);
@@ -78,6 +79,7 @@ export async function GET(request: NextRequest) {
                     category,
                     baseUnit,
                     saleUnit,
+                    supplier,
                     currentStock,
                     isLowStock,
                 };
@@ -106,6 +108,7 @@ export async function POST(request: NextRequest) {
             minStockLevel,
             firstSalePrice,
             secondPurchasePrice,
+            supplierId,
         } = body;
 
         if (!name || !baseUnitId || !saleUnitId) {
@@ -114,6 +117,19 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             );
         }
+
+        // Auto-assign order number
+        const items = await getAllDocs<FirestoreItem>('items');
+        let maxOrderNum = 0;
+        items.forEach(item => {
+            if (item.orderNumber) {
+                const num = Number(item.orderNumber);
+                if (!isNaN(num) && num > maxOrderNum) {
+                    maxOrderNum = num;
+                }
+            }
+        });
+        const nextOrderNumber = maxOrderNum + 1;
 
         const itemData: Omit<FirestoreItem, 'id'> = {
             name,
@@ -124,6 +140,8 @@ export async function POST(request: NextRequest) {
             minStockLevel: minStockLevel ? Number(minStockLevel) : 0,
             firstSalePrice: firstSalePrice !== undefined && firstSalePrice !== null ? Number(firstSalePrice) : null,
             secondPurchasePrice: secondPurchasePrice !== undefined && secondPurchasePrice !== null ? Number(secondPurchasePrice) : null,
+            supplierId: supplierId || null,
+            orderNumber: nextOrderNumber,
             createdAt: new Date(),
         };
 
@@ -136,10 +154,11 @@ export async function POST(request: NextRequest) {
             throw new Error('Failed to fetch created item');
         }
 
-        const [category, baseUnit, saleUnit] = await Promise.all([
+        const [category, baseUnit, saleUnit, supplier] = await Promise.all([
             newItem.categoryId ? getDocById<FirestoreCategory>('categories', newItem.categoryId) : null,
             newItem.baseUnitId ? getDocById<FirestoreUnit>('units', newItem.baseUnitId) : null,
             newItem.saleUnitId ? getDocById<FirestoreUnit>('units', newItem.saleUnitId) : null,
+            newItem.supplierId ? getDocById<{ id: string; name: string }>('suppliers', newItem.supplierId) : null,
         ]);
 
         return NextResponse.json({
@@ -147,6 +166,7 @@ export async function POST(request: NextRequest) {
             category,
             baseUnit,
             saleUnit,
+            supplier,
         }, { status: 201 });
     } catch (error) {
         console.error("Error creating item:", error);

@@ -19,11 +19,14 @@ export interface Item {
     minStockLevel: number | null;
     firstSalePrice?: number | null;
     secondPurchasePrice?: number | null;
+    supplierId?: string | null;
+    orderNumber?: number | null;
     createdAt: string;
 
     category?: Category;
     baseUnit?: Unit;
     saleUnit?: Unit;
+    supplier?: { id: string; name: string };
 
     currentStock?: number; // Calculated field
     isLowStock?: boolean;
