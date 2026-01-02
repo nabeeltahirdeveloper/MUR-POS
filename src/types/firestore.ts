@@ -108,7 +108,7 @@ export interface FirestoreUtility {
     amount: number;
     dueDate: Date | any;
     category?: string | null;
-    status?: string | null;
+    status: 'paid' | 'unpaid';
     createdAt: Date | any;
 }
 
