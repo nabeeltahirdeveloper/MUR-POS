@@ -58,6 +58,7 @@ export default function SignupPage() {
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-100">
             <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
+                <img src="/favicon.jpg" alt="Logo" className="h-20 w-20 rounded-2xl mx-auto mb-6 object-cover shadow-lg border border-gray-100" />
                 <h2 className="mb-6 text-center text-2xl font-bold text-gray-900">Create Account</h2>
 
                 {error && (

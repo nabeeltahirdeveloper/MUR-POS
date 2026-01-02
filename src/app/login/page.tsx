@@ -54,7 +54,7 @@ function LoginForm() {
                 password,
                 callbackUrl: resolvedCallbackUrl,
             };
-            
+
             if (rememberMe) {
                 // Set maxAge to 30 days for persistent cookie
                 signInOptions.maxAge = 30 * 24 * 60 * 60; // 30 days in seconds
@@ -63,7 +63,7 @@ function LoginForm() {
                 // Using 1 hour as a safety net, but SessionManager checks sessionStorage to detect browser close
                 signInOptions.maxAge = 60 * 60; // 1 hour in seconds
             }
-            
+
             const result = await signIn('credentials', signInOptions) as any;
 
             if (result?.error) {
@@ -88,6 +88,7 @@ function LoginForm() {
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-100">
             <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
+                <img src="/favicon.jpg" alt="Logo" className="h-20 w-20 rounded-2xl mx-auto mb-6 object-cover shadow-lg border border-gray-100" />
                 <h2 className="mb-6 text-center text-2xl font-bold text-gray-900">Sign In</h2>
 
                 {error && (
