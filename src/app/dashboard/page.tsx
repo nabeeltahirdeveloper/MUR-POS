@@ -10,6 +10,7 @@ import {
     BanknotesIcon,
     ArrowTrendingUpIcon,
     ArrowTrendingDownIcon,
+    BoltIcon,
 } from "@heroicons/react/24/outline";
 
 function DashboardContent() {
@@ -17,6 +18,7 @@ function DashboardContent() {
     const searchParams = useSearchParams();
     const [dailySummary, setDailySummary] = useState<any>(null);
     const [totalSummary, setTotalSummary] = useState<any>(null);
+    const [upcomingUtilities, setUpcomingUtilities] = useState<any[]>([]);
     const [showTransactionModal, setShowTransactionModal] = useState(false);
 
     useEffect(() => {
@@ -35,6 +37,27 @@ function DashboardContent() {
         fetch('/api/ledger/summary/total')
             .then((res) => res.json())
             .then((data) => setTotalSummary(data))
+            .catch((err) => console.error(err));
+
+        fetch('/api/utilities')
+            .then((res) => res.json())
+            .then((data) => {
+                if (Array.isArray(data)) {
+                    const now = new Date();
+                    now.setHours(0, 0, 0, 0);
+                    const upcoming = data
+                        .filter((u: any) => u.status === 'unpaid')
+                        .filter((u: any) => {
+                            const d = new Date(u.dueDate);
+                            d.setHours(0, 0, 0, 0);
+                            const diff = d.getTime() - now.getTime();
+                            const days = diff / (1000 * 60 * 60 * 24);
+                            return days <= 7; // Overdue or due within 7 days
+                        })
+                        .slice(0, 5);
+                    setUpcomingUtilities(upcoming);
+                }
+            })
             .catch((err) => console.error(err));
     }, []);
 
@@ -61,7 +84,7 @@ function DashboardContent() {
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Today's Credit</p>
                                 <p className="text-2xl font-bold text-green-600 mt-1">
-                                    {dailySummary?.summary?.totalCredit?.toFixed(2) || "0.00"}
+                                    Rs. {dailySummary?.summary?.totalCredit?.toFixed(2) || "0.00"}
                                 </p>
                             </div>
                             <div className="p-3 bg-green-100 rounded-lg">
@@ -76,7 +99,7 @@ function DashboardContent() {
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Today's Debit</p>
                                 <p className="text-2xl font-bold text-red-600 mt-1">
-                                    {dailySummary?.summary?.totalDebit?.toFixed(2) || "0.00"}
+                                    Rs. {dailySummary?.summary?.totalDebit?.toFixed(2) || "0.00"}
                                 </p>
                             </div>
                             <div className="p-3 bg-red-100 rounded-lg">
@@ -96,7 +119,7 @@ function DashboardContent() {
                                         : "text-red-600"
                                         }`}
                                 >
-                                    {totalSummary?.summary?.net?.toFixed(2) || "0.00"}
+                                    Rs. {totalSummary?.summary?.net?.toFixed(2) || "0.00"}
                                 </p>
                             </div>
                             <div className="p-3 bg-blue-100 rounded-lg">
@@ -208,42 +231,103 @@ function DashboardContent() {
                     </div>
                 )}
 
-                {/* Category Breakdown */}
-                {dailySummary?.breakdown && dailySummary.breakdown.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                            <h3 className="font-semibold text-gray-900">Today's Category Breakdown</h3>
+                {/* Content Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Upcoming Utilities Widget */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <div className="flex items-center gap-2">
+                                <BoltIcon className="h-5 w-5 text-amber-500" />
+                                <h3 className="font-bold text-gray-900">Upcoming Bills</h3>
+                            </div>
                             <Link
-                                href="/ledger/summary/daily"
-                                className="text-sm text-blue-600 hover:underline"
+                                href="/utilities"
+                                className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                             >
-                                View Details →
+                                View All →
                             </Link>
                         </div>
-                        <div className="divide-y divide-gray-100">
-                            {dailySummary.breakdown.map((cat: any) => (
-                                <div
-                                    key={cat.name}
-                                    className="px-6 py-4 flex items-center justify-between hover:bg-gray-50"
-                                >
-                                    <span className="font-medium text-gray-700">{cat.name}</span>
-                                    <div className="flex items-center gap-6 text-sm">
-                                        <span className="text-green-600">+{cat.credit.toFixed(2)}</span>
-                                        <span className="text-red-500">-{cat.debit.toFixed(2)}</span>
-                                        <span
-                                            className={`font-medium ${cat.credit - cat.debit >= 0
-                                                ? "text-blue-600"
-                                                : "text-red-600"
-                                                }`}
-                                        >
-                                            Net: {(cat.credit - cat.debit).toFixed(2)}
-                                        </span>
-                                    </div>
+                        <div className="flex-1">
+                            {upcomingUtilities.length > 0 ? (
+                                <div className="divide-y divide-gray-100">
+                                    {upcomingUtilities.map((utility) => {
+                                        const dueDate = new Date(utility.dueDate);
+                                        const isOverdue = dueDate < new Date();
+                                        return (
+                                            <div
+                                                key={utility.id}
+                                                className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/80 transition-colors"
+                                            >
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-gray-900">{utility.name}</span>
+                                                    <span className={`text-xs ${isOverdue ? "text-red-500 font-semibold" : "text-gray-500"}`}>
+                                                        Due: {dueDate.toLocaleDateString()}
+                                                        {isOverdue && " (OVERDUE)"}
+                                                    </span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-mono font-bold text-gray-900">
+                                                        Rs. {utility.amount.toFixed(2)}
+                                                    </p>
+                                                    <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">
+                                                        {utility.category || "General"}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            ))}
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                                    <div className="p-3 bg-green-50 rounded-full mb-3">
+                                        <ArrowTrendingUpIcon className="h-6 w-6 text-green-500" />
+                                    </div>
+                                    <p className="text-gray-500 font-medium">All caught up!</p>
+                                    <p className="text-xs text-gray-400 mt-1">No bills due in the next 7 days.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
-                )}
+
+                    {/* Category Breakdown */}
+                    {dailySummary?.breakdown && dailySummary.breakdown.length > 0 && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                                <h3 className="font-bold text-gray-900">Today's Category Breakdown</h3>
+                                <Link
+                                    href="/ledger/summary/daily"
+                                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                                >
+                                    View Details →
+                                </Link>
+                            </div>
+                            <div className="divide-y divide-gray-100 flex-1">
+                                {dailySummary.breakdown.map((cat: any) => (
+                                    <div
+                                        key={cat.name}
+                                        className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/80 transition-colors"
+                                    >
+                                        <span className="font-bold text-gray-700">{cat.name}</span>
+                                        <div className="flex items-center gap-6 text-sm">
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-green-600 font-medium">+Rs. {cat.credit.toFixed(2)}</span>
+                                                <span className="text-red-400">-Rs. {cat.debit.toFixed(2)}</span>
+                                            </div>
+                                            <span
+                                                className={`font-bold px-3 py-1 rounded-lg ${cat.credit - cat.debit >= 0
+                                                    ? "bg-blue-50 text-blue-600"
+                                                    : "bg-red-50 text-red-600"
+                                                    }`}
+                                            >
+                                                Rs. {(cat.credit - cat.debit).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </DashboardLayout>
     );

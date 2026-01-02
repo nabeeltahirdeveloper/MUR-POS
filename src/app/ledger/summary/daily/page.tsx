@@ -53,7 +53,7 @@ function DailySummaryContent() {
                                 Total Credit
                             </h3>
                             <p className="text-3xl font-bold text-green-600 mt-2">
-                                {summary.summary.totalCredit.toFixed(2)}
+                                Rs. {summary.summary.totalCredit.toFixed(2)}
                             </p>
                         </div>
                         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
@@ -61,7 +61,7 @@ function DailySummaryContent() {
                                 Total Debit
                             </h3>
                             <p className="text-3xl font-bold text-red-600 mt-2">
-                                {summary.summary.totalDebit.toFixed(2)}
+                                Rs. {summary.summary.totalDebit.toFixed(2)}
                             </p>
                         </div>
                         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
@@ -72,7 +72,7 @@ function DailySummaryContent() {
                                 className={`text-3xl font-bold mt-2 ${summary.summary.net >= 0 ? "text-blue-600" : "text-red-600"
                                     }`}
                             >
-                                {summary.summary.net.toFixed(2)}
+                                Rs. {summary.summary.net.toFixed(2)}
                             </p>
                         </div>
                     </div>
@@ -89,8 +89,8 @@ function DailySummaryContent() {
                                 >
                                     <span className="font-medium text-gray-700">{cat.name}</span>
                                     <div className="text-right space-x-4 text-sm">
-                                        <span className="text-green-600">+{cat.credit.toFixed(2)}</span>
-                                        <span className="text-red-500">-{cat.debit.toFixed(2)}</span>
+                                        <span className="text-green-600">+Rs. {cat.credit.toFixed(2)}</span>
+                                        <span className="text-red-500">-Rs. {cat.debit.toFixed(2)}</span>
                                     </div>
                                 </li>
                             ))}

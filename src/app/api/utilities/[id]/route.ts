@@ -1,0 +1,51 @@
+import { NextRequest, NextResponse } from "next/server";
+import { updateDoc, deleteDoc, getDocById } from "@/lib/firestore-helpers";
+import type { FirestoreUtility } from "@/types/firestore";
+
+export const runtime = "nodejs";
+
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const { id } = await params;
+    try {
+        const body = await request.json();
+        const { name, amount, dueDate, category, status } = body;
+
+        const updateData: Partial<FirestoreUtility> = {};
+        if (name !== undefined) updateData.name = name;
+        if (amount !== undefined) updateData.amount = Number(amount);
+        if (dueDate !== undefined) updateData.dueDate = new Date(dueDate);
+        if (category !== undefined) updateData.category = category;
+        if (status !== undefined) updateData.status = status;
+
+        await updateDoc('utilities', id, updateData);
+
+        const updated = await getDocById<FirestoreUtility>('utilities', id);
+        return NextResponse.json(updated);
+    } catch (error) {
+        console.error("Error updating utility:", error);
+        return NextResponse.json(
+            { error: "Failed to update utility" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const { id } = await params;
+    try {
+        await deleteDoc('utilities', id);
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting utility:", error);
+        return NextResponse.json(
+            { error: "Failed to delete utility" },
+            { status: 500 }
+        );
+    }
+}

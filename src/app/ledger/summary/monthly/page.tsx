@@ -77,7 +77,7 @@ function MonthlySummaryContent() {
                                 Total Credit
                             </h3>
                             <p className="text-3xl font-bold text-green-600 mt-2">
-                                {summary.summary.totalCredit.toFixed(2)}
+                                Rs. {summary.summary.totalCredit.toFixed(2)}
                             </p>
                         </div>
                         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
@@ -85,7 +85,7 @@ function MonthlySummaryContent() {
                                 Total Debit
                             </h3>
                             <p className="text-3xl font-bold text-red-600 mt-2">
-                                {summary.summary.totalDebit.toFixed(2)}
+                                Rs. {summary.summary.totalDebit.toFixed(2)}
                             </p>
                         </div>
                         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
@@ -96,7 +96,7 @@ function MonthlySummaryContent() {
                                 className={`text-3xl font-bold mt-2 ${summary.summary.net >= 0 ? "text-blue-600" : "text-red-600"
                                     }`}
                             >
-                                {summary.summary.net.toFixed(2)}
+                                Rs. {summary.summary.net.toFixed(2)}
                             </p>
                         </div>
                     </div>
@@ -132,10 +132,10 @@ function MonthlySummaryContent() {
                                                     {day.date}
                                                 </td>
                                                 <td className="px-4 py-2 text-sm text-right text-green-600">
-                                                    {day.credit.toFixed(2)}
+                                                    Rs. {day.credit.toFixed(2)}
                                                 </td>
                                                 <td className="px-4 py-2 text-sm text-right text-red-600">
-                                                    {day.debit.toFixed(2)}
+                                                    Rs. {day.debit.toFixed(2)}
                                                 </td>
                                                 <td className="px-4 py-2 text-sm text-right font-medium">
                                                     <span
@@ -143,7 +143,7 @@ function MonthlySummaryContent() {
                                                             day.net >= 0 ? "text-blue-600" : "text-red-600"
                                                         }
                                                     >
-                                                        {day.net.toFixed(2)}
+                                                        Rs. {day.net.toFixed(2)}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -172,9 +172,9 @@ function MonthlySummaryContent() {
                                         <span className="font-medium text-gray-700">{cat.name}</span>
                                         <div className="text-right space-x-4 text-sm">
                                             <span className="text-green-600">
-                                                +{cat.credit.toFixed(2)}
+                                                +Rs. {cat.credit.toFixed(2)}
                                             </span>
-                                            <span className="text-red-500">-{cat.debit.toFixed(2)}</span>
+                                            <span className="text-red-500">-Rs. {cat.debit.toFixed(2)}</span>
                                         </div>
                                     </li>
                                 ))}
