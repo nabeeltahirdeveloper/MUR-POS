@@ -705,8 +705,8 @@ export default function LedgerEntryForm({
                                             <tr key={item.tempId} className="hover:bg-blue-50/50 transition-colors">
                                                 <td className="px-4 py-3 font-medium text-gray-800">{item.item.name}</td>
                                                 <td className="px-4 py-3 text-center">{item.quantity}</td>
-                                                <td className="px-4 py-3 text-right text-gray-500">{item.unitPrice}</td>
-                                                <td className="px-4 py-3 text-right font-bold text-gray-800">{item.amount.toLocaleString()}</td>
+                                                <td className="px-4 py-3 text-right text-gray-500">Rs. {item.unitPrice}</td>
+                                                <td className="px-4 py-3 text-right font-bold text-gray-800">Rs. {item.amount.toLocaleString()}</td>
                                                 <td className="px-4 py-3 text-center space-x-2">
                                                     <button type="button" onClick={() => handleEditItem(item.tempId)} className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-100 rounded">
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
@@ -721,7 +721,7 @@ export default function LedgerEntryForm({
                                     <tfoot className="bg-gray-50 border-t border-gray-100">
                                         <tr>
                                             <td colSpan={3} className="px-4 py-3 text-right font-bold text-gray-600">Total:</td>
-                                            <td className="px-4 py-3 text-right font-bold text-lg text-emerald-600">{displayTotal.toLocaleString()}</td>
+                                            <td className="px-4 py-3 text-right font-bold text-lg text-emerald-600">Rs. {displayTotal.toLocaleString()}</td>
                                             <td></td>
                                         </tr>
                                     </tfoot>
@@ -786,7 +786,7 @@ export default function LedgerEntryForm({
                                                 {quantity}
                                             </td>
                                             <td className={`px-6 py-4 text-right font-bold ${tx.type === 'credit' ? 'text-emerald-600' : 'text-red-600'}`}>
-                                                {Number(tx.amount).toLocaleString()}
+                                                Rs. {Number(tx.amount).toLocaleString()}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex items-center justify-center gap-2">

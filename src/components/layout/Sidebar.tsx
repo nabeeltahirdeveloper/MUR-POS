@@ -38,6 +38,7 @@ const navigation = [
         ],
     },
     { name: "Reminders", href: "/reminders", icon: BellAlertIcon },
+    { name: "Utilities", href: "/utilities", icon: BoltIcon },
 ];
 
 export default function Sidebar({
