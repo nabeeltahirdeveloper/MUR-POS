@@ -76,6 +76,7 @@ export default function LedgerEntryForm({
     const [partySearchResults, setPartySearchResults] = useState<Party[]>([]);
     const [isSearchingParty, setIsSearchingParty] = useState(false);
     const [showPartyResults, setShowPartyResults] = useState(false);
+    const [isNewParty, setIsNewParty] = useState(false);
     const partySearchRef = useRef<HTMLDivElement>(null);
 
     // Current Line Item State
@@ -90,20 +91,10 @@ export default function LedgerEntryForm({
     // General Form State
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [recentTransactions, setRecentTransactions] = useState<LedgerEntry[]>([]);
+    const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        const saved = sessionStorage.getItem("recentTransactions");
-        if (saved) {
-            try {
-                setRecentTransactions(JSON.parse(saved));
-            } catch (e) {
-                console.error("Failed to parse recent transactions", e);
-            }
-        }
-        setIsLoaded(true);
-
         // Fetch Next Order Number
         if (!initialData?.id) {
             fetch('/api/ledger/next-order')
@@ -116,12 +107,6 @@ export default function LedgerEntryForm({
                 .catch(err => console.error("Failed to fetch next order number", err));
         }
     }, [initialData?.id]);
-
-    useEffect(() => {
-        if (isLoaded) {
-            sessionStorage.setItem("recentTransactions", JSON.stringify(recentTransactions));
-        }
-    }, [recentTransactions, isLoaded]);
 
     const isEdit = !!initialData?.id;
 
@@ -167,7 +152,7 @@ export default function LedgerEntryForm({
     // Party Search Effect
     useEffect(() => {
         const delayDebounceFn = setTimeout(async () => {
-            if (partyName.length >= 1 && showPartyResults) {
+            if (partyName.length >= 1 && showPartyResults && !isNewParty) {
                 setIsSearchingParty(true);
                 try {
                     const endpoint = type === "credit" ? "/api/customers" : "/api/suppliers";
@@ -328,6 +313,26 @@ export default function LedgerEntryForm({
 
         try {
             const dateTime = new Date(`${date}T${time}`);
+
+            // Handle New Party Creation
+            if (isNewParty && partyName) {
+                const endpoint = type === 'credit' ? '/api/customers' : '/api/suppliers';
+                const partyRes = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: partyName,
+                        phone: partyPhone,
+                        address: partyAddress
+                    })
+                });
+                if (!partyRes.ok) {
+                    const d = await partyRes.json();
+                    throw new Error(d.error || `Failed to create ${type === 'credit' ? 'customer' : 'supplier'}`);
+                }
+                // Party created successfully
+            }
+
             const promises = itemsToSave.map(cartItem => {
                 const parts = [];
                 if (orderNumber) parts.push(`Order #${orderNumber}`);
@@ -364,8 +369,23 @@ export default function LedgerEntryForm({
 
             const results = await Promise.all(promises);
 
+            // Group as a single bill for the session history
+            const billData = {
+                id: results[0].id || `batch-${Date.now()}`,
+                allIds: results.map(r => r.id).filter(Boolean).join(','),
+                items: results.map(r => {
+                    const parsed = parseTransactionNote(r.note || "");
+                    return { ...parsed, amount: r.amount };
+                }),
+                total: results.reduce((acc, r) => acc + Number(r.amount), 0),
+                date: results[0].date,
+                partyName: partyName || "Walk-in",
+                orderNumber: orderNumber,
+                type: type // credit/debit
+            };
+
             // Update Recent list
-            setRecentTransactions(prev => [...results.reverse(), ...prev]);
+            setRecentTransactions(prev => [billData, ...prev]);
 
             // Clear Form
             setCartItems([]);
@@ -373,6 +393,7 @@ export default function LedgerEntryForm({
             setPartyName("");
             setPartyPhone("");
             setPartyAddress("");
+            setIsNewParty(false);
             setSelectedItem(null);
             setSearchTerm("");
             setQuantity("1");
@@ -503,9 +524,9 @@ export default function LedgerEntryForm({
                                         value={partyName}
                                         onChange={(e) => {
                                             setPartyName(e.target.value);
-                                            setShowPartyResults(true);
+                                            if (!isNewParty) setShowPartyResults(true);
                                         }}
-                                        onFocus={() => { if (partyName.length >= 1) setShowPartyResults(true); }}
+                                        onFocus={() => { if (partyName.length >= 1 && !isNewParty) setShowPartyResults(true); }}
                                         placeholder={`Search ${type === 'credit' ? 'Customer' : 'Supplier'}...`}
                                         className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
                                     />
@@ -516,6 +537,21 @@ export default function LedgerEntryForm({
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
                                         </span>
+                                    )}
+                                    {isNewParty && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsNewParty(false);
+                                                setPartyName("");
+                                                setPartyPhone("");
+                                                setPartyAddress("");
+                                            }}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700"
+                                            title="Cancel New Party"
+                                        >
+                                            ✕
+                                        </button>
                                     )}
                                     {/* Party Dropdown Results */}
                                     {showPartyResults && (
@@ -536,21 +572,48 @@ export default function LedgerEntryForm({
                                                         </li>
                                                     ))}
                                                 </ul>
-                                            ) : partyName.length > 0 ? (
+                                            ) : partyName.length > 0 && !isNewParty ? (
                                                 <div className="p-4 text-center text-sm text-gray-500 flex flex-col gap-2">
                                                     <span>No {type === 'credit' ? 'customers' : 'suppliers'} found</span>
                                                     <button
                                                         type="button"
-                                                        onClick={() => setShowPartyResults(false)}
+                                                        onClick={() => {
+                                                            setIsNewParty(true);
+                                                            setShowPartyResults(false);
+                                                        }}
                                                         className="text-blue-600 hover:text-blue-700 text-xs font-bold"
                                                     >
-                                                        + Use as Walk-in / New Name
+                                                        + Create New {type === 'credit' ? 'Customer' : 'Supplier'}
                                                     </button>
                                                 </div>
                                             ) : null}
                                         </div>
                                     )}
                                 </div>
+                                {isNewParty && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Phone Number</label>
+                                            <input
+                                                type="text"
+                                                value={partyPhone}
+                                                onChange={(e) => setPartyPhone(e.target.value)}
+                                                placeholder="Enter phone..."
+                                                className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Address</label>
+                                            <input
+                                                type="text"
+                                                value={partyAddress}
+                                                onChange={(e) => setPartyAddress(e.target.value)}
+                                                placeholder="Enter address..."
+                                                className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Date */}
@@ -759,6 +822,7 @@ export default function LedgerEntryForm({
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100 uppercase text-xs tracking-wider">
                                 <tr>
+                                    <th className="px-6 py-3">Order #</th>
                                     <th className="px-6 py-3">{type === 'credit' ? 'Customer' : 'Supplier'}</th>
                                     <th className="px-6 py-3">Date & Time</th>
                                     <th className="px-6 py-3">Item</th>
@@ -768,45 +832,49 @@ export default function LedgerEntryForm({
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {recentTransactions.map((tx, i) => {
-                                    const { itemName, partyName, quantity } = parseTransactionNote(tx.note);
+                                {recentTransactions.map((bill, i) => {
                                     return (
-                                        <tr key={tx.id || i} className="hover:bg-blue-50/30 transition-colors group">
+                                        <tr key={bill.id || i} className="hover:bg-blue-50/30 transition-colors group">
+                                            <td className="px-6 py-4 font-bold text-gray-500">
+                                                {bill.orderNumber || "---"}
+                                            </td>
                                             <td className="px-6 py-4 font-semibold text-gray-700">
-                                                {partyName || 'Walk-in'}
+                                                {bill.partyName}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                                                <div>{new Date(tx.date).toLocaleDateString()}</div>
-                                                <div className="text-xs text-gray-400">{new Date(tx.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                <div>{new Date(bill.date).toLocaleDateString()}</div>
+                                                <div className="text-xs text-gray-400">{new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                             </td>
                                             <td className="px-6 py-4 text-gray-900 font-medium">
-                                                {itemName}
+                                                {bill.items.length > 1 ? (
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-blue-600 font-bold">{bill.items.length} Items</span>
+                                                        <span className="text-xs text-gray-500 truncate max-w-[200px]">
+                                                            {bill.items.map((it: any) => it.itemName).join(", ")}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    bill.items[0]?.itemName || "N/A"
+                                                )}
                                             </td>
-                                            <td className="px-6 py-4 text-center text-gray-600">
-                                                {quantity}
+                                            <td className="px-6 py-4 text-center text-gray-600 font-bold">
+                                                {bill.items.reduce((acc: number, it: any) => acc + (it.quantity || 0), 0)}
                                             </td>
-                                            <td className={`px-6 py-4 text-right font-bold ${tx.type === 'credit' ? 'text-emerald-600' : 'text-red-600'}`}>
-                                                Rs. {Number(tx.amount).toLocaleString()}
+                                            <td className={`px-6 py-4 text-right font-bold text-lg ${bill.type === 'credit' ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                Rs. {Number(bill.total).toLocaleString()}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() => {
-                                                            if (tx.id) window.open(`/ledger/receipt/${tx.id}`, '_blank');
+                                                            if (bill.allIds) window.open(`/ledger/receipt/batch?ids=${bill.allIds}`, '_blank');
+                                                            else if (bill.id) window.open(`/ledger/receipt/${bill.id}`, '_blank');
                                                         }}
                                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-800 hover:text-white text-gray-700 rounded-lg text-xs font-bold transition-all shadow-sm"
-                                                        title="Open Receipt"
+                                                        title="Print Combined Bill"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                                                        Print
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteRecentTransaction(tx.id!)}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 rounded-lg text-xs font-bold transition-all shadow-sm"
-                                                        title="Delete Transaction"
-                                                    >
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                        Del
+                                                        Combined Bill
                                                     </button>
                                                 </div>
                                             </td>
