@@ -40,7 +40,7 @@ const navigation = [
     },
     { name: "Reminders", href: "/reminders", icon: BellAlertIcon },
     { name: "Utilities", href: "/utilities", icon: BoltIcon },
-    { name: "Loan & Debt", href: "/debts", icon: BanknotesIcon },
+    { name: "Loan-In & Loan-Out", href: "/debts", icon: BanknotesIcon },
 ];
 
 export default function Sidebar({
