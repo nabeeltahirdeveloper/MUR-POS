@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById, getAllDocs } from "@/lib/firestore-helpers";
-import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory } from "@/types/firestore";
+import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -48,61 +48,95 @@ export async function GET(req: NextRequest) {
 
         // Get all entries. Prefer server-side queries, but if Firestore query fails
         // (e.g. requires a composite index) fall back to fetching all and filtering in memory.
-        let entries: (FirestoreLedger & { id: string })[] = [];
+        let entries: (any)[] = [];
         let usedFallback = false;
-        if (filters.length > 0) {
-            try {
-                entries = await queryDocs<FirestoreLedger>('ledger', filters, {
-                    orderBy: 'date',
-                    orderDirection: 'desc',
-                });
-            } catch (queryErr) {
-                usedFallback = true;
-                console.error('Firestore query failed, falling back to in-memory filtering:', queryErr);
-                // Fallback: fetch all and apply filters in memory
-                entries = await getAllDocs<FirestoreLedger>('ledger', {
-                    orderBy: 'date',
-                    orderDirection: 'desc',
-                });
 
-                // Apply filters in memory
-                entries = entries.filter((entry) => {
-                    for (const f of filters) {
-                        const field = f.field;
-                        const op = f.operator;
-                        const val = f.value;
+        // Fetch everything relevant
+        const [rawLedger, rawDebts, rawPayments] = await Promise.all([
+            filters.length > 0
+                ? queryDocs<FirestoreLedger>('ledger', filters).catch(() => { usedFallback = true; return getAllDocs<FirestoreLedger>('ledger'); })
+                : getAllDocs<FirestoreLedger>('ledger'),
+            getAllDocs<FirestoreDebt>('debts'),
+            getAllDocs<FirestoreDebtPayment>('debt_payments')
+        ]);
 
-                        if (field === 'date') {
-                            const entryDate = entry.date instanceof Date ? entry.date : new Date(entry.date);
-                            // Handle both Firestore Timestamp (has .toDate()) and standard Date/string
-                            const valUnknown = val as unknown;
-                            const hasToDate = valUnknown && typeof (valUnknown as { toDate: unknown }).toDate === 'function';
-                            const compDate = hasToDate
-                                ? (valUnknown as { toDate: () => Date }).toDate()
-                                : new Date(val as string | number | Date);
+        entries = rawLedger;
 
-                            if (op === '>=' && entryDate < compDate) return false;
-                            if (op === '<=' && entryDate > compDate) return false;
-                        } else if (op === '==') {
-                            // simple equality check (convert both to string for safety)
-                            // Use Type Assertion for generic property access
-                            const entryRecord = entry as unknown as Record<string, unknown>;
-                            const entryValue = entryRecord[field];
-                            if (String(entryValue) !== String(val)) return false;
-                        } else {
-                            // unsupported operator in fallback — be conservative and skip the entry
-                            return false;
-                        }
+        // Apply fallback filtering if needed for ledger
+        if (usedFallback && filters.length > 0) {
+            entries = entries.filter((entry) => {
+                for (const f of filters) {
+                    const field = f.field;
+                    const op = f.operator;
+                    const val = f.value;
+                    if (field === 'date') {
+                        const entryDate = entry.date instanceof Date ? entry.date : (entry.date?.toDate ? entry.date.toDate() : new Date(entry.date));
+                        const compDate = (val as any).toDate ? (val as any).toDate() : new Date(val as any);
+                        if (op === '>=' && entryDate < compDate) return false;
+                        if (op === '<=' && entryDate > compDate) return false;
+                    } else if (op === '==') {
+                        if (String(entry[field]) !== String(val)) return false;
                     }
-                    return true;
-                });
-            }
-        } else {
-            entries = await getAllDocs<FirestoreLedger>('ledger', {
-                orderBy: 'date',
-                orderDirection: 'desc',
+                }
+                return true;
             });
         }
+
+        // Map Debts to virtual entries
+        const dateFrom = from ? new Date(from) : null;
+        if (dateFrom) dateFrom.setHours(0, 0, 0, 0);
+        const dateTo = to ? new Date(to) : null;
+        if (dateTo) dateTo.setHours(23, 59, 59, 999);
+
+        const virtualEntries: any[] = [];
+
+        // 1. Process New Loans
+        rawDebts.forEach(debt => {
+            const dDate = debt.createdAt instanceof Date ? debt.createdAt : (debt.createdAt?.toDate ? debt.createdAt.toDate() : new Date(debt.createdAt));
+            if (dateFrom && dDate < dateFrom) return;
+            if (dateTo && dDate > dateTo) return;
+            if (type && ((type === 'credit' && debt.type !== 'loaned_in') || (type === 'debit' && debt.type !== 'loaned_out'))) return;
+            if (categoryId) return; // Debts don't have categories in reports usually, or we could group them
+
+            virtualEntries.push({
+                id: `debt_${debt.id}`,
+                type: debt.type === 'loaned_in' ? 'credit' : 'debit',
+                amount: debt.amount,
+                note: `[Loan] ${debt.personName}: ${debt.note || ''}`,
+                date: debt.createdAt,
+                category: { name: 'Loans' }
+            });
+        });
+
+        // 2. Process Loan Payments
+        rawPayments.forEach(payment => {
+            const pDate = payment.date instanceof Date ? payment.date : (payment.date?.toDate ? payment.date.toDate() : new Date(payment.date));
+            if (dateFrom && pDate < dateFrom) return;
+            if (dateTo && pDate > dateTo) return;
+
+            const debt = rawDebts.find(d => d.id === payment.debtId);
+            if (!debt) return;
+
+            const pType = debt.type === 'loaned_in' ? 'debit' : 'credit';
+            if (type && type !== pType) return;
+            if (categoryId) return;
+
+            virtualEntries.push({
+                id: `pay_${payment.id}`,
+                type: pType,
+                amount: payment.amount,
+                note: `[Payment] ${debt.personName}: ${payment.note || ''}`,
+                date: payment.date,
+                category: { name: 'Loan Payments' }
+            });
+        });
+
+        // Merge and sort
+        entries = [...entries, ...virtualEntries].sort((a, b) => {
+            const da = a.date instanceof Date ? a.date : (a.date?.toDate ? a.date.toDate() : new Date(a.date));
+            const db = b.date instanceof Date ? b.date : (b.date?.toDate ? b.date.toDate() : new Date(b.date));
+            return db.getTime() - da.getTime();
+        });
 
         // Filter by search term if provided (case-insensitive)
         if (search) {
@@ -116,9 +150,11 @@ export async function GET(req: NextRequest) {
         const skip = (page - 1) * limit;
         const paginatedEntries = entries.slice(skip, skip + limit);
 
-        // Fetch categories for entries
+        // Fetch categories for entries (only for raw ledger entries that don't have it yet)
         const entriesWithCategories = await Promise.all(
             paginatedEntries.map(async (entry) => {
+                if (entry.category) return entry; // Already has virtual category
+
                 let category: FirestoreLedgerCategory | FirestoreCategory | null = null;
                 if (entry.categoryId) {
                     category = await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId);

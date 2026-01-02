@@ -693,13 +693,13 @@ function LedgerSection({
                             <div className="text-2xl font-bold text-green-600">
                                 ${data.summary?.totalCredits?.toFixed(2) || '0.00'}
                             </div>
-                            <div className="text-sm text-green-800">Total Credits</div>
+                            <div className="text-sm text-green-800">Total Cash-In</div>
                         </div>
                         <div className="bg-red-50 p-4 rounded-lg">
                             <div className="text-2xl font-bold text-red-600">
                                 ${data.summary?.totalDebits?.toFixed(2) || '0.00'}
                             </div>
-                            <div className="text-sm text-red-800">Total Debits</div>
+                            <div className="text-sm text-red-800">Total Cash-Out</div>
                         </div>
                         <div className={`p-4 rounded-lg ${(data.summary?.balance || 0) >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
                             <div className={`text-2xl font-bold ${(data.summary?.balance || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
