@@ -119,7 +119,7 @@ export default function LedgerTable({
             header: "Price",
             render: (_: any, row: LedgerEntry) => {
                 const { unitPrice } = parseTransactionNote(row.note);
-                return <span className="text-gray-600 text-right block">{unitPrice ? Number(unitPrice).toLocaleString() : "-"}</span>;
+                return <span className="text-gray-600 text-right block">{unitPrice ? `Rs. ${Number(unitPrice).toLocaleString()}` : "-"}</span>;
             },
         },
         {
@@ -142,7 +142,7 @@ export default function LedgerTable({
             render: (value: any, row: LedgerEntry) => (
                 <span className={`font-mono font-bold ${row.type === "credit" ? "text-green-600" : "text-red-600"
                     }`}>
-                    {Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    Rs. {Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
             ),
         },
