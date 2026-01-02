@@ -306,7 +306,7 @@ export default function UtilitiesPage() {
                                     <input
                                         type="text"
                                         placeholder="e.g., Electricity, Rent, Internet"
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900"
                                         value={form.name}
                                         onChange={(e) => setForm({ ...form, name: e.target.value })}
                                         required
@@ -320,7 +320,7 @@ export default function UtilitiesPage() {
                                             type="number"
                                             step="0.01"
                                             placeholder="0.00"
-                                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900"
                                             value={form.amount}
                                             onChange={(e) => setForm({ ...form, amount: e.target.value })}
                                             required
@@ -331,7 +331,7 @@ export default function UtilitiesPage() {
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Due Date</label>
                                     <input
                                         type="date"
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900"
                                         value={form.dueDate}
                                         onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
                                         required
@@ -342,7 +342,7 @@ export default function UtilitiesPage() {
                                     <input
                                         type="text"
                                         placeholder="e.g., Office, Home, General"
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900"
                                         value={form.category}
                                         onChange={(e) => setForm({ ...form, category: e.target.value })}
                                     />
@@ -350,7 +350,7 @@ export default function UtilitiesPage() {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
                                     <select
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900"
                                         value={form.status}
                                         onChange={(e) => setForm({ ...form, status: e.target.value as "paid" | "unpaid" })}
                                     >

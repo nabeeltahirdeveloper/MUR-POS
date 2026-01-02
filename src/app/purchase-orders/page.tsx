@@ -160,7 +160,7 @@ export default function PurchaseOrdersPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
                     <div className="sm:col-span-2 lg:col-span-4 relative">
                         <input
-                            className="w-full border border-gray-300 rounded-md p-2 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            className="w-full border border-gray-300 rounded-md p-2 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900"
                             placeholder="Search by supplier name..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}

@@ -24,3 +24,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Ensure inputs with light backgrounds have dark text in dark mode */
+input, select, textarea {
+  color: #1a202c; /* text-gray-900 equivalent */
+}
+
+/* If you want to keep the light text for dark backgrounds, you can use specialized classes */
+/* But most inputs in this app seem to use light backgrounds specifically */

@@ -149,7 +149,7 @@ export default function CategoryManager({
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     placeholder="New category name"
-                    className="flex-1 p-2 border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+                    className="flex-1 p-2 border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-gray-900"
                     disabled={loading}
                 />
                 <button
@@ -173,7 +173,7 @@ export default function CategoryManager({
                                     type="text"
                                     value={editName}
                                     onChange={(e) => setEditName(e.target.value)}
-                                    className="flex-1 p-1 border border-gray-300 rounded"
+                                    className="flex-1 p-1 border border-gray-300 rounded text-gray-900"
                                 />
                                 <button
                                     onClick={() => handleUpdate(cat.id)}
