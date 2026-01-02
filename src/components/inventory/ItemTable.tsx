@@ -16,7 +16,7 @@ export function ItemTable({ items, onDelete }: ItemTableProps) {
             columns={[
                 {
                     key: "orderNumber",
-                    header: "Order #",
+                    header: "#",
                     render: (_value, _row, index) => (
                         <div className="text-gray-500 font-medium">{index + 1}</div>
                     ),
