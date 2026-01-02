@@ -108,7 +108,7 @@ export interface FirestoreUtility {
     amount: number;
     dueDate: Date | any;
     category?: string | null;
-    status?: string | null;
+    status: 'paid' | 'unpaid';
     createdAt: Date | any;
 }
 
@@ -119,6 +119,7 @@ export interface FirestoreDebt {
     amount: number;
     dueDate?: Date | null | any;
     note?: string | null;
+    status: 'active' | 'paid';
     createdAt: Date | any;
 }
 
@@ -127,6 +128,7 @@ export interface FirestoreDebtPayment {
     debtId: string;
     amount: number;
     date: Date | any;
+    note?: string | null;
 }
 
 export interface FirestoreReminder {

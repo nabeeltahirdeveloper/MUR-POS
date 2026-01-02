@@ -19,6 +19,7 @@ import {
     CalendarDaysIcon,
     CalendarIcon,
     BellAlertIcon,
+    BanknotesIcon,
 } from "@heroicons/react/24/outline";
 
 const navigation = [
@@ -39,6 +40,7 @@ const navigation = [
     },
     { name: "Reminders", href: "/reminders", icon: BellAlertIcon },
     { name: "Utilities", href: "/utilities", icon: BoltIcon },
+    { name: "Loan & Debt", href: "/debts", icon: BanknotesIcon },
 ];
 
 export default function Sidebar({
