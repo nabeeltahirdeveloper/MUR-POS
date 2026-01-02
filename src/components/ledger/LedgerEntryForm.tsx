@@ -486,7 +486,7 @@ export default function LedgerEntryForm({
 
                     {/* Row 1: Order Number */}
                     <div className="flex items-center gap-3">
-                        <label className="text-white/90 text-sm font-semibold">Order #</label>
+                        <label className="text-white/90 text-sm font-semibold">#</label>
                         <input
                             type="text"
                             value={orderNumber}
@@ -822,7 +822,7 @@ export default function LedgerEntryForm({
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100 uppercase text-xs tracking-wider">
                                 <tr>
-                                    <th className="px-6 py-3">Order #</th>
+                                    <th className="px-6 py-3">#</th>
                                     <th className="px-6 py-3">{type === 'credit' ? 'Customer' : 'Supplier'}</th>
                                     <th className="px-6 py-3">Date & Time</th>
                                     <th className="px-6 py-3">Item</th>
