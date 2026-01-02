@@ -68,7 +68,7 @@ export default function Home() {
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <BoltIcon className="h-7 w-7 text-amber-500" />
+            <img src="/favicon.jpg" alt="Logo" className="h-9 w-9 rounded-lg object-cover" />
             <span className="text-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
               Moon Traders
             </span>
@@ -105,19 +105,19 @@ export default function Home() {
 
           {/* Main heading */}
           <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6">
-            <span className="text-white">Manage Your</span>
+            <span className="text-white">Professional</span>
             <br />
             <span className="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 bg-clip-text text-transparent">
-              Electrical Business
+              General Order Supplier
             </span>
             <br />
-            <span className="text-white">Smarter</span>
+            <span className="text-white">Solutions</span>
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10">
-            All-in-one solution for inventory, accounting, purchase orders, and more.
-            Built specifically for electrical supply businesses.
+          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 text-balance">
+            Your Trust, Our Promise. All-in-one management for inventory, ledger,
+            and orders, tailored for efficient supplier operations.
           </p>
 
           {/* CTA Buttons */}
@@ -255,7 +255,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             {/* Brand */}
             <div className="flex items-center gap-2">
-              <BoltIcon className="h-7 w-7 text-amber-500" />
+              <img src="/favicon.jpg" alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
               <span className="text-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
                 Moon Traders
               </span>
