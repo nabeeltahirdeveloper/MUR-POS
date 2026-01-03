@@ -189,14 +189,14 @@ function LoginForm() {
                         </button>
                     </form>
 
-                    <div className="mt-8 text-center text-sm">
+                    {/* <div className="mt-8 text-center text-sm">
                         <p className="text-slate-400">
                             Don't have an account?{' '}
                             <Link href="/signup" className="font-semibold text-primary hover:text-primary-dark transition-colors">
                                 Create an account
                             </Link>
                         </p>
-                    </div>
+                    </div> */}
                 </div>
             </div>
         </div>
