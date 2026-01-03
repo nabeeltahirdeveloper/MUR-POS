@@ -138,13 +138,13 @@ export default function CategoryManager({
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     placeholder="New category name"
-                    className="flex-1 p-2 border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+                    className="flex-1 p-2 border border-gray-300 rounded focus:border-primary focus:outline-none"
                     disabled={loading}
                 />
                 <button
                     type="submit"
                     disabled={loading || !newCategory.trim()}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                    className="bg-primary text-slate-900 font-bold px-4 py-2 rounded hover:bg-primary-dark disabled:opacity-50"
                 >
                     Add
                 </button>
@@ -189,7 +189,7 @@ export default function CategoryManager({
                                             setEditingId(cat.id);
                                             setEditName(cat.name);
                                         }}
-                                        className="text-blue-500 hover:text-blue-700 text-sm"
+                                        className="text-primary hover:text-primary-dark text-sm font-bold"
                                     >
                                         Edit
                                     </button>

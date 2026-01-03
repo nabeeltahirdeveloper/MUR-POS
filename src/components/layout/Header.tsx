@@ -139,7 +139,7 @@ export default function Header({
                                     <div className="text-sm font-semibold text-gray-900">Notifications</div>
                                     <Link
                                         href="/reminders"
-                                        className="text-xs font-medium text-blue-600 hover:underline"
+                                        className="text-xs font-medium text-primary hover:underline"
                                         onClick={() => setPanelOpen(false)}
                                     >
                                         View all
@@ -194,7 +194,7 @@ export default function Header({
                                                     {r.type === "low_stock" && r.source?.id ? (
                                                         <Link
                                                             href={`/items/${encodeURIComponent(r.source.id)}/stock`}
-                                                            className="shrink-0 text-xs font-medium text-blue-700 hover:underline"
+                                                            className="shrink-0 text-xs font-medium text-primary-dark hover:underline"
                                                             onClick={() => setPanelOpen(false)}
                                                         >
                                                             Restock
