@@ -176,16 +176,11 @@ export default function LedgerEntryForm({
     useEffect(() => {
         if (selectedItem && !editingCartId) { // Only update price automatically if not editing (or we can discuss edit logic)
             // If editing, we might want to keep the old price, but effectively we load it.
-            // When selecting a NEW item:
-            let price = 0;
-            if (type === "credit") {
-                price = Number(selectedItem.firstSalePrice || 0);
-            } else {
-                price = Number(selectedItem.secondPurchasePrice || 0);
-            }
+            // When selecting a NEW item, always default to Sale Price as requested
+            let price = Number(selectedItem.firstSalePrice || 0);
             setUnitPrice(price);
         }
-    }, [selectedItem, type, editingCartId]);
+    }, [selectedItem, editingCartId]);
 
     // Calculate Line Amount
     useEffect(() => {
@@ -287,6 +282,35 @@ export default function LedgerEntryForm({
         items: CartItem[];
         total: number;
     } | null>(null);
+
+    // --- Hidden Price Logic ---
+    const [showPinInput, setShowPinInput] = useState(false);
+    const [pinValue, setPinValue] = useState("");
+    const [isPriceRevealed, setIsPriceRevealed] = useState(false);
+
+    const handleAmountLabelClick = () => {
+        if (isPriceRevealed) {
+            setIsPriceRevealed(false);
+            setPinValue("");
+            setShowPinInput(false);
+        } else {
+            setShowPinInput(!showPinInput);
+            setPinValue(""); // Reset input on toggle
+        }
+    };
+
+    const handlePinSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (pinValue === '1122') {
+                setIsPriceRevealed(true);
+                setShowPinInput(false);
+            } else {
+                alert('Invalid PIN'); // Simple feedback
+                setPinValue("");
+            }
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -714,7 +738,34 @@ export default function LedgerEntryForm({
 
                                 {/* Amount */}
                                 <div className="w-full md:w-56">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Amount</label>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label
+                                            onClick={handleAmountLabelClick}
+                                            className="text-xs font-bold text-gray-500 uppercase cursor-pointer hover:text-primary transition-colors select-none"
+                                        >
+                                            Amount
+                                        </label>
+
+                                        {/* Hidden Price Reveal UI */}
+                                        <div className="h-4 flex items-center justify-end">
+                                            {showPinInput && (
+                                                <input
+                                                    autoFocus
+                                                    type="password"
+                                                    value={pinValue}
+                                                    onChange={(e) => setPinValue(e.target.value)}
+                                                    onKeyDown={handlePinSubmit}
+                                                    placeholder="PIN"
+                                                    className="w-16 px-1 py-0.5 text-xs border border-primary/50 rounded focus:outline-none text-center bg-white"
+                                                />
+                                            )}
+                                            {isPriceRevealed && selectedItem && (
+                                                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 animate-in fade-in">
+                                                    Buy: {selectedItem.secondPurchasePrice || selectedItem.firstSalePrice || 0}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                     <div className="relative">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rs.</span>
                                         <input
