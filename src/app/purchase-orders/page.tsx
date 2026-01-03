@@ -112,7 +112,7 @@ export default function PurchaseOrdersPage() {
                 <span className={`px-2 py-1 rounded text-xs font-semibold uppercase ${value === 'received' ? 'bg-green-100 text-green-800' :
                     value === 'cancelled' ? 'bg-red-100 text-red-800' :
                         value === 'approved' ? 'bg-blue-100 text-blue-800' :
-                            'bg-yellow-100 text-yellow-800'
+                            'bg-primary/10 text-primary'
                     }`}>
                     {value}
                 </span>

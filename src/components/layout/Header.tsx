@@ -233,7 +233,7 @@ export default function Header({
                             </div>
                         ) : (
                             <>
-                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-white font-semibold text-sm">
+                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-semibold text-sm">
                                     {session?.user?.name?.charAt(0)?.toUpperCase() || "U"}
                                 </div>
                                 <div className="text-sm">

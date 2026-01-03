@@ -10,6 +10,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-primary: #4fd1c5;
+  --color-primary-dark: #38b2ac;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -26,8 +28,11 @@ body {
 }
 
 /* Ensure inputs with light backgrounds have dark text in dark mode */
-input, select, textarea {
-  color: #1a202c; /* text-gray-900 equivalent */
+input,
+select,
+textarea {
+  color: #1a202c;
+  /* text-gray-900 equivalent */
 }
 
 /* If you want to keep the light text for dark backgrounds, you can use specialized classes */

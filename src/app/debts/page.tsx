@@ -172,7 +172,7 @@ export default function DebtsPage() {
             render: (value: string) => (
                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${value === "paid"
                     ? "bg-green-100 text-green-800"
-                    : "bg-amber-100 text-amber-800"
+                    : "bg-primary/10 text-primary"
                     }`}>
                     {value === "paid" ? <CheckCircleIcon className="h-3.5 w-3.5" /> : <ExclamationTriangleIcon className="h-3.5 w-3.5" />}
                     {value.toUpperCase()}
@@ -247,8 +247,8 @@ export default function DebtsPage() {
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                        <div className="p-3 bg-amber-100 rounded-lg">
-                            <BanknotesIcon className="h-6 w-6 text-amber-600" />
+                        <div className="p-3 bg-primary/10 rounded-lg">
+                            <BanknotesIcon className="h-6 w-6 text-primary" />
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-500">Active Records</p>

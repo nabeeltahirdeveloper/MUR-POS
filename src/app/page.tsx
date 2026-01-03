@@ -69,7 +69,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <img src="/favicon.jpg" alt="Logo" className="h-9 w-9 rounded-lg object-cover" />
-            <span className="text-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
               Moon Traders
             </span>
           </Link>
@@ -82,7 +82,7 @@ export default function Home() {
             </Link>
             <Link
               href="/signup"
-              className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 rounded-full hover:from-amber-400 hover:to-yellow-400 transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40"
+              className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-primary to-primary-dark text-slate-900 rounded-full hover:from-primary/90 hover:to-primary-dark/90 transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40"
             >
               Get Started
             </Link>
@@ -93,8 +93,8 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-6 overflow-hidden">
         {/* Background glow effects */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-yellow-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-primary-dark/10 rounded-full blur-3xl animate-pulse delay-1000" />
 
         <div className="relative max-w-7xl mx-auto text-center">
           {/* Badge */}
@@ -107,7 +107,7 @@ export default function Home() {
           <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6">
             <span className="text-white">Professional</span>
             <br />
-            <span className="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary via-primary to-primary-dark bg-clip-text text-transparent">
               General Order Supplier
             </span>
             <br />
@@ -124,7 +124,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/signup"
-              className="group px-8 py-4 text-lg font-semibold bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 rounded-full hover:from-amber-400 hover:to-yellow-400 transition-all shadow-xl shadow-amber-500/30 hover:shadow-amber-500/50 hover:scale-105"
+              className="group px-8 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-primary-dark text-slate-900 rounded-full hover:from-primary/90 hover:to-primary-dark/90 transition-all shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:scale-105"
             >
               Start Free Today
               <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
@@ -145,7 +145,7 @@ export default function Home() {
               { value: "24/7", label: "Access Anywhere" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-amber-400">{stat.value}</div>
+                <div className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</div>
                 <div className="text-sm text-slate-500 mt-1">{stat.label}</div>
               </div>
             ))}
@@ -160,7 +160,7 @@ export default function Home() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Everything You Need to
-              <span className="bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent"> Succeed</span>
+              <span className="bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent"> Succeed</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto">
               Powerful features designed specifically for electrical supply businesses to streamline operations and boost productivity.
@@ -172,10 +172,10 @@ export default function Home() {
             {features.map((feature, index) => (
               <div
                 key={feature.title}
-                className="group p-6 bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl hover:bg-slate-800/50 hover:border-amber-500/30 transition-all duration-300 hover:-translate-y-1"
+                className="group p-6 bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl hover:bg-slate-800/50 hover:border-primary/30 transition-all duration-300 hover:-translate-y-1"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="mb-4 text-amber-400 group-hover:scale-110 transition-transform duration-300">
+                <div className="mb-4 text-primary group-hover:scale-110 transition-transform duration-300">
                   <feature.Icon className="h-10 w-10" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
@@ -193,7 +193,7 @@ export default function Home() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Get Started in
-              <span className="bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent"> 3 Simple Steps</span>
+              <span className="bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent"> 3 Simple Steps</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto">
               From signup to full business management in minutes, not days.
@@ -211,7 +211,7 @@ export default function Home() {
 
                 <div className="relative text-center p-6">
                   {/* Step number */}
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-900 text-xl font-bold mb-6 shadow-lg shadow-amber-500/30">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-dark text-slate-900 text-xl font-bold mb-6 shadow-lg shadow-primary/30">
                     {step.number}
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-2">{step.title}</h3>
@@ -226,9 +226,9 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto">
-          <div className="relative p-12 rounded-3xl bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 text-center overflow-hidden">
+          <div className="relative p-12 rounded-3xl bg-gradient-to-r from-primary/10 to-primary-dark/10 border border-primary/20 text-center overflow-hidden">
             {/* Background glow */}
-            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-yellow-500/5 blur-3xl" />
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary-dark/5 blur-3xl" />
 
             <div className="relative">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -239,7 +239,7 @@ export default function Home() {
               </p>
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 rounded-full hover:from-amber-400 hover:to-yellow-400 transition-all shadow-xl shadow-amber-500/30 hover:shadow-amber-500/50 hover:scale-105"
+                className="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-primary-dark text-slate-900 rounded-full hover:from-primary/90 hover:to-primary-dark/90 transition-all shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:scale-105"
               >
                 Get Started Free
                 <span>→</span>
@@ -256,7 +256,7 @@ export default function Home() {
             {/* Brand */}
             <div className="flex items-center gap-2">
               <img src="/favicon.jpg" alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
-              <span className="text-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
                 Moon Traders
               </span>
             </div>
