@@ -108,12 +108,12 @@ function DashboardContent() {
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Summary</p>
-                                <p className="text-2xl font-black text-blue-600">
+                                <p className="text-2xl font-black text-primary">
                                     Net: Rs. {totalSummary?.summary?.net?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}
                                 </p>
                             </div>
-                            <div className="p-3 bg-blue-50 rounded-lg">
-                                <RectangleGroupIcon className="h-6 w-6 text-blue-600" />
+                            <div className="p-3 bg-primary/10 rounded-lg">
+                                <RectangleGroupIcon className="h-6 w-6 text-primary" />
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -144,11 +144,11 @@ function DashboardContent() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center">
                         <Link href="/ledger" className="flex items-center justify-between group">
                             <div>
-                                <p className="text-sm font-medium text-gray-500 group-hover:text-blue-600 transition-colors">Go to Detailed</p>
+                                <p className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">Go to Detailed</p>
                                 <p className="text-lg font-bold text-gray-900">Full Records →</p>
                             </div>
-                            <div className="p-2 bg-gray-50 rounded-lg group-hover:bg-blue-50 transition-colors">
-                                <ChartBarIcon className="h-5 w-5 text-gray-400 group-hover:text-blue-500" />
+                            <div className="p-2 bg-gray-50 rounded-lg group-hover:bg-primary/10 transition-colors">
+                                <ChartBarIcon className="h-5 w-5 text-gray-400 group-hover:text-primary" />
                             </div>
                         </Link>
                     </div>
@@ -158,11 +158,11 @@ function DashboardContent() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Link
                         href="/items"
-                        className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all group"
+                        className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 transition-all group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
-                                <CubeIcon className="h-6 w-6 text-blue-600" />
+                            <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                <CubeIcon className="h-6 w-6 text-primary" />
                             </div>
                             <div>
                                 <h2 className="text-base font-bold text-gray-900 leading-tight">Manage Inventory</h2>
@@ -173,15 +173,15 @@ function DashboardContent() {
 
                     <button
                         onClick={() => setShowTransactionModal(true)}
-                        className="block w-full text-left p-5 bg-indigo-600 rounded-xl shadow-sm hover:shadow-md hover:bg-indigo-700 transition-all group"
+                        className="block w-full text-left p-5 bg-primary rounded-xl shadow-sm hover:shadow-md hover:bg-primary-dark transition-all group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
-                                <BanknotesIcon className="h-6 w-6 text-white" />
+                            <div className="p-3 bg-black/10 rounded-lg group-hover:bg-black/20 transition-colors">
+                                <BanknotesIcon className="h-6 w-6 text-slate-900" />
                             </div>
                             <div>
-                                <h2 className="text-base font-bold text-white leading-tight">Create Bill</h2>
-                                <p className="text-xs text-white/70">Record new sales or expenses</p>
+                                <h2 className="text-base font-bold text-slate-900 leading-tight">Create Bill</h2>
+                                <p className="text-xs text-slate-900/70">Record new sales or expenses</p>
                             </div>
                         </div>
                     </button>
@@ -214,7 +214,7 @@ function DashboardContent() {
                                 <BoltIcon className="h-5 w-5 text-primary" />
                                 <h3 className="font-bold text-gray-900">Pending Utilities</h3>
                             </div>
-                            <Link href="/utilities" className="text-xs font-bold text-blue-600 hover:underline">View All</Link>
+                            <Link href="/utilities" className="text-xs font-bold text-primary hover:underline">View All</Link>
                         </div>
                         <div className="flex-1">
                             {upcomingUtilities.length > 0 ? (
@@ -253,10 +253,10 @@ function DashboardContent() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div className="flex items-center gap-2">
-                                <BanknotesIcon className="h-5 w-5 text-blue-500" />
+                                <BanknotesIcon className="h-5 w-5 text-primary" />
                                 <h3 className="font-bold text-gray-900">Pending Loans</h3>
                             </div>
-                            <Link href="/debts" className="text-xs font-bold text-blue-600 hover:underline">View All</Link>
+                            <Link href="/debts" className="text-xs font-bold text-primary hover:underline">View All</Link>
                         </div>
                         <div className="flex-1">
                             {debtSummary.length > 0 ? (
@@ -265,7 +265,7 @@ function DashboardContent() {
                                         <div key={debt.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/80 transition-colors">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-gray-900">{debt.personName}</span>
-                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block w-fit mt-1 ${debt.type === 'loaned_out' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block w-fit mt-1 ${debt.type === 'loaned_out' ? 'bg-primary/10 text-primary-dark' : 'bg-purple-100 text-purple-700'}`}>
                                                     {debt.type === 'loaned_out' ? 'Loan-Out' : 'Loan-In'}
                                                 </span>
                                             </div>
@@ -342,7 +342,7 @@ export default function DashboardPage() {
         <Suspense fallback={
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-gray-500 font-bold animate-pulse">Loading Workspace...</p>
                 </div>
             </div>
