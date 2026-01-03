@@ -41,7 +41,7 @@ export default function LowStockWidget() {
                 </div>
                 <Link
                     href="/items"
-                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                    className="text-sm font-semibold text-primary hover:text-primary-dark transition-colors"
                 >
                     View All →
                 </Link>

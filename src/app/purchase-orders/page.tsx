@@ -150,7 +150,7 @@ export default function PurchaseOrdersPage() {
                 <h1 className="text-2xl font-bold text-gray-900">Purchase Orders</h1>
                 <Link
                     href="/purchase-orders/new"
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    className="bg-primary hover:bg-primary-dark text-slate-900 font-bold px-4 py-2 rounded-lg transition-colors"
                 >
                     Create Purchase Order
                 </Link>
