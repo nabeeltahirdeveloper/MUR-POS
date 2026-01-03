@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from "@heroicons/react/24/outline";
 import LedgerTable from "@/components/ledger/LedgerTable";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/layout";
@@ -25,7 +25,8 @@ function LedgerPageContent() {
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
-    const [view, setView] = useState<"entries" | "customers">("customers");
+    const [view, setView] = useState<"entries" | "customers">("entries");
+    const [showTransactionModal, setShowTransactionModal] = useState(false);
 
     useEffect(() => {
         fetchCategories();
@@ -157,7 +158,7 @@ function LedgerPageContent() {
                             )}
                         </Button>
                     )}
-                    <Button onClick={() => router.push("/ledger/new")}>
+                    <Button onClick={() => setShowTransactionModal(true)}>
                         <PlusIcon className="h-5 w-5 mr-2" />
                         Add Entry
                     </Button>
@@ -307,6 +308,48 @@ function LedgerPageContent() {
                                     Next
                                 </Button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Transaction Type Selection Modal */}
+            {showTransactionModal && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-300">
+                        <div className="p-8 text-center border-b border-gray-100">
+                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">Record Transaction</h3>
+                            <p className="text-sm font-medium text-gray-500 mt-2">Choose the type of entry you want to make</p>
+                        </div>
+                        <div className="p-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <button
+                                onClick={() => router.push("/ledger/new?type=credit")}
+                                className="flex flex-col items-center justify-center p-8 rounded-2xl bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-100 transition-all group"
+                            >
+                                <div className="p-4 bg-emerald-100 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                                    <ArrowTrendingUpIcon className="h-8 w-8 text-emerald-600" />
+                                </div>
+                                <span className="font-black text-emerald-800 text-lg">Cash-In</span>
+                                <span className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest mt-1">Income</span>
+                            </button>
+                            <button
+                                onClick={() => router.push("/ledger/new?type=debit")}
+                                className="flex flex-col items-center justify-center p-8 rounded-2xl bg-rose-50 border-2 border-rose-100 hover:border-rose-500 hover:bg-rose-100 transition-all group"
+                            >
+                                <div className="p-4 bg-rose-100 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                                    <ArrowTrendingDownIcon className="h-8 w-8 text-rose-600" />
+                                </div>
+                                <span className="font-black text-rose-800 text-lg">Cash-Out</span>
+                                <span className="text-[10px] font-bold text-rose-600/60 uppercase tracking-widest mt-1">Expense</span>
+                            </button>
+                        </div>
+                        <div className="px-8 pb-8">
+                            <button
+                                onClick={() => setShowTransactionModal(false)}
+                                className="w-full py-4 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all font-bold text-sm uppercase tracking-widest"
+                            >
+                                Dismiss
+                            </button>
                         </div>
                     </div>
                 </div>
