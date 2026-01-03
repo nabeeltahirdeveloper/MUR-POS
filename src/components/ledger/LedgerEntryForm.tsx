@@ -467,32 +467,37 @@ export default function LedgerEntryForm({
         <div className="w-full min-h-[85vh] flex flex-col gap-4">
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex-1 flex flex-col print:hidden">
                 {/* Header Row */}
-                <div className={`px-8 py-5 ${type === 'credit' ? 'bg-gradient-to-r from-emerald-600 to-emerald-500' : 'bg-gradient-to-r from-red-600 to-red-500'} flex flex-wrap items-center justify-between gap-4`}>
-                    <div className="flex items-center gap-4">
+                <div className="px-8 py-6 bg-slate-900 border-b border-primary/20 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-6">
                         <button
                             type="button"
                             onClick={() => router.push('/dashboard?select=type')}
-                            className="p-2 hover:bg-white/20 rounded-lg transition-colors text-white group"
+                            className="p-2.5 bg-slate-800 hover:bg-primary hover:text-slate-900 rounded-xl transition-all text-primary group border border-primary/10"
                             title="Back to Dashboard"
                         >
                             <svg className="w-6 h-6 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
                         </button>
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                            {isEdit ? "Edit Transaction" : (type === 'credit' ? 'Cash-In-Entry' : 'Cash-Out-Entry')}
-                        </h2>
+                        <div>
+                            <h2 className="text-2xl font-black text-white flex items-center gap-3">
+                                {isEdit ? "Edit Transaction" : (type === 'credit' ? 'Cash-In-Entry' : 'Cash-Out-Entry')}
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest ${type === 'credit' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                                    {type}
+                                </span>
+                            </h2>
+                            <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">Moon Traders • Ledger System</p>
+                        </div>
                     </div>
 
                     {/* Row 1: Order Number */}
-                    <div className="flex items-center gap-3">
-                        <label className="text-white/90 text-sm font-semibold">#</label>
+                    <div className="flex items-center gap-4 bg-slate-800/50 p-2 rounded-xl border border-white/5">
+                        <label className="text-slate-400 text-[10px] font-black uppercase tracking-tighter pl-2">Voucher #</label>
                         <input
                             type="text"
-                            value={orderNumber}
-                            onChange={(e) => setOrderNumber(e.target.value)}
-                            className="bg-white/20 border border-white/30 text-white placeholder-white/70 text-sm rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 w-36 transition-all"
-                            placeholder="Auto"
+                            value={orderNumber || "---"}
+                            readOnly
+                            className="bg-slate-900 border border-primary/30 !text-primary font-black text-sm rounded-lg px-4 py-2 w-32 text-center focus:outline-none cursor-default shadow-[0_0_15px_rgba(79,209,197,0.1)]"
                         />
                     </div>
                 </div>
@@ -514,7 +519,7 @@ export default function LedgerEntryForm({
                                     {type === 'credit' ? 'Customer' : 'Supplier'} Search
                                 </label>
                                 <div className="relative group">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-blue-500 transition-colors">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-primary transition-colors">
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                         </svg>
@@ -528,11 +533,11 @@ export default function LedgerEntryForm({
                                         }}
                                         onFocus={() => { if (partyName.length >= 1 && !isNewParty) setShowPartyResults(true); }}
                                         placeholder={`Search ${type === 'credit' ? 'Customer' : 'Supplier'}...`}
-                                        className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
+                                        className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                     />
                                     {isSearchingParty && (
                                         <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                                            <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
@@ -564,9 +569,9 @@ export default function LedgerEntryForm({
                                                         <li
                                                             key={party.id}
                                                             onClick={() => handleSelectParty(party)}
-                                                            className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm flex justify-between items-center group transition-colors border-b border-gray-50 last:border-0"
+                                                            className="px-4 py-3 hover:bg-primary/10 cursor-pointer text-sm flex justify-between items-center group transition-colors border-b border-gray-50 last:border-0"
                                                         >
-                                                            <span className="font-medium text-gray-700 group-hover:text-blue-600">
+                                                            <span className="font-medium text-gray-700 group-hover:text-primary">
                                                                 {party.name}
                                                             </span>
                                                         </li>
@@ -581,7 +586,7 @@ export default function LedgerEntryForm({
                                                             setIsNewParty(true);
                                                             setShowPartyResults(false);
                                                         }}
-                                                        className="text-blue-600 hover:text-blue-700 text-xs font-bold"
+                                                        className="text-primary hover:text-primary-dark text-xs font-bold"
                                                     >
                                                         + Create New {type === 'credit' ? 'Customer' : 'Supplier'}
                                                     </button>
@@ -599,7 +604,7 @@ export default function LedgerEntryForm({
                                                 value={partyPhone}
                                                 onChange={(e) => setPartyPhone(e.target.value)}
                                                 placeholder="Enter phone..."
-                                                className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
+                                                className="w-full px-4 py-3 bg-primary/5 border border-primary/10 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                             />
                                         </div>
                                         <div>
@@ -609,7 +614,7 @@ export default function LedgerEntryForm({
                                                 value={partyAddress}
                                                 onChange={(e) => setPartyAddress(e.target.value)}
                                                 placeholder="Enter address..."
-                                                className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
+                                                className="w-full px-4 py-3 bg-primary/5 border border-primary/10 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                             />
                                         </div>
                                     </div>
@@ -623,7 +628,7 @@ export default function LedgerEntryForm({
                                     type="date"
                                     value={date}
                                     onChange={(e) => setDate(e.target.value)}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                 />
                             </div>
 
@@ -634,7 +639,7 @@ export default function LedgerEntryForm({
                                     type="time"
                                     value={time}
                                     onChange={(e) => setTime(e.target.value)}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                 />
                             </div>
                         </div>
@@ -656,11 +661,11 @@ export default function LedgerEntryForm({
                                             }}
                                             onFocus={() => { if (searchTerm.length >= 1) setShowResults(true); }}
                                             placeholder="Scan or Type Item..."
-                                            className="w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
+                                            className="w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
                                         />
                                         {isSearching && (
                                             <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                 </svg>
@@ -673,9 +678,9 @@ export default function LedgerEntryForm({
                                             {isSearching ? <div className="p-4 text-center text-sm text-gray-500">Searching...</div> :
                                                 searchResults.length > 0 ? (
                                                     <ul>{searchResults.map(item => (
-                                                        <li key={item.id} onClick={() => handleSelectItem(item)} className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm flex justify-between items-center group transition-colors border-b border-gray-50 last:border-0">
-                                                            <span className="font-medium text-gray-700 group-hover:text-blue-600">{item.name}</span>
-                                                            <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded-full text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">{item.category?.name}</span>
+                                                        <li key={item.id} onClick={() => handleSelectItem(item)} className="px-4 py-3 hover:bg-primary/10 cursor-pointer text-sm flex justify-between items-center group transition-colors border-b border-gray-50 last:border-0">
+                                                            <span className="font-medium text-gray-700 group-hover:text-primary">{item.name}</span>
+                                                            <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded-full text-gray-500 group-hover:bg-primary/20 group-hover:text-primary-dark transition-colors">{item.category?.name}</span>
                                                         </li>
                                                     ))}</ul>
                                                 ) : <div className="p-4 text-center text-sm text-gray-500">No items found</div>}
@@ -689,7 +694,7 @@ export default function LedgerEntryForm({
                                     <select
                                         value={paymentType}
                                         onChange={(e) => setPaymentType(e.target.value as "Cash" | "Online")}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-gray-900"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-gray-900"
                                     >
                                         <option value="Cash">Cash</option>
                                         <option value="Online">Online</option>
@@ -703,7 +708,7 @@ export default function LedgerEntryForm({
                                         type="number"
                                         value={quantity}
                                         onChange={(e) => setQuantity(e.target.value)}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
                                     />
                                 </div>
 
@@ -716,7 +721,7 @@ export default function LedgerEntryForm({
                                             type="number"
                                             value={lineAmount}
                                             onChange={(e) => setLineAmount(e.target.value)}
-                                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white transition-all shadow-sm font-bold text-lg text-gray-800"
+                                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-bold text-lg text-gray-800"
                                         />
                                     </div>
                                 </div>
@@ -725,7 +730,7 @@ export default function LedgerEntryForm({
                                 <div className="w-full md:w-auto md:shrink-0 flex items-end justify-end">
                                     {editingCartId ? (
                                         <div className="flex gap-2 w-full md:w-auto">
-                                            <button type="button" onClick={handleAddOrUpdateItem} className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-medium text-sm transition-all shadow-md active:scale-95 whitespace-nowrap">
+                                            <button type="button" onClick={handleAddOrUpdateItem} className="flex-1 md:flex-none bg-primary hover:bg-primary-dark text-slate-900 px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 whitespace-nowrap">
                                                 Update
                                             </button>
                                             <button type="button" onClick={() => {
@@ -765,13 +770,13 @@ export default function LedgerEntryForm({
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
                                         {cartItems.map((item) => (
-                                            <tr key={item.tempId} className="hover:bg-blue-50/50 transition-colors">
+                                            <tr key={item.tempId} className="hover:bg-primary/5 transition-colors">
                                                 <td className="px-4 py-3 font-medium text-gray-800">{item.item.name}</td>
                                                 <td className="px-4 py-3 text-center">{item.quantity}</td>
                                                 <td className="px-4 py-3 text-right text-gray-500">Rs. {item.unitPrice}</td>
                                                 <td className="px-4 py-3 text-right font-bold text-gray-800">Rs. {item.amount.toLocaleString()}</td>
                                                 <td className="px-4 py-3 text-center space-x-2">
-                                                    <button type="button" onClick={() => handleEditItem(item.tempId)} className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-100 rounded">
+                                                    <button type="button" onClick={() => handleEditItem(item.tempId)} className="text-primary hover:text-primary-dark p-1 hover:bg-primary/10 rounded">
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                                     </button>
                                                     <button type="button" onClick={() => handleDeleteItem(item.tempId)} className="text-red-600 hover:text-red-800 p-1 hover:bg-red-100 rounded">
@@ -800,10 +805,10 @@ export default function LedgerEntryForm({
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`w-full md:w-auto px-8 py-3 rounded-lg font-semibold text-white shadow-lg shadow-emerald-500/30 transition-all transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700"}`}
+                                className={`w-full md:w-auto px-12 py-3 rounded-xl font-black text-slate-900 shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary hover:bg-primary-dark"}`}
                             >
-                                {loading && <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>}
-                                {isEdit ? 'Update' : 'Save'}
+                                {loading && <svg className="animate-spin h-5 w-5 text-slate-900" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>}
+                                <span className="uppercase tracking-widest">{isEdit ? 'Update Entry' : 'Save Transaction'}</span>
                             </button>
                         </div>
                     </form>
@@ -834,7 +839,7 @@ export default function LedgerEntryForm({
                             <tbody className="divide-y divide-gray-50">
                                 {recentTransactions.map((bill, i) => {
                                     return (
-                                        <tr key={bill.id || i} className="hover:bg-blue-50/30 transition-colors group">
+                                        <tr key={bill.id || i} className="hover:bg-primary/5 transition-colors group">
                                             <td className="px-6 py-4 font-bold text-gray-500">
                                                 {bill.orderNumber || "---"}
                                             </td>
@@ -848,7 +853,7 @@ export default function LedgerEntryForm({
                                             <td className="px-6 py-4 text-gray-900 font-medium">
                                                 {bill.items.length > 1 ? (
                                                     <div className="flex flex-col gap-0.5">
-                                                        <span className="text-blue-600 font-bold">{bill.items.length} Items</span>
+                                                        <span className="text-primary font-bold">{bill.items.length} Items</span>
                                                         <span className="text-xs text-gray-500 truncate max-w-[200px]">
                                                             {bill.items.map((it: any) => it.itemName).join(", ")}
                                                         </span>

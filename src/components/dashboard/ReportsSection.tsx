@@ -85,7 +85,7 @@ export default function ReportsSection() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <div>
                         <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                            <CalendarIcon className="h-5 w-5 text-blue-500" />
+                            <CalendarIcon className="h-5 w-5 text-primary" />
                             Reports & Analysis
                         </h3>
                         <p className="text-sm text-gray-500">Analyze your ledger data across date ranges and categories</p>
@@ -95,7 +95,7 @@ export default function ReportsSection() {
                             <span className="text-xs font-medium text-gray-500">From:</span>
                             <input
                                 type="date"
-                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
+                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary outline-none text-gray-900"
                                 value={filters.from}
                                 onChange={(e) => setFilters(f => ({ ...f, from: e.target.value }))}
                             />
@@ -104,7 +104,7 @@ export default function ReportsSection() {
                             <span className="text-xs font-medium text-gray-500">To:</span>
                             <input
                                 type="date"
-                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
+                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary outline-none text-gray-900"
                                 value={filters.to}
                                 onChange={(e) => setFilters(f => ({ ...f, to: e.target.value }))}
                             />
@@ -112,7 +112,7 @@ export default function ReportsSection() {
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-medium text-gray-500">Category:</span>
                             <select
-                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
+                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary outline-none text-gray-900"
                                 value={filters.categoryId}
                                 onChange={(e) => setFilters(f => ({ ...f, categoryId: e.target.value }))}
                             >
@@ -124,7 +124,7 @@ export default function ReportsSection() {
                         </div>
                         <button
                             onClick={fetchData}
-                            className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                            className="p-2 text-gray-400 hover:text-primary transition-colors"
                         >
                             <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
                         </button>
@@ -140,9 +140,9 @@ export default function ReportsSection() {
                         <p className="text-xs font-bold text-red-600 uppercase tracking-widest">Total Cash-Out</p>
                         <p className="text-2xl font-black text-red-700 mt-1">Rs. {summary.debit.toLocaleString()}</p>
                     </div>
-                    <div className={`${summary.net >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-primary/10 border-primary/20'} p-4 rounded-xl border`}>
-                        <p className={`text-xs font-bold ${summary.net >= 0 ? 'text-blue-600' : 'text-primary'} uppercase tracking-widest`}>Net Balance</p>
-                        <p className={`text-2xl font-black ${summary.net >= 0 ? 'text-blue-700' : 'text-primary-dark'} mt-1`}>Rs. {summary.net.toLocaleString()}</p>
+                    <div className={`${summary.net >= 0 ? 'bg-primary/10 border-primary/20' : 'bg-red-50 border-red-100'} p-4 rounded-xl border`}>
+                        <p className={`text-xs font-bold ${summary.net >= 0 ? 'text-primary' : 'text-red-600'} uppercase tracking-widest`}>Net Balance</p>
+                        <p className={`text-2xl font-black ${summary.net >= 0 ? 'text-primary-dark' : 'text-red-700'} mt-1`}>Rs. {summary.net.toLocaleString()}</p>
                     </div>
                 </div>
 
@@ -154,10 +154,10 @@ export default function ReportsSection() {
                     {categoryBreakdown.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {categoryBreakdown.map((cat) => (
-                                <div key={cat.name} className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-blue-200 transition-colors">
+                                <div key={cat.name} className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-primary/20 transition-colors">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="font-bold text-gray-900">{cat.name}</span>
-                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cat.credit - cat.debit >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cat.credit - cat.debit >= 0 ? 'bg-primary/10 text-primary-dark' : 'bg-red-100 text-red-700'}`}>
                                             {((cat.credit - cat.debit) / (summary.credit + summary.debit || 1) * 100).toFixed(1)}%
                                         </span>
                                     </div>
@@ -172,7 +172,7 @@ export default function ReportsSection() {
                                         </div>
                                         <div className="pt-2 border-t border-gray-200 mt-2 flex justify-between">
                                             <span className="text-xs font-bold text-gray-700">Net:</span>
-                                            <span className={`font-mono text-sm font-black ${cat.credit - cat.debit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                                            <span className={`font-mono text-sm font-black ${cat.credit - cat.debit >= 0 ? 'text-primary' : 'text-red-600'}`}>
                                                 Rs. {(cat.credit - cat.debit).toLocaleString()}
                                             </span>
                                         </div>
