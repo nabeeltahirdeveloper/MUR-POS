@@ -140,9 +140,9 @@ export default function ReportsSection() {
                         <p className="text-xs font-bold text-red-600 uppercase tracking-widest">Total Cash-Out</p>
                         <p className="text-2xl font-black text-red-700 mt-1">Rs. {summary.debit.toLocaleString()}</p>
                     </div>
-                    <div className={`${summary.net >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-amber-50 border-amber-100'} p-4 rounded-xl border`}>
-                        <p className={`text-xs font-bold ${summary.net >= 0 ? 'text-blue-600' : 'text-amber-600'} uppercase tracking-widest`}>Net Balance</p>
-                        <p className={`text-2xl font-black ${summary.net >= 0 ? 'text-blue-700' : 'text-amber-700'} mt-1`}>Rs. {summary.net.toLocaleString()}</p>
+                    <div className={`${summary.net >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-primary/10 border-primary/20'} p-4 rounded-xl border`}>
+                        <p className={`text-xs font-bold ${summary.net >= 0 ? 'text-blue-600' : 'text-primary'} uppercase tracking-widest`}>Net Balance</p>
+                        <p className={`text-2xl font-black ${summary.net >= 0 ? 'text-blue-700' : 'text-primary-dark'} mt-1`}>Rs. {summary.net.toLocaleString()}</p>
                     </div>
                 </div>
 

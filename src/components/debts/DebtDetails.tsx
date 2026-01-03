@@ -125,9 +125,9 @@ export default function DebtDetails({ debt, isOpen, onClose }: DebtDetailsProps)
                             <p className="text-sm font-medium text-gray-500 mb-1">Total Paid</p>
                             <p className="text-2xl font-bold text-green-600">Rs. {totalPaid.toLocaleString()}</p>
                         </div>
-                        <div className={`${balance > 0 ? 'bg-amber-50 border-amber-100' : 'bg-green-50 border-green-100'} p-6 rounded-xl border`}>
+                        <div className={`${balance > 0 ? 'bg-primary/10 border-primary/20' : 'bg-green-50 border-green-100'} p-6 rounded-xl border`}>
                             <p className="text-sm font-medium text-gray-500 mb-1">Remaining Balance</p>
-                            <p className={`text-2xl font-bold ${balance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                            <p className={`text-2xl font-bold ${balance > 0 ? 'text-primary' : 'text-green-600'}`}>
                                 Rs. {balance.toLocaleString()}
                             </p>
                         </div>
@@ -149,7 +149,7 @@ export default function DebtDetails({ debt, isOpen, onClose }: DebtDetailsProps)
                                 </div>
                                 <div className="flex items-center justify-between py-3 border-b border-gray-50">
                                     <span className="text-sm text-gray-500">Status</span>
-                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${debt.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${debt.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-primary/10 text-primary'
                                         }`}>
                                         {debt.status.toUpperCase()}
                                     </span>

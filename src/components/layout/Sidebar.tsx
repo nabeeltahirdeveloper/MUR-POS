@@ -70,7 +70,7 @@ export default function Sidebar({
             {/* Logo */}
             <div className="flex h-16 shrink-0 items-center px-6 border-b border-slate-800">
                 <img src="/favicon.jpg" alt="Logo" className="h-10 w-10 rounded-lg object-cover" />
-                <span className="ml-2 text-xl font-bold bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">
+                <span className="ml-2 text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
                     Moon Traders
                 </span>
             </div>
@@ -106,7 +106,7 @@ export default function Sidebar({
                                     href={item.href}
                                     onClick={() => setSidebarOpen(false)}
                                     className={`group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
-                                        ? "bg-amber-500/10 text-amber-500 border-l-2 border-amber-500"
+                                        ? "bg-primary/10 text-primary border-l-2 border-primary"
                                         : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
                                         }`}
                                 >
@@ -126,7 +126,7 @@ export default function Sidebar({
                                                 href={child.href}
                                                 onClick={() => setSidebarOpen(false)}
                                                 className={`group flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ${childActive
-                                                    ? "bg-amber-500/10 text-amber-500"
+                                                    ? "bg-primary/10 text-primary"
                                                     : "text-slate-500 hover:bg-slate-800/50 hover:text-white"
                                                     }`}
                                             >

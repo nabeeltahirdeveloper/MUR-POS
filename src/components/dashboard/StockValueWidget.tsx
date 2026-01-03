@@ -41,8 +41,8 @@ export default function StockValueWidget() {
                     </p>
                     <p className="text-xs text-gray-400 mt-1">Based on {stats.totalItems} items</p>
                 </div>
-                <div className="p-3 bg-amber-100 rounded-lg">
-                    <BanknotesIcon className="h-6 w-6 text-amber-600" />
+                <div className="p-3 bg-primary/10 rounded-lg">
+                    <BanknotesIcon className="h-6 w-6 text-primary" />
                 </div>
             </div>
         </div>

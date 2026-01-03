@@ -188,11 +188,11 @@ function DashboardContent() {
 
                     <Link
                         href="/utilities"
-                        className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-amber-200 transition-all group"
+                        className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 transition-all group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-amber-50 rounded-lg group-hover:bg-amber-100 transition-colors">
-                                <BoltIcon className="h-6 w-6 text-amber-500" />
+                            <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                <BoltIcon className="h-6 w-6 text-primary" />
                             </div>
                             <div>
                                 <h2 className="text-base font-bold text-gray-900 leading-tight">Utility Bills</h2>
@@ -211,7 +211,7 @@ function DashboardContent() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div className="flex items-center gap-2">
-                                <BoltIcon className="h-5 w-5 text-amber-500" />
+                                <BoltIcon className="h-5 w-5 text-primary" />
                                 <h3 className="font-bold text-gray-900">Pending Utilities</h3>
                             </div>
                             <Link href="/utilities" className="text-xs font-bold text-blue-600 hover:underline">View All</Link>

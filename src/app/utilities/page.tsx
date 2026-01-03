@@ -265,8 +265,8 @@ export default function UtilitiesPage() {
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                        <div className="p-3 bg-amber-100 rounded-lg">
-                            <CurrencyDollarIcon className="h-6 w-6 text-amber-600" />
+                        <div className="p-3 bg-primary/10 rounded-lg">
+                            <CurrencyDollarIcon className="h-6 w-6 text-primary" />
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-500">Total Unpaid</p>

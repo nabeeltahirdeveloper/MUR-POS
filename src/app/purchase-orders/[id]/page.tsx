@@ -290,7 +290,7 @@ export default function PurchaseOrderDetailPage() {
                         <span className={`px-2 py-1 rounded text-sm font-semibold uppercase ${po.status === 'received' ? 'bg-green-100 text-green-800' :
                             po.status === 'cancelled' ? 'bg-red-100 text-red-800' :
                                 po.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                                    'bg-yellow-100 text-yellow-800'
+                                    'bg-primary/10 text-primary'
                             }`}>
                             {po.status}
                         </span>
@@ -374,7 +374,7 @@ export default function PurchaseOrderDetailPage() {
                                     ))}
                                 </select>
                                 {supplierIdCurrent && !suppliers.some((s) => s.id === supplierIdCurrent) && (
-                                    <p className="text-xs text-amber-600 mt-1">Current supplier not in dropdown (may be deleted).</p>
+                                    <p className="text-xs text-primary mt-1">Current supplier not in dropdown (may be deleted).</p>
                                 )}
                             </div>
                             <div className="flex items-end justify-end">
