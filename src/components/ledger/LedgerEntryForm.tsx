@@ -88,6 +88,9 @@ export default function LedgerEntryForm({
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [editingCartId, setEditingCartId] = useState<string | null>(null);
 
+    // Stock Validation Modal State
+    const [stockErrorModal, setStockErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: "" });
+
     // General Form State
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -208,6 +211,40 @@ export default function LedgerEntryForm({
         if (!selectedItem) return;
         if (!quantity || Number(quantity) <= 0) return;
         if (!lineAmount || Number(lineAmount) <= 0) return;
+
+        // Stock Validation Implementation
+        // Only apply stock check for Cash-In (type === 'credit') as this represents a Sale (Stock Out)
+        if (type === 'credit') {
+            const currentStock = selectedItem.currentStock || 0;
+
+            // Calculate quantity already in cart for this specific item (excluding current edit item)
+            const existingInCart = cartItems
+                .filter(item => item.item.id === selectedItem.id && item.tempId !== editingCartId)
+                .reduce((sum, item) => sum + item.quantity, 0);
+
+            const availableStock = currentStock - existingInCart;
+            const requestedQty = Number(quantity);
+
+            // Case 1: No available stock (exhausted by cart or empty)
+            if (availableStock <= 0) {
+                setStockErrorModal({
+                    open: true,
+                    message: existingInCart > 0
+                        ? `You have already added all available stock (${currentStock}) to the cart!`
+                        : "This item is currently out of stock!"
+                });
+                return;
+            }
+
+            // Case 2: Insufficient Stock for new request
+            if (requestedQty > availableStock) {
+                setStockErrorModal({
+                    open: true,
+                    message: `Only ${availableStock} item(s) are remaining in stock! Please decrease the quantity.` + (existingInCart > 0 ? ` (You have ${existingInCart} in cart)` : "")
+                });
+                return;
+            }
+        }
 
         const newItem: CartItem = {
             tempId: editingCartId || Date.now().toString(),
@@ -371,6 +408,8 @@ export default function LedgerEntryForm({
                     type,
                     amount: cartItem.amount,
                     categoryId: cartItem.item.categoryId || null,
+                    itemId: cartItem.item.id,
+                    quantity: cartItem.quantity,
                     note: finalNote,
                     date: dateTime.toISOString(),
                 };
@@ -859,7 +898,7 @@ export default function LedgerEntryForm({
                                 className={`w-full md:w-auto px-12 py-3 rounded-xl font-black text-slate-900 shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary hover:bg-primary-dark"}`}
                             >
                                 {loading && <svg className="animate-spin h-5 w-5 text-slate-900" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>}
-                                <span className="uppercase tracking-widest">{isEdit ? 'Update Entry' : 'Save Transaction'}</span>
+                                <span className="uppercase tracking-widest">{isEdit ? 'Update Entry' : 'Save'}</span>
                             </button>
                         </div>
                     </form>
@@ -939,6 +978,30 @@ export default function LedgerEntryForm({
                                 })}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+            {stockErrorModal.open && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-red-100">
+                        <div className="p-6 text-center">
+                            <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-50 mb-4 ring-8 ring-red-50/50">
+                                <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">Stock Unavailable</h3>
+                            <p className="text-gray-500 mb-8 font-medium leading-relaxed">{stockErrorModal.message}</p>
+                            <div className="flex justify-center w-full">
+                                <button
+                                    type="button"
+                                    onClick={() => setStockErrorModal({ open: false, message: "" })}
+                                    className="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg shadow-red-500/30 transform hover:-translate-y-0.5"
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

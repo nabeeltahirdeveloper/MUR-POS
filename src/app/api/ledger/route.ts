@@ -256,6 +256,34 @@ export async function POST(req: NextRequest) {
         };
 
         const entryId = await createDoc<Omit<FirestoreLedger, 'id'>>('ledger', entryData);
+
+        // --- Stock Update Logic ---
+        const { itemId, quantity } = body;
+
+        if (itemId && quantity && Number(quantity) > 0) {
+            try {
+                // Determine stock flow direction
+                // Credit (Cash-In) = Sale = Stock OUT
+                // Debit (Cash-Out) = Purchase = Stock IN
+                const stockType = type === 'credit' ? 'out' : 'in';
+
+                const stockLogData: any = {
+                    itemId: String(itemId),
+                    type: stockType,
+                    quantityBaseUnit: Number(quantity), // Assuming 1-to-1 for now, or use item conversion factor if needed
+                    description: `Auto-generated from Ledger ${type} entry #${entryId}`,
+                    createdAt: new Date(),
+                };
+
+                await createDoc('stock_logs', stockLogData);
+                console.log(`Updated stock for item ${itemId}: ${stockType} ${quantity}`);
+            } catch (stockError) {
+                console.error("Failed to update stock log:", stockError);
+                // We don't fail the whole request if stock update fails, but we log it.
+            }
+        }
+        // --------------------------
+
         const entry = await getDocById<FirestoreLedger>('ledger', entryId);
 
         return NextResponse.json(entry, { status: 201 });
