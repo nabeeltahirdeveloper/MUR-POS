@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
+
 import {
     Bars3Icon,
     XMarkIcon,
@@ -13,6 +14,7 @@ import {
     DocumentTextIcon,
     BoltIcon,
     ArrowRightOnRectangleIcon,
+
     UserCircleIcon,
     UserGroupIcon,
     ChevronDownIcon,
@@ -53,7 +55,7 @@ export default function Sidebar({
     setSidebarOpen: (open: boolean) => void;
 }) {
     const pathname = usePathname();
-    const { data: session, status } = useSession();
+
     const [expandedItems, setExpandedItems] = useState<string[]>(["Ledger"]);
     const [businessName, setBusinessName] = useState("Moon Traders");
 
@@ -162,38 +164,17 @@ export default function Sidebar({
                 })}
             </nav>
 
-            {/* User section */}
+
+
+            {/* Sign Out Section */}
             <div className="border-t border-slate-800 p-4">
-                {status === "loading" ? (
-                    <div className="flex items-center gap-3 px-3 py-2">
-                        <div className="h-9 w-9 rounded-full bg-slate-700 animate-pulse" />
-                        <div className="flex-1 min-w-0 space-y-2">
-                            <div className="h-4 w-24 bg-slate-700 rounded animate-pulse" />
-                            <div className="h-3 w-32 bg-slate-700 rounded animate-pulse" />
-                        </div>
-                    </div>
-                ) : (
-                    <>
-                        <div className="flex items-center gap-3 px-3 py-2">
-                            <UserCircleIcon className="h-9 w-9 text-slate-500" />
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-white truncate">
-                                    {session?.user?.name || "User"}
-                                </p>
-                                <p className="text-xs text-slate-500 truncate">
-                                    {session?.user?.email}
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => signOut({ callbackUrl: "/" })}
-                            className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-                        >
-                            <ArrowRightOnRectangleIcon className="h-5 w-5" />
-                            Sign Out
-                        </button>
-                    </>
-                )}
+                <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="w-full group flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all duration-200"
+                >
+                    <ArrowRightOnRectangleIcon className="h-5 w-5 shrink-0" />
+                    Sign Out
+                </button>
             </div>
         </>
     );

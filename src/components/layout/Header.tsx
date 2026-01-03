@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import {
+    ArrowRightOnRectangleIcon,
     Bars3Icon,
     BellIcon,
     MagnifyingGlassIcon,
@@ -25,10 +26,12 @@ export default function Header({
 }) {
     const { data: session, status } = useSession();
     const [panelOpen, setPanelOpen] = useState(false);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [loadingReminders, setLoadingReminders] = useState(false);
     const [reminders, setReminders] = useState<HeaderReminder[]>([]);
     const [remindersError, setRemindersError] = useState<string | null>(null);
     const panelRef = useRef<HTMLDivElement | null>(null);
+    const userMenuRef = useRef<HTMLDivElement | null>(null);
 
     const refreshReminders = async () => {
         try {
@@ -71,14 +74,20 @@ export default function Header({
 
     // Close on outside click / escape.
     useEffect(() => {
-        if (!panelOpen) return;
+        if (!panelOpen && !userMenuOpen) return;
         const onDown = (e: MouseEvent) => {
-            const el = panelRef.current;
-            if (!el) return;
-            if (e.target instanceof Node && !el.contains(e.target)) setPanelOpen(false);
+            if (panelOpen && panelRef.current && e.target instanceof Node && !panelRef.current.contains(e.target)) {
+                setPanelOpen(false);
+            }
+            if (userMenuOpen && userMenuRef.current && e.target instanceof Node && !userMenuRef.current.contains(e.target)) {
+                setUserMenuOpen(false);
+            }
         };
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") setPanelOpen(false);
+            if (e.key === "Escape") {
+                setPanelOpen(false);
+                setUserMenuOpen(false);
+            }
         };
         document.addEventListener("mousedown", onDown);
         document.addEventListener("keydown", onKey);
@@ -86,7 +95,7 @@ export default function Header({
             document.removeEventListener("mousedown", onDown);
             document.removeEventListener("keydown", onKey);
         };
-    }, [panelOpen]);
+    }, [panelOpen, userMenuOpen]);
 
     const visibleCount = reminders.length;
     const badgeText = visibleCount >= 50 ? "50+" : String(visibleCount);
@@ -222,7 +231,7 @@ export default function Header({
                     />
 
                     {/* User info (desktop only) */}
-                    <div className="hidden lg:flex lg:items-center lg:gap-x-3">
+                    <div className="hidden lg:flex lg:items-center lg:gap-x-3 relative" ref={userMenuRef}>
                         {status === "loading" ? (
                             <div className="flex items-center gap-x-3">
                                 <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse" />
@@ -233,17 +242,48 @@ export default function Header({
                             </div>
                         ) : (
                             <>
-                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-semibold text-sm">
-                                    {session?.user?.name?.charAt(0)?.toUpperCase() || "U"}
-                                </div>
-                                <div className="text-sm">
-                                    <p className="font-semibold text-gray-900">
-                                        {session?.user?.name || "User"}
-                                    </p>
-                                    <p className="text-gray-500 text-xs">
-                                        {session?.user?.role || "Admin"}
-                                    </p>
-                                </div>
+                                <button
+                                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                                    className="flex items-center gap-x-3 hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                                >
+                                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-semibold text-sm">
+                                        {session?.user?.name?.charAt(0)?.toUpperCase() || "U"}
+                                    </div>
+                                    <div className="text-sm text-left">
+                                        <p className="font-semibold text-gray-900">
+                                            {session?.user?.name || "User"}
+                                        </p>
+                                        <p className="text-gray-500 text-xs">
+                                            {session?.user?.role || "Admin"}
+                                        </p>
+                                    </div>
+                                </button>
+
+                                {userMenuOpen && (
+                                    <div
+                                        className="absolute top-full right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white shadow-xl shadow-gray-200/50 overflow-hidden z-50 transform origin-top-right transition-all duration-200 ease-out"
+                                        role="menu"
+                                    >
+                                        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+                                            <p className="text-sm font-semibold text-gray-900">
+                                                {session?.user?.name || "User"}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-0.5 font-medium truncate">
+                                                {session?.user?.email}
+                                            </p>
+                                        </div>
+                                        <div className="p-1">
+                                            <button
+                                                onClick={() => signOut({ callbackUrl: "/" })}
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                role="menuitem"
+                                            >
+                                                <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                                                Sign Out
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
