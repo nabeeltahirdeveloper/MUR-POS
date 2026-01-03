@@ -120,7 +120,7 @@ export default function Header({
                 <form className="relative flex flex-1" action="#" method="GET">
                 </form>
 
-                <div className="flex items-center gap-x-4 lg:gap-x-6">
+                <div className="flex items-center gap-x-6">
                     {/* Notification button */}
                     <div className="relative" ref={panelRef}>
                         <button
@@ -226,16 +226,16 @@ export default function Header({
 
                     {/* Separator */}
                     <div
-                        className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200"
+                        className="h-6 w-px bg-gray-200"
                         aria-hidden="true"
                     />
 
-                    {/* User info (desktop only) */}
-                    <div className="hidden lg:flex lg:items-center lg:gap-x-3 relative" ref={userMenuRef}>
+                    {/* User info */}
+                    <div className="flex items-center gap-x-3 relative" ref={userMenuRef}>
                         {status === "loading" ? (
                             <div className="flex items-center gap-x-3">
                                 <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse" />
-                                <div className="space-y-1.5">
+                                <div className="hidden lg:block space-y-1.5">
                                     <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
                                     <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
                                 </div>
@@ -249,7 +249,7 @@ export default function Header({
                                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-semibold text-sm">
                                         {session?.user?.name?.charAt(0)?.toUpperCase() || "U"}
                                     </div>
-                                    <div className="text-sm text-left">
+                                    <div className="hidden lg:block text-sm text-left">
                                         <p className="font-semibold text-gray-900">
                                             {session?.user?.name || "User"}
                                         </p>
