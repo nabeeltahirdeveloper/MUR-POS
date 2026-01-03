@@ -119,8 +119,8 @@ function DashboardContent() {
                         <div className="flex items-center gap-4">
                             <div className="flex-1">
                                 <div className="flex justify-between text-xs font-bold mb-1">
-                                    <span className="text-green-600">Credit</span>
-                                    <span className="text-red-500">Debit</span>
+                                    <span className="text-green-600">Cash-In</span>
+                                    <span className="text-red-500">Cash-Out</span>
                                 </div>
                                 <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden flex">
                                     <div

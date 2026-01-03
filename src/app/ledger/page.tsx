@@ -210,8 +210,8 @@ function LedgerPageContent() {
                                 onChange={(e) => updateFilter("type", e.target.value)}
                             >
                                 <option value="">All</option>
-                                <option value="credit">Credit (In)</option>
-                                <option value="debit">Debit (Out)</option>
+                                <option value="credit">Cash-In</option>
+                                <option value="debit">Cash-Out</option>
                             </select>
                         </div>
                         <div>

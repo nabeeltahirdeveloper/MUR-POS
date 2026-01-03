@@ -82,7 +82,7 @@ function MonthlySummaryContent() {
                         </div>
                         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                             <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                                Total Debit
+                                Total Cash-Out
                             </h3>
                             <p className="text-3xl font-bold text-red-600 mt-2">
                                 Rs. {summary.summary.totalDebit.toFixed(2)}
@@ -115,10 +115,10 @@ function MonthlySummaryContent() {
                                                 Date
                                             </th>
                                             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                                                Credit
+                                                Cash-In
                                             </th>
                                             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                                                Debit
+                                                Cash-Out
                                             </th>
                                             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                                                 Net
