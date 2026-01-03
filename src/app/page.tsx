@@ -206,7 +206,7 @@ export default function Home() {
               <div key={step.number} className="relative">
                 {/* Connector line */}
                 {index < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-12 left-1/2 w-full h-0.5 bg-gradient-to-r from-amber-500/50 to-transparent" />
+                  <div className="hidden md:block absolute top-12 left-1/2 w-full h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
                 )}
 
                 <div className="relative text-center p-6">
