@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { auth } from "@/auth";
 import {
   CubeIcon,
   ChartBarIcon,
@@ -61,7 +62,8 @@ const steps = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Navigation */}
@@ -74,12 +76,21 @@ export default function Home() {
             </span>
           </Link>
           <div className="flex items-center gap-4">
-            <Link
-              href="/login"
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
-            >
-              Sign In
-            </Link>
+            {session ? (
+              <Link
+                href="/dashboard"
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                Sign In
+              </Link>
+            )}
             {/* <Link
               href="/signup"
               className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-primary to-primary-dark text-slate-900 rounded-full hover:from-primary/90 hover:to-primary-dark/90 transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40"
@@ -129,12 +140,21 @@ export default function Home() {
               Start Free Today
               <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
             </Link> */}
-            <Link
-              href="/login"
-              className="px-8 py-4 text-lg font-medium text-slate-300 border border-slate-600 rounded-full hover:bg-slate-800/50 hover:border-slate-500 transition-all"
-            >
-              Sign In
-            </Link>
+            {session ? (
+              <Link
+                href="/dashboard"
+                className="px-8 py-4 text-lg font-medium text-slate-300 border border-slate-600 rounded-full hover:bg-slate-800/50 hover:border-slate-500 transition-all"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="px-8 py-4 text-lg font-medium text-slate-300 border border-slate-600 rounded-full hover:bg-slate-800/50 hover:border-slate-500 transition-all"
+              >
+                Sign In
+              </Link>
+            )}
           </div>
 
           {/* Stats */}
