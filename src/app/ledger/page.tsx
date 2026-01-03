@@ -2,10 +2,11 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon } from "@heroicons/react/24/outline";
 import LedgerTable from "@/components/ledger/LedgerTable";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/layout";
-import { PlusIcon, FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import LedgerCustomerSummary from "@/components/ledger/LedgerCustomerSummary";
 
 function LedgerPageContent() {
     const router = useRouter();
@@ -24,6 +25,7 @@ function LedgerPageContent() {
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
+    const [view, setView] = useState<"entries" | "customers">("customers");
 
     useEffect(() => {
         fetchCategories();
@@ -112,20 +114,49 @@ function LedgerPageContent() {
     const hasActiveFilters =
         filters.search || filters.type || filters.categoryId || filters.from || filters.to;
 
+    const handleViewEntries = (customerName: string) => {
+        setFilters(prev => ({ ...prev, search: customerName, page: 1 }));
+        setView("entries");
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h1 className="text-2xl font-bold text-gray-900">Ledger</h1>
                 <div className="flex gap-2">
-                    <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
-                        <FunnelIcon className="h-5 w-5 mr-2" />
-                        Filters
-                        {hasActiveFilters && (
-                            <span className="ml-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
-                                Active
-                            </span>
-                        )}
-                    </Button>
+                    <div className="bg-gray-100 p-1 rounded-lg flex mr-2">
+                        <button
+                            onClick={() => setView("customers")}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "customers"
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                        >
+                            <UsersIcon className="h-4 w-4 mr-1.5" />
+                            By Customer
+                        </button>
+                        <button
+                            onClick={() => setView("entries")}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "entries"
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                        >
+                            <ListBulletIcon className="h-4 w-4 mr-1.5" />
+                            All Entries
+                        </button>
+                    </div>
+                    {view === "entries" && (
+                        <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
+                            <FunnelIcon className="h-5 w-5 mr-2" />
+                            Filters
+                            {hasActiveFilters && (
+                                <span className="ml-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                                    Active
+                                </span>
+                            )}
+                        </Button>
+                    )}
                     <Button onClick={() => router.push("/ledger/new")}>
                         <PlusIcon className="h-5 w-5 mr-2" />
                         Add Entry
@@ -222,45 +253,24 @@ function LedgerPageContent() {
                 </div>
             )}
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <LedgerTable
-                    data={entries}
-                    loading={loading}
-                    onEdit={(id) => router.push(`/ledger/${id}/edit`)}
-                    onDelete={handleDelete}
-                />
+            {view === "customers" ? (
+                <LedgerCustomerSummary onViewEntries={handleViewEntries} />
+            ) : (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <LedgerTable
+                        data={entries}
+                        loading={loading}
+                        onEdit={(id) => router.push(`/ledger/${id}/edit`)}
+                        onDelete={handleDelete}
+                    />
 
-                {/* Pagination */}
-                <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
-                    <div className="flex-1 flex justify-between sm:hidden">
-                        <Button
-                            disabled={filters.page <= 1}
-                            onClick={() => setFilters((prev) => ({ ...prev, page: prev.page - 1 }))}
-                            size="sm"
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            disabled={filters.page >= totalPages}
-                            onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}
-                            size="sm"
-                        >
-                            Next
-                        </Button>
-                    </div>
-                    <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                        <div>
-                            <p className="text-sm text-gray-700">
-                                Page <span className="font-medium">{filters.page}</span> of{" "}
-                                <span className="font-medium">{totalPages}</span>
-                            </p>
-                        </div>
-                        <div className="flex gap-2">
+                    {/* Pagination */}
+                    <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
+                        <div className="flex-1 flex justify-between sm:hidden">
                             <Button
                                 disabled={filters.page <= 1}
                                 onClick={() => setFilters((prev) => ({ ...prev, page: prev.page - 1 }))}
                                 size="sm"
-                                variant="secondary"
                             >
                                 Previous
                             </Button>
@@ -268,14 +278,39 @@ function LedgerPageContent() {
                                 disabled={filters.page >= totalPages}
                                 onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}
                                 size="sm"
-                                variant="secondary"
                             >
                                 Next
                             </Button>
                         </div>
+                        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-sm text-gray-700">
+                                    Page <span className="font-medium">{filters.page}</span> of{" "}
+                                    <span className="font-medium">{totalPages}</span>
+                                </p>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    disabled={filters.page <= 1}
+                                    onClick={() => setFilters((prev) => ({ ...prev, page: prev.page - 1 }))}
+                                    size="sm"
+                                    variant="secondary"
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    disabled={filters.page >= totalPages}
+                                    onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}
+                                    size="sm"
+                                    variant="secondary"
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
