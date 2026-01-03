@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -20,6 +20,7 @@ import {
     CalendarIcon,
     BellAlertIcon,
     BanknotesIcon,
+    Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 
 const navigation = [
@@ -41,6 +42,7 @@ const navigation = [
     { name: "Reminders", href: "/reminders", icon: BellAlertIcon },
     { name: "Utilities", href: "/utilities", icon: BoltIcon },
     { name: "Loan-In & Loan-Out", href: "/debts", icon: BanknotesIcon },
+    { name: "Settings", href: "/settings", icon: Cog6ToothIcon },
 ];
 
 export default function Sidebar({
@@ -53,6 +55,24 @@ export default function Sidebar({
     const pathname = usePathname();
     const { data: session, status } = useSession();
     const [expandedItems, setExpandedItems] = useState<string[]>(["Ledger"]);
+    const [businessName, setBusinessName] = useState("Moon Traders");
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await fetch("/api/settings");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data?.businessProfile?.name) {
+                        setBusinessName(data.businessProfile.name);
+                    }
+                }
+            } catch (error) {
+                // fallback to default
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const toggleExpanded = (name: string) => {
         setExpandedItems((prev) =>
@@ -71,7 +91,7 @@ export default function Sidebar({
             <div className="flex h-16 shrink-0 items-center px-6 border-b border-slate-800">
                 <img src="/favicon.jpg" alt="Logo" className="h-10 w-10 rounded-lg object-cover" />
                 <span className="ml-2 text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
-                    Moon Traders
+                    {businessName}
                 </span>
             </div>
 

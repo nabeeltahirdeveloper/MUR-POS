@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/layout";
 import { reminderTypeLabel } from "@/lib/reminders-shared";
+import { BellIcon } from "@heroicons/react/24/outline";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 type StatusTab = "triggered" | "pending" | "all";
 
@@ -61,12 +63,14 @@ export default function RemindersPage() {
 
   const resolveReminder = async (id: string) => {
     try {
-      await fetch(`/api/reminders/${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/reminders/${encodeURIComponent(id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resolved: true }),
       });
-      await fetchReminders(tab);
+      if (res.ok) {
+        setRows(prev => prev.filter(r => r.id !== id));
+      }
     } catch {
       // ignore
     }
@@ -81,106 +85,116 @@ export default function RemindersPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reminders</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Notifications & Reminders</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {tab === "triggered" ? "Triggered" : tab === "pending" ? "Pending" : "All"} reminders
-              {rows.length > 0 ? ` (${counts.total})` : ""}
+              Stay updated on stock levels, utility bills, and loan repayments.
             </p>
           </div>
 
-          <button
-            onClick={() => fetchReminders(tab)}
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Refresh
-          </button>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {(["triggered", "pending", "all"] as StatusTab[]).map((k) => (
-            <button
-              key={k}
-              onClick={() => setTab(k)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium border ${
-                tab === k
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-              }`}
-            >
-              {k === "triggered" ? "Triggered" : k === "pending" ? "Pending" : "All"}
-            </button>
-          ))}
+          <div className="flex items-center gap-2 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+            {(["triggered", "pending", "all"] as StatusTab[]).map((k) => (
+              <button
+                key={k}
+                onClick={() => setTab(k)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${tab === k
+                  ? "bg-primary text-white shadow-md shadow-primary/20"
+                  : "text-gray-600 hover:bg-gray-50"
+                  }`}
+              >
+                {k.charAt(0).toUpperCase() + k.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
 
         {error && (
-          <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-sm text-red-700">
+          <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-sm text-red-700 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
             {error}
           </div>
         )}
 
-        {loading && <div className="text-sm text-gray-500">Loading...</div>}
-
-        {!loading && !error && rows.length === 0 && (
-          <div className="p-6 rounded-xl border border-gray-200 bg-white text-sm text-gray-500">
-            No reminders found.
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-4">
+            <LoadingSpinner />
+            <p className="text-sm text-gray-500 font-medium">Fetching active reminders...</p>
           </div>
-        )}
-
-        {!loading && !error && rows.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        ) : rows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-16 bg-white rounded-2xl border border-gray-100 shadow-sm text-center">
+            <div className="h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+              <BellIcon className="h-8 w-8 text-gray-300" />
+            </div>
+            <p className="text-gray-900 font-semibold text-lg">All caught up!</p>
+            <p className="text-gray-500 text-sm mt-1">No {tab} reminders found at the moment.</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-100">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50/50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Type</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Title</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Message</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                      Trigger date
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                      Action
-                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Source & Type</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Details</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Trigger Plane</th>
+                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 bg-white">
                   {rows.map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700">
-                          {reminderTypeLabel(r.type as any)}
-                        </span>
+                    <tr key={r.id} className="hover:bg-gray-50/80 transition-colors group">
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="flex flex-col gap-1.5">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-tight w-fit ${r.type === "low_stock" ? "bg-red-50 text-red-700 border border-red-100" :
+                            r.type === "bill_due" ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                              "bg-amber-50 text-amber-700 border border-amber-100"
+                            }`}>
+                            {reminderTypeLabel(r.type as any)}
+                          </span>
+                          <span className="text-xs text-gray-400 font-medium">
+                            {r.source?.collection || "system"}
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {r.title || r.id}
-                        {r.triggered ? (
-                          <span className="ml-2 text-[11px] font-semibold text-red-600">Triggered</span>
-                        ) : (
-                          <span className="ml-2 text-[11px] font-semibold text-yellow-700">Pending</span>
-                        )}
+                      <td className="px-6 py-5">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-gray-900">{r.title || r.id}</span>
+                            {r.triggered ? (
+                              <span className="flex h-1.5 w-1.5 rounded-full bg-red-500" />
+                            ) : (
+                              <span className="flex h-1.5 w-1.5 rounded-full bg-amber-400" />
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500 mt-0.5 line-clamp-1 group-hover:line-clamp-none transition-all">
+                            {r.message || "—"}
+                          </p>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 max-w-[520px]">
-                        <div className="line-clamp-2">{r.message || "—"}</div>
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-gray-700">{fmtDate(r.triggerAt)}</span>
+                          <span className="text-[11px] text-gray-400">Scheduled Check</span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{fmtDate(r.triggerAt)}</td>
-                      <td className="px-4 py-3 text-right">
-                        {r.type === "low_stock" && r.source?.id ? (
-                          <Link
-                            href={`/items/${encodeURIComponent(r.source.id)}/stock`}
-                            className="text-sm font-medium text-blue-700 hover:underline"
-                          >
-                            Restock
-                          </Link>
-                        ) : (
+                      <td className="px-6 py-5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-3">
+                          {r.type === "low_stock" && r.source?.id && (
+                            <Link
+                              href={`/items/${encodeURIComponent(r.source.id)}/stock`}
+                              className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary hover:text-white transition-all"
+                            >
+                              Refill Stock
+                            </Link>
+                          )}
                           <button
                             onClick={() => resolveReminder(r.id)}
-                            className="text-sm font-medium text-green-700 hover:underline"
+                            className="px-3 py-1.5 bg-gray-50 text-gray-600 text-xs font-bold rounded-lg hover:bg-green-50 hover:text-green-700 hover:border-green-200 border border-transparent transition-all"
                           >
-                            Resolve
+                            Mark Resolved
                           </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}

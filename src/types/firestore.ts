@@ -133,6 +133,7 @@ export interface FirestoreDebtPayment {
     note?: string | null;
 }
 
+
 export interface FirestoreReminder {
     id: string;
     type: 'low_stock' | 'bill_due' | 'debt_due';
@@ -140,5 +141,31 @@ export interface FirestoreReminder {
     message?: string | null;
     triggered?: boolean | null;
     createdAt: Date | any;
+}
+
+export interface FirestoreSettings {
+    id: string; // 'global'
+    businessProfile: {
+        name: string;
+        address?: string | null;
+        phone?: string | null;
+        email?: string | null;
+        logoUrl?: string | null;
+        tagline?: string | null;
+    };
+    currency: {
+        symbol: string;
+        code: string;
+        position: 'prefix' | 'suffix';
+    };
+    inventory: {
+        globalMinStockLevel: number;
+        enableLowStockAlerts: boolean;
+    };
+    notifications: {
+        emailEnabled: boolean;
+        alertTypes: string[];
+    };
+    updatedAt: Date | any;
 }
 
