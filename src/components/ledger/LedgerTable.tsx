@@ -26,6 +26,29 @@ export default function LedgerTable({
     onDelete,
     loading,
 }: LedgerTableProps) {
+    const [currency, setCurrency] = React.useState({ symbol: "Rs.", position: "prefix" });
+
+    React.useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await fetch("/api/settings");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data?.currency) {
+                        setCurrency(data.currency);
+                    }
+                }
+            } catch (error) {
+                // ignore
+            }
+        };
+        fetchSettings();
+    }, []);
+
+    const formatCurrency = (value: number | string) => {
+        const num = Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return currency.position === "prefix" ? `${currency.symbol} ${num}` : `${num} ${currency.symbol}`;
+    };
 
     // Helper to parse existing notes based on the standardized format
     const parseTransactionNote = (note: string | null) => {
@@ -119,7 +142,7 @@ export default function LedgerTable({
             header: "Price",
             render: (_: any, row: LedgerEntry) => {
                 const { unitPrice } = parseTransactionNote(row.note);
-                return <span className="text-gray-600 text-right block">{unitPrice ? `Rs. ${Number(unitPrice).toLocaleString()}` : "-"}</span>;
+                return <span className="text-gray-600 text-right block font-mono">{unitPrice ? formatCurrency(unitPrice) : "-"}</span>;
             },
         },
         {
@@ -142,7 +165,7 @@ export default function LedgerTable({
             render: (value: any, row: LedgerEntry) => (
                 <span className={`font-mono font-bold ${row.type === "credit" ? "text-green-600" : "text-red-600"
                     }`}>
-                    Rs. {Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(value)}
                 </span>
             ),
         },

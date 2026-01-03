@@ -35,47 +35,6 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
 }
 
-async function upsertLowStockReminders(now: Date) {
-  const items = await getAllDocs<FirestoreItem>("items", { orderBy: "name", orderDirection: "asc" });
-
-  let checked = 0;
-  let triggered = 0;
-  let resolved = 0;
-
-  for (const item of items) {
-    checked += 1;
-    const min = item.minStockLevel ?? null;
-    if (min === null || min === undefined) continue;
-
-    const currentStock = await calculateCurrentStock(item.id);
-    const isLow = currentStock <= Number(min);
-    const id = reminderDocId("low_stock", item.id);
-
-    if (isLow) {
-      triggered += 1;
-      await upsertReminder({
-        id,
-        type: "low_stock",
-        source: { collection: "items", id: item.id },
-        title: `Low stock: ${item.name}`,
-        message: `Current stock is ${currentStock}. Minimum is ${Number(min)}.`,
-        triggerAt: now,
-        triggered: true,
-        resolvedAt: null,
-      });
-    } else {
-      // Auto-resolve if a reminder exists and is still active.
-      const existing = await getReminderById(id);
-      if (existing && existing.resolvedAt === null) {
-        await resolveReminder(id, true);
-        resolved += 1;
-      }
-    }
-  }
-
-  return { checked, triggered, resolved };
-}
-
 async function upsertDueReminders<T extends { id: string; dueDate?: any; createdAt: any }>(params: {
   type: Extract<ReminderType, "bill_due" | "debt_due">;
   collection: "utilities" | "debts";
@@ -138,11 +97,49 @@ export async function GET(req: NextRequest) {
   const now = new Date();
 
   try {
-    const [itemsResult, utilities, debts] = await Promise.all([
-      upsertLowStockReminders(now),
+    // Fetch global settings
+    const settingsColl = "settings";
+    const settingsDoc = await db.collection(settingsColl).doc("global").get();
+    const settings = settingsDoc.exists ? settingsDoc.data() : null;
+
+    const [items, utilities, debts] = await Promise.all([
+      getAllDocs<FirestoreItem>("items", { orderBy: "name", orderDirection: "asc" }),
       getAllDocs<FirestoreUtility>("utilities", { orderBy: "dueDate", orderDirection: "asc" }),
       getAllDocs<FirestoreDebt>("debts", { orderBy: "dueDate", orderDirection: "asc" }),
     ]);
+
+    let itemsResult = { checked: 0, triggered: 0, resolved: 0 };
+    if (settings?.inventory?.enableLowStockAlerts !== false) {
+      const globalMin = settings?.inventory?.globalMinStockLevel ?? 5;
+
+      for (const item of items) {
+        itemsResult.checked += 1;
+        const min = item.minStockLevel ?? globalMin;
+        const currentStock = await calculateCurrentStock(item.id);
+        const isLow = currentStock <= Number(min);
+        const id = reminderDocId("low_stock", item.id);
+
+        if (isLow) {
+          itemsResult.triggered += 1;
+          await upsertReminder({
+            id,
+            type: "low_stock",
+            source: { collection: "items", id: item.id },
+            title: `Low stock: ${item.name}`,
+            message: `Current stock is ${currentStock}. Minimum is ${Number(min)}.`,
+            triggerAt: now,
+            triggered: true,
+            resolvedAt: null,
+          });
+        } else {
+          const existing = await getReminderById(id);
+          if (existing && existing.resolvedAt === null) {
+            await resolveReminder(id, true);
+            itemsResult.resolved += 1;
+          }
+        }
+      }
+    }
 
     const utilitiesResult = await upsertDueReminders({
       type: "bill_due",

@@ -26,55 +26,67 @@ function DashboardContent() {
     const [upcomingUtilities, setUpcomingUtilities] = useState<any[]>([]);
     const [debtSummary, setDebtSummary] = useState<any[]>([]);
     const [showTransactionModal, setShowTransactionModal] = useState(false);
+    const [currency, setCurrency] = useState({ symbol: "Rs.", position: "prefix" });
 
     useEffect(() => {
-        if (searchParams.get("select") === "type") {
-            setShowTransactionModal(true);
-        }
-    }, [searchParams]);
-
-    useEffect(() => {
-        const today = new Date().toISOString().split("T")[0];
-        fetch(`/api/ledger/summary/daily?date=${today}`)
-            .then((res) => res.json())
-            .then((data) => setDailySummary(data))
-            .catch((err) => console.error(err));
-
-        fetch('/api/ledger/summary/total')
-            .then((res) => res.json())
-            .then((data) => setTotalSummary(data))
-            .catch((err) => console.error(err));
-
-        fetch('/api/utilities')
-            .then((res) => res.json())
-            .then((data) => {
-                if (Array.isArray(data)) {
-                    const now = new Date();
-                    now.setHours(0, 0, 0, 0);
-                    const upcoming = data
-                        .filter((u: any) => u.status === 'unpaid')
-                        .filter((u: any) => {
-                            const d = new Date(u.dueDate);
-                            d.setHours(0, 0, 0, 0);
-                            const diff = d.getTime() - now.getTime();
-                            const days = diff / (1000 * 60 * 60 * 24);
-                            return days <= 7; // Overdue or due within 7 days
-                        })
-                        .slice(0, 5);
-                    setUpcomingUtilities(upcoming);
+        const fetchSettingsAndData = async () => {
+            try {
+                // Fetch settings
+                const settingsRes = await fetch("/api/settings");
+                if (settingsRes.ok) {
+                    const settingsData = await settingsRes.json();
+                    if (settingsData?.currency) {
+                        setCurrency(settingsData.currency);
+                    }
                 }
-            })
-            .catch((err) => console.error(err));
-        fetch('/api/debts')
-            .then((res) => res.json())
-            .then((data) => {
-                if (Array.isArray(data)) {
-                    const active = data.filter((d: any) => d.status === 'active').slice(0, 5);
-                    setDebtSummary(active);
+
+                const today = new Date().toISOString().split("T")[0];
+                const resDaily = await fetch(`/api/ledger/summary/daily?date=${today}`);
+                if (resDaily.ok) setDailySummary(await resDaily.json());
+
+                const resTotal = await fetch('/api/ledger/summary/total');
+                if (resTotal.ok) setTotalSummary(await resTotal.json());
+
+                const resUtils = await fetch('/api/utilities');
+                if (resUtils.ok) {
+                    const data = await resUtils.json();
+                    if (Array.isArray(data)) {
+                        const now = new Date();
+                        now.setHours(0, 0, 0, 0);
+                        const upcoming = data
+                            .filter((u: any) => u.status === 'unpaid')
+                            .filter((u: any) => {
+                                const d = new Date(u.dueDate);
+                                d.setHours(0, 0, 0, 0);
+                                const diff = d.getTime() - now.getTime();
+                                const days = diff / (1000 * 60 * 60 * 24);
+                                return days <= 7;
+                            })
+                            .slice(0, 5);
+                        setUpcomingUtilities(upcoming);
+                    }
                 }
-            })
-            .catch((err) => console.error(err));
+
+                const resDebts = await fetch('/api/debts');
+                if (resDebts.ok) {
+                    const data = await resDebts.json();
+                    if (Array.isArray(data)) {
+                        const active = data.filter((d: any) => d.status === 'active').slice(0, 5);
+                        setDebtSummary(active);
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        fetchSettingsAndData();
     }, []);
+
+    const formatCurr = (val: number | string) => {
+        const num = Number(val).toLocaleString(undefined, { minimumFractionDigits: 2 });
+        return currency.position === "prefix" ? `${currency.symbol} ${num}` : `${num} ${currency.symbol}`;
+    };
 
     return (
         <DashboardLayout>
@@ -109,7 +121,7 @@ function DashboardContent() {
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Summary</p>
                                 <p className="text-2xl font-black text-primary">
-                                    Net: Rs. {totalSummary?.summary?.net?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}
+                                    Net: {formatCurr(totalSummary?.summary?.net || 0)}
                                 </p>
                             </div>
                             <div className="p-3 bg-primary/10 rounded-lg">
@@ -135,7 +147,7 @@ function DashboardContent() {
                             </div>
                             <div className="text-right">
                                 <p className="text-xs text-gray-500 font-medium">Out of</p>
-                                <p className="text-sm font-bold text-gray-900">Rs. {(totalSummary?.summary?.totalCredit + totalSummary?.summary?.totalDebit || 0).toLocaleString()}</p>
+                                <p className="text-sm font-bold text-gray-900">{formatCurr(totalSummary?.summary?.totalCredit + totalSummary?.summary?.totalDebit || 0)}</p>
                             </div>
                         </div>
                     </div>
@@ -231,7 +243,7 @@ function DashboardContent() {
                                                     </span>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="font-mono font-bold text-gray-900">Rs. {utility.amount.toLocaleString()}</p>
+                                                    <p className="font-mono font-bold text-gray-900">{formatCurr(utility.amount)}</p>
                                                     <p className="text-[9px] uppercase tracking-wider font-black text-gray-300">{utility.category || "General"}</p>
                                                 </div>
                                             </div>
@@ -270,7 +282,7 @@ function DashboardContent() {
                                                 </span>
                                             </div>
                                             <div className="text-right">
-                                                <p className="font-mono font-bold text-gray-900">Rs. {debt.amount.toLocaleString()}</p>
+                                                <p className="font-mono font-bold text-gray-900">{formatCurr(debt.amount)}</p>
                                                 {debt.dueDate && <p className="text-[10px] font-bold text-gray-400">{new Date(debt.dueDate).toLocaleDateString()}</p>}
                                             </div>
                                         </div>
