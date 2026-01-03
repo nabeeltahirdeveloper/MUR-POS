@@ -132,7 +132,7 @@ export default function LedgerTable({
                         : "bg-red-100 text-red-800"
                         }`}
                 >
-                    {value === "credit" ? "Credit" : "Debit"}
+                    {value === "credit" ? "Cash-In" : "Cash-Out"}
                 </span>
             ),
         },

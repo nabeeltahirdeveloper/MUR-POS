@@ -58,7 +58,7 @@ function DailySummaryContent() {
                         </div>
                         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                             <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                                Total Debit
+                                Total Cash-Out
                             </h3>
                             <p className="text-3xl font-bold text-red-600 mt-2">
                                 Rs. {summary.summary.totalDebit.toFixed(2)}

@@ -483,7 +483,7 @@ export default function LedgerEntryForm({
                             <h2 className="text-2xl font-black text-white flex items-center gap-3">
                                 {isEdit ? "Edit Transaction" : (type === 'credit' ? 'Cash-In-Entry' : 'Cash-Out-Entry')}
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest ${type === 'credit' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
-                                    {type}
+                                    {type === 'credit' ? 'Cash-In' : 'Cash-Out'}
                                 </span>
                             </h2>
                             <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">Moon Traders • Ledger System</p>
