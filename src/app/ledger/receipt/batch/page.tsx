@@ -118,7 +118,7 @@ export default function BatchReceiptPage() {
         <DashboardLayout>
             <div className="w-full h-full flex flex-col">
                 <div className="mb-4 print:hidden">
-                    <h1 className="text-2xl font-bold text-gray-800">Combined Bill Receipt</h1>
+                    <h1 className="text-2xl font-bold text-gray-800">Bill Receipt</h1>
                 </div>
                 <Suspense fallback={<LoadingSpinner />}>
                     <BatchReceiptContent />
