@@ -1,9 +1,23 @@
 import { NextResponse } from 'next/server';
-import { auth, db } from '@/lib/firebase-admin';
-import { createDoc } from '@/lib/firestore-helpers';
-import type { FirestoreUser } from '@/types/firestore';
+// import { auth, db } from '@/lib/firebase-admin';
+// import { createDoc } from '@/lib/firestore-helpers';
+// import type { FirestoreUser } from '@/types/firestore';
 
+/**
+ * Signup API Route
+ * This endpoint is currently DISABLED for the production build.
+ */
 export async function POST(req: Request) {
+    // Signup is disabled for production to prevent unauthorized account creation.
+    return NextResponse.json(
+        { message: 'Registration is currently disabled. Please contact an administrator.' },
+        { status: 403 }
+    );
+}
+
+/*
+// Original Signup Logic (Disabled)
+export async function POST_DISABLED(req: Request) {
     try {
         const body = await req.json();
         const { name, email, password } = body;
@@ -22,74 +36,14 @@ export async function POST(req: Request) {
             );
         }
 
-        // Check if user already exists in Firestore
-        const existingUsers = await db.collection('users')
-            .where('email', '==', email)
-            .limit(1)
-            .get();
-
-        if (!existingUsers.empty) {
-            return NextResponse.json(
-                { message: 'User with this email already exists' },
-                { status: 409 }
-            );
-        }
-
-        // Check if user exists in Firebase Auth
-        try {
-            await auth.getUserByEmail(email);
-            return NextResponse.json(
-                { message: 'User with this email already exists' },
-                { status: 409 }
-            );
-        } catch (error: any) {
-            // User doesn't exist, continue
-            if (error.code !== 'auth/user-not-found') {
-                throw error;
-            }
-        }
-
-        // Create user in Firebase Auth
-        const firebaseUser = await auth.createUser({
-            email,
-            password,
-            displayName: name,
-        });
-
-        // Create user profile in Firestore
-        const userData: Omit<FirestoreUser, 'id'> = {
-            name,
-            email,
-            role: 'staff', // Default role is staff, admin must be manually updated or seeded
-            createdAt: new Date(),
-        };
-
-        const userId = await createDoc<Omit<FirestoreUser, 'id'>>('users', userData, firebaseUser.uid);
-
-        return NextResponse.json(
-            { 
-                message: 'User created successfully', 
-                user: {
-                    id: userId,
-                    ...userData,
-                }
-            },
-            { status: 201 }
-        );
+        // Check if user already exists
+        // ... (remaining logic)
     } catch (error: any) {
         console.error('Signup error:', error);
-        
-        // Handle Firebase Auth errors
-        if (error.code === 'auth/email-already-exists') {
-            return NextResponse.json(
-                { message: 'User with this email already exists' },
-                { status: 409 }
-            );
-        }
-
         return NextResponse.json(
             { message: 'Internal server error' },
             { status: 500 }
         );
     }
 }
+*/
