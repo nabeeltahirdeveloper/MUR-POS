@@ -80,12 +80,12 @@ export default function Home() {
             >
               Sign In
             </Link>
-            <Link
+            {/* <Link
               href="/signup"
               className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-primary to-primary-dark text-slate-900 rounded-full hover:from-primary/90 hover:to-primary-dark/90 transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40"
             >
               Get Started
-            </Link>
+            </Link> */}
           </div>
         </div>
       </nav>
@@ -122,13 +122,13 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
+            {/* <Link
               href="/signup"
               className="group px-8 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-primary-dark text-slate-900 rounded-full hover:from-primary/90 hover:to-primary-dark/90 transition-all shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:scale-105"
             >
               Start Free Today
               <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
-            </Link>
+            </Link> */}
             <Link
               href="/login"
               className="px-8 py-4 text-lg font-medium text-slate-300 border border-slate-600 rounded-full hover:bg-slate-800/50 hover:border-slate-500 transition-all"
@@ -237,13 +237,13 @@ export default function Home() {
               <p className="text-slate-400 mb-8 max-w-xl mx-auto">
                 Join businesses that trust Moon Traders to manage their operations efficiently.
               </p>
-              <Link
+              {/* <Link
                 href="/signup"
                 className="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold bg-gradient-to-r from-primary to-primary-dark text-slate-900 rounded-full hover:from-primary/90 hover:to-primary-dark/90 transition-all shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:scale-105"
               >
                 Get Started Free
                 <span>→</span>
-              </Link>
+              </Link> */}
             </div>
           </div>
         </div>
@@ -266,9 +266,9 @@ export default function Home() {
               <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">
                 Sign In
               </Link>
-              <Link href="/signup" className="text-sm text-slate-400 hover:text-white transition-colors">
+              {/* <Link href="/signup" className="text-sm text-slate-400 hover:text-white transition-colors">
                 Sign Up
-              </Link>
+              </Link> */}
             </div>
 
             {/* Copyright */}
