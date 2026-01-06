@@ -7,8 +7,8 @@ export interface ReminderSourceRef {
   id: string;
 }
 
-export function reminderDocId(type: ReminderType, sourceId: string): string {
-  return `${type}:${sourceId}`;
+export function reminderDocId(type: ReminderType, sourceId: string, suffix?: string | number): string {
+  return suffix !== undefined ? `${type}:${sourceId}:${suffix}` : `${type}:${sourceId}`;
 }
 
 export function startOfDay(d: Date): Date {

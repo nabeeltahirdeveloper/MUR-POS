@@ -50,6 +50,12 @@ export async function PATCH(
 
         await updateDoc('debts', id, updateData);
 
+        // Sync reminders if due date or status changed
+        const { syncDebtReminders } = await import("@/lib/reminders");
+        await syncDebtReminders(id).catch(err => {
+            console.error("Failed to sync reminders for updated debt:", err);
+        });
+
         const updated = await getDocById<FirestoreDebt>('debts', id);
         return NextResponse.json(updated);
     } catch (error) {

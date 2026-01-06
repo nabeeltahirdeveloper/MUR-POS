@@ -2,7 +2,7 @@ import { db, Timestamp } from "@/lib/firestore";
 import { objectToFirestore, timestampToDate } from "@/lib/firestore-helpers";
 import { getDocById } from "@/lib/firestore-helpers";
 import { calculateCurrentStock } from "@/lib/inventory";
-import type { FirestoreItem } from "@/types/firestore";
+import type { FirestoreItem, FirestoreUtility, FirestoreDebt } from "@/types/firestore";
 
 import type { ReminderSourceRef, ReminderStatus, ReminderType } from "@/lib/reminders-shared";
 import {
@@ -174,6 +174,131 @@ export async function syncLowStockReminderForItem(itemId: string): Promise<void>
   const existing = await getReminderById(id);
   if (existing && existing.resolvedAt === null) {
     await resolveReminder(id, true);
+  }
+}
+
+const MILESTONES = [3, 2, 1, 0];
+
+function fmtDate(d: Date): string {
+  return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
+}
+
+export async function syncUtilityReminders(utilityId: string): Promise<void> {
+  const u = await getDocById<FirestoreUtility>("utilities", utilityId);
+  const now = new Date();
+  if (!u || !u.dueDate) return;
+
+  const dueDate = new Date(u.dueDate);
+  const isPaid = u.status === "paid";
+
+  // If paid, resolve all milestones
+  if (isPaid) {
+    for (const lead of MILESTONES) {
+      const id = reminderDocId("bill_due", utilityId, `milestone_${lead}`);
+      const existing = await getReminderById(id);
+      if (existing && existing.resolvedAt === null) {
+        await resolveReminder(id, true);
+      }
+    }
+    return;
+  }
+
+  // Find the most urgent triggered milestone
+  let mostUrgentLead: number | null = null;
+  for (const lead of MILESTONES) {
+    const triggerAt = computeDueTriggerAt(dueDate, lead);
+    if (now >= triggerAt) {
+      mostUrgentLead = lead;
+      break; // MILESTONES is sorted [3, 2, 1, 0], so first match is most urgent
+    }
+  }
+
+  // Resolve all milestones except the most urgent one
+  for (const lead of MILESTONES) {
+    const id = reminderDocId("bill_due", utilityId, `milestone_${lead}`);
+
+    if (lead === mostUrgentLead) {
+      // This is the active milestone - upsert it
+      const timePrefix = lead === 0 ? "URGENT: " : "";
+      const daysDesc = lead === 0 ? "today" : lead === 1 ? "tomorrow" : `in ${lead} days`;
+
+      await upsertReminder({
+        id,
+        type: "bill_due",
+        source: { collection: "utilities", id: utilityId },
+        title: `${timePrefix}Utility bill due: ${u.name}`,
+        message: `Due date is ${fmtDate(dueDate)}. Reminder for ${daysDesc}.`,
+        triggerAt: computeDueTriggerAt(dueDate, lead),
+        triggered: true,
+        resolvedAt: null,
+      });
+    } else {
+      // Resolve any other milestone that might exist
+      const existing = await getReminderById(id);
+      if (existing && existing.resolvedAt === null) {
+        await resolveReminder(id, true);
+      }
+    }
+  }
+}
+
+export async function syncDebtReminders(debtId: string): Promise<void> {
+  const d = await getDocById<FirestoreDebt>("debts", debtId);
+  const now = new Date();
+  if (!d || !d.dueDate) return;
+
+  const dueDate = new Date(d.dueDate);
+  const isPaid = d.status === "paid";
+
+  // If paid, resolve all milestones
+  if (isPaid) {
+    for (const lead of MILESTONES) {
+      const id = reminderDocId("debt_due", debtId, `milestone_${lead}`);
+      const existing = await getReminderById(id);
+      if (existing && existing.resolvedAt === null) {
+        await resolveReminder(id, true);
+      }
+    }
+    return;
+  }
+
+  // Find the most urgent triggered milestone
+  let mostUrgentLead: number | null = null;
+  for (const lead of MILESTONES) {
+    const triggerAt = computeDueTriggerAt(dueDate, lead);
+    if (now >= triggerAt) {
+      mostUrgentLead = lead;
+      break; // MILESTONES is sorted [3, 2, 1, 0], so first match is most urgent
+    }
+  }
+
+  // Resolve all milestones except the most urgent one
+  for (const lead of MILESTONES) {
+    const id = reminderDocId("debt_due", debtId, `milestone_${lead}`);
+
+    if (lead === mostUrgentLead) {
+      // This is the active milestone - upsert it
+      const loanType = d.type === "loaned_in" ? "Loan-In (Payable)" : "Loan-Out (Receivable)";
+      const timePrefix = lead === 0 ? "URGENT: " : "";
+      const daysDesc = lead === 0 ? "today" : lead === 1 ? "tomorrow" : `in ${lead} days`;
+
+      await upsertReminder({
+        id,
+        type: "debt_due",
+        source: { collection: "debts", id: debtId },
+        title: `${timePrefix}${loanType}: ${d.personName}`,
+        message: `Due date is ${fmtDate(dueDate)}. Reminder for ${daysDesc}.`,
+        triggerAt: computeDueTriggerAt(dueDate, lead),
+        triggered: true,
+        resolvedAt: null,
+      });
+    } else {
+      // Resolve any other milestone that might exist
+      const existing = await getReminderById(id);
+      if (existing && existing.resolvedAt === null) {
+        await resolveReminder(id, true);
+      }
+    }
   }
 }
 

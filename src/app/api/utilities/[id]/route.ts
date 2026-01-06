@@ -22,6 +22,12 @@ export async function PATCH(
 
         await updateDoc('utilities', id, updateData);
 
+        // Sync reminders if due date or status changed
+        const { syncUtilityReminders } = await import("@/lib/reminders");
+        await syncUtilityReminders(id).catch(err => {
+            console.error("Failed to sync reminders for updated utility:", err);
+        });
+
         const updated = await getDocById<FirestoreUtility>('utilities', id);
         return NextResponse.json(updated);
     } catch (error) {
