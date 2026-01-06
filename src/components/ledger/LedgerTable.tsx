@@ -99,6 +99,11 @@ export default function LedgerTable({
         };
     };
 
+    const isVirtualEntry = (id: string | number): boolean => {
+        const idStr = String(id);
+        return idStr.startsWith('debt_') || idStr.startsWith('pay_');
+    };
+
     const columns = [
         {
             key: "date",
@@ -172,32 +177,56 @@ export default function LedgerTable({
         {
             key: "actions",
             header: "Actions",
-            render: (_: any, row: LedgerEntry) => (
-                <div className="flex gap-2">
-                    <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => window.open(`/ledger/receipt/${row.id}`, '_blank')}
-                        title="Print Receipt"
-                    >
-                        Print
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => onEdit(row.id)}
-                    >
-                        Edit
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => onDelete(row.id)}
-                    >
-                        Delete
-                    </Button>
-                </div>
-            ),
+            render: (_: any, row: LedgerEntry) => {
+                const isVirtual = isVirtualEntry(row.id);
+
+                if (isVirtual) {
+                    // For virtual loan entries, show "View Loan" button
+                    return (
+                        <div className="flex gap-2">
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => window.location.href = '/debts'}
+                                title="View in Loans page"
+                            >
+                                View Loan
+                            </Button>
+                            <span className="text-xs text-gray-400 self-center">
+                                (Manage in Debts)
+                            </span>
+                        </div>
+                    );
+                }
+
+                // For real ledger entries, show full actions
+                return (
+                    <div className="flex gap-2">
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => window.open(`/ledger/receipt/${row.id}`, '_blank')}
+                            title="Print Receipt"
+                        >
+                            Print
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => onEdit(row.id)}
+                        >
+                            Edit
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => onDelete(row.id)}
+                        >
+                            Delete
+                        </Button>
+                    </div>
+                );
+            },
         },
     ];
 
