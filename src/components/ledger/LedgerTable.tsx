@@ -52,7 +52,7 @@ export default function LedgerTable({
 
     // Helper to parse existing notes based on the standardized format
     const parseTransactionNote = (note: string | null) => {
-        if (!note) return { orderNumber: "-", title: "-", itemName: "-", quantity: null, unitPrice: null, isStructured: false };
+        if (!note) return { orderNumber: "-", title: "-", itemName: "-", quantity: null, unitPrice: null, isStructured: false, itemType: null };
 
         const lines = note.split('\n');
         let orderNumber = "";
@@ -61,6 +61,7 @@ export default function LedgerTable({
         let quantity: number | null = null;
         let unitPrice: number | null = null;
         let isStructured = false;
+        let itemType: string | null = null;
 
         lines.forEach(line => {
             if (line.startsWith("Order #")) {
@@ -77,11 +78,22 @@ export default function LedgerTable({
             }
             else if (line.startsWith("Item: ")) {
                 isStructured = true;
-                const match = line.match(/Item: (.*) \(Qty: (\d+) @ (.*)\)/);
+                // Updated Regex: More flexible spacing, handles decimals in Qty, handles no space after @
+                const match = line.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+)\s*@\s*([^)]*)\)/);
                 if (match) {
-                    itemName = match[1];
-                    quantity = Number(match[2]);
-                    unitPrice = Number(match[3]);
+                    itemType = match[1] || null; // Capture Type
+                    itemName = match[2].trim();
+                    // If regex was greedy and captured [Type] in name because of no space, fix it:
+                    if (itemName.startsWith("[") && !itemType) {
+                        const endBracket = itemName.indexOf(']');
+                        if (endBracket > 0) {
+                            itemType = itemName.substring(1, endBracket);
+                            itemName = itemName.substring(endBracket + 1).trim();
+                        }
+                    }
+
+                    quantity = Number(match[3]);
+                    unitPrice = Number(match[4]);
                 } else {
                     itemName = line.replace("Item: ", "").trim();
                 }
@@ -138,7 +150,8 @@ export default function LedgerTable({
             itemName: itemName || "-",
             quantity,
             unitPrice,
-            isStructured
+            isStructured,
+            itemType
         };
     };
 
@@ -182,8 +195,17 @@ export default function LedgerTable({
             key: "item",
             header: "Item / Note",
             render: (_: any, row: LedgerEntry) => {
-                const { itemName } = parseTransactionNote(row.note);
-                return <span className="text-gray-900 font-medium">{itemName}</span>;
+                const { itemName, itemType } = parseTransactionNote(row.note);
+                return (
+                    <div className="flex items-center gap-2">
+                        {itemType === "Customize" && (
+                            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-purple-100 text-purple-700 text-xs font-bold" title="Customized">
+                                C
+                            </span>
+                        )}
+                        <span className="text-gray-900 font-medium">{itemName}</span>
+                    </div>
+                );
             },
         },
         {

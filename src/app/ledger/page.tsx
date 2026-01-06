@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, BuildingStorefrontIcon, BanknotesIcon, WrenchScrewdriverIcon } from "@heroicons/react/24/outline";
 import LedgerTable from "@/components/ledger/LedgerTable";
+import LedgerPendingTable from "@/components/ledger/LedgerPendingTable";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/layout";
 import LedgerCustomerSummary from "@/components/ledger/LedgerCustomerSummary";
@@ -28,17 +30,17 @@ function LedgerPageContent() {
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
-    const [view, setView] = useState<"entries" | "customers" | "suppliers" | "loans" | "utilities">((searchParams.get("view") as any) || "entries");
+    const [view, setView] = useState<"entries" | "customers" | "suppliers" | "loans" | "utilities" | "pending">((searchParams.get("view") as any) || "entries");
 
     // Sync view with URL param
     useEffect(() => {
         const viewParam = searchParams.get("view");
-        if (viewParam && ["entries", "customers", "suppliers", "loans", "utilities"].includes(viewParam)) {
+        if (viewParam && ["entries", "customers", "suppliers", "loans", "utilities", "pending"].includes(viewParam)) {
             setView(viewParam as any);
         }
     }, [searchParams]);
 
-    const handleViewChange = (newView: "entries" | "customers" | "suppliers" | "loans" | "utilities") => {
+    const handleViewChange = (newView: "entries" | "customers" | "suppliers" | "loans" | "utilities" | "pending") => {
         setView(newView);
         router.push(`/ledger?view=${newView}`);
     };
@@ -137,12 +139,20 @@ function LedgerPageContent() {
         setView("entries");
     };
 
+    // Filter Logic for Pending vs All
+    // isPending: Note regex matches Remaining: > 0
+    const checkIsPending = (note: string | null) => {
+        if (!note) return false;
+        const match = note.match(/Remaining: (\d+(\.\d+)?)/);
+        return match ? Number(match[1]) > 0 : false;
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h1 className="text-2xl font-bold text-gray-900">Ledger</h1>
-                <div className="flex gap-2 shrink-0">
-                    <div className="bg-gray-100 p-1 rounded-lg flex mr-2">
+                <div className="flex gap-2 shrink-0 overflow-x-auto pb-2 sm:pb-0">
+                    <div className="bg-gray-100 p-1 rounded-lg flex mr-2 whitespace-nowrap">
                         <button
                             onClick={() => handleViewChange("customers")}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "customers"
@@ -192,6 +202,18 @@ function LedgerPageContent() {
                         >
                             <ListBulletIcon className="h-4 w-4 mr-1.5" />
                             All Entries
+                        </button>
+                        <button
+                            onClick={() => handleViewChange("pending")}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "pending"
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                        >
+                            <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Pending
                         </button>
                     </div>
 
@@ -328,10 +350,28 @@ function LedgerPageContent() {
                 <LedgerLoanSummary />
             ) : view === "utilities" ? (
                 <LedgerUtilitySummary />
+            ) : view === "pending" ? (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-4 border-b border-gray-200 bg-yellow-50">
+                        <h3 className="font-bold text-yellow-800 flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            Pending Payments
+                        </h3>
+                        <p className="text-sm text-yellow-700 mt-1">Transactions with remaining balance &gt; 0</p>
+                    </div>
+                    {/* Use dedicated Pending Table */}
+                    <LedgerPendingTable
+                        data={entries.filter((e: any) => checkIsPending(e.note))}
+                        loading={loading}
+                        onEdit={(id) => router.push(`/ledger/${id}/edit`)}
+                        onDelete={handleDelete}
+                    />
+                </div>
             ) : (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    {/* Exclude pending from All Entries */}
                     <LedgerTable
-                        data={entries}
+                        data={entries.filter((e: any) => !checkIsPending(e.note))}
                         loading={loading}
                         onEdit={(id) => router.push(`/ledger/${id}/edit`)}
                         onDelete={handleDelete}

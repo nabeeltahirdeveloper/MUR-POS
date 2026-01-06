@@ -261,6 +261,26 @@ function DashboardContent() {
                         </div>
                     </div>
 
+                    {/* Pending Payments (Ledger Remaining) Widget */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-yellow-50/50">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-yellow-100 rounded-lg">
+                                    <svg className="w-4 h-4 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                                <h3 className="font-bold text-gray-900">Pending Payments</h3>
+                            </div>
+                            <Link href="/ledger?view=pending" className="text-xs font-bold text-yellow-700 hover:underline">View All</Link>
+                        </div>
+                        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                            <div className="p-3 bg-yellow-50 rounded-full mb-3">
+                                <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                            <p className="text-sm font-bold text-gray-500 mb-1">Check Ledger</p>
+                            <p className="text-xs text-gray-400">View transactions with remaining amounts</p>
+                        </div>
+                    </div>
+
                     {/* Pending Debts Widget */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">

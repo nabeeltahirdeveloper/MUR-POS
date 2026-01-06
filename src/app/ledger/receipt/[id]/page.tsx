@@ -31,11 +31,23 @@ const parseTransactionNote = (note: string) => {
         else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
         else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
         else if (line.startsWith("Item: ")) {
-            // Item: [Type] Name (Qty: X @ Y)
-            const match = line.match(/Item: (?:\[(.*?)\] )?(.*) \(Qty: (\d+) @ (.*)\)/);
+            // Robust Regex matching LedgerTable logic
+            const match = line.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+)\s*@\s*([^)]*)\)/);
             if (match) {
+                // match[1] is Type (Group 1)
+                // match[2] is Name (Group 2)
                 itemType = match[1] || "Stock";
-                itemName = match[2];
+                itemName = match[2].trim();
+
+                // Clean up if valid Type was caught inside Name due to weird spacing
+                if (itemName.startsWith("[") && !match[1]) {
+                    const endBracket = itemName.indexOf(']');
+                    if (endBracket > 0) {
+                        itemType = itemName.substring(1, endBracket);
+                        itemName = itemName.substring(endBracket + 1).trim();
+                    }
+                }
+
                 quantity = Number(match[3]);
                 unitPrice = Number(match[4]);
             } else {

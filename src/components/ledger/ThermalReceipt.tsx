@@ -98,6 +98,13 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                     .receipt, .receipt * { visibility: visible; }
                     @page { margin: 0; size: auto; }
                     .receipt { page-break-inside: avoid; display: block !important; }
+                    
+                    /* Optimize logo for thermal printing */
+                    .receipt-logo {
+                        filter: grayscale(100%) contrast(200%) brightness(150%);
+                        -webkit-print-color-adjust: exact !important;
+                        color-adjust: exact !important;
+                    }
                 }
             `}</style>
 
@@ -137,9 +144,12 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         </div>
                     </div>
 
-                    {/* Header */}
                     <div className="text-center mb-3 pb-2 border-b-2 border-gray-800">
-                        <img src="/favicon.jpg" alt="Logo" className="h-16 w-16 rounded-full mx-auto mb-2 object-cover" />
+                        <img
+                            src="/favicon.jpg"
+                            alt="Logo"
+                            className="h-16 w-16 rounded-full mx-auto mb-2 object-cover receipt-logo"
+                        />
                         <div className="text-3xl font-bold text-gray-900 mb-1">Moon Traders</div>
                         <div className="text-sm text-gray-900 tracking-wide font-semibold uppercase">{data.title || "RECEIPT"}</div>
                     </div>
@@ -206,8 +216,13 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         <div className="mt-2 space-y-1 text-base font-semibold text-gray-900">
                             {data.items.map((it, idx) => (
                                 <div key={idx} className="grid grid-cols-[1fr_4ch_8ch_9ch] gap-2">
-                                    <div className="break-words">
-                                        {it.name}
+                                    <div className="break-words relative">
+                                        {it.itemType === "Customize" && (
+                                            <span className="inline-block mr-1 px-1 rounded-sm bg-gray-800 text-white text-[10px] font-bold leading-none py-[2px] align-middle">
+                                                C
+                                            </span>
+                                        )}
+                                        <span className="align-middle">{it.name}</span>
                                     </div>
                                     <div className="text-right">{it.quantity}</div>
                                     <div className="text-right">{fmt(it.unitPrice)}</div>
@@ -219,22 +234,25 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
 
                     {/* Totals */}
                     <div className="mt-3 border-t-2 border-gray-800 pt-2 text-base">
-                        <div className="flex justify-between font-bold text-lg text-gray-900">
-                            <span>TOTAL</span>
-                            <span>PKR {fmt(data.total)}</span>
-                        </div>
                         {(data.advance !== undefined || data.remaining !== undefined) && (
                             <>
                                 <div className="flex justify-between font-semibold text-sm text-gray-800 mt-1">
                                     <span>Advance</span>
                                     <span>PKR {fmt(data.advance || 0)}</span>
                                 </div>
-                                <div className="flex justify-between font-bold text-base text-gray-900 border-t border-dashed border-gray-400 mt-1 pt-1">
-                                    <span>REMAINING</span>
+                                <div className="flex justify-between font-semibold text-sm text-gray-800 mt-1 mb-2">
+                                    <span>Remaining</span>
                                     <span>PKR {fmt(data.remaining || (data.total - (data.advance || 0)))}</span>
                                 </div>
+                                {/* Dashed divider before Total since it's the sum/result context now */}
+                                <div className="border-t border-dashed border-gray-400 mt-1 pt-1"></div>
                             </>
                         )}
+
+                        <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
+                            <span>TOTAL</span>
+                            <span>PKR {fmt(data.total)}</span>
+                        </div>
                     </div>
 
                     {/* Footer */}
