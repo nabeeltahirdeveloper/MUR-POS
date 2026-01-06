@@ -13,7 +13,7 @@ import {
   upsertReminder,
 } from "@/lib/reminders";
 
-const DUE_LEAD_DAYS = 5;
+const MILESTONES = [3, 2, 1, 0];
 const PENDING_WINDOW_DAYS = 30;
 
 function isAuthorized(req: NextRequest): boolean {
@@ -31,6 +31,12 @@ function isUtilityPaid(status: unknown): boolean {
   return s.includes("paid") || s.includes("settled") || s.includes("closed");
 }
 
+function isDebtPaid(status: unknown): boolean {
+  if (typeof status !== "string") return false;
+  const s = status.toLowerCase();
+  return s === "paid" || s === "settled" || s === "closed";
+}
+
 function fmtDate(d: Date): string {
   return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
 }
@@ -40,11 +46,10 @@ async function upsertDueReminders<T extends { id: string; dueDate?: any; created
   collection: "utilities" | "debts";
   docs: (T & { id: string })[];
   now: Date;
-  titleFor: (doc: T & { id: string }, dueDate: Date) => string;
-  messageFor: (doc: T & { id: string }, dueDate: Date, triggerAt: Date) => string;
+  titleFor: (doc: T & { id: string }, lead: number) => string;
   shouldAutoResolve?: (doc: T & { id: string }) => boolean;
 }) {
-  const { type, collection, docs, now, titleFor, messageFor, shouldAutoResolve } = params;
+  const { type, collection, docs, now, titleFor, shouldAutoResolve } = params;
 
   let scanned = 0;
   let upserted = 0;
@@ -55,35 +60,64 @@ async function upsertDueReminders<T extends { id: string; dueDate?: any; created
     const dueDate = doc.dueDate ? new Date(doc.dueDate) : null;
     if (!dueDate || Number.isNaN(dueDate.getTime())) continue;
 
-    const id = reminderDocId(type, doc.id);
+    const isPaid = shouldAutoResolve?.(doc);
 
-    if (shouldAutoResolve?.(doc)) {
-      const existing = await getReminderById(id);
-      if (existing && existing.resolvedAt === null) {
-        await resolveReminder(id, true);
-        autoResolved += 1;
+    // If paid, resolve all milestones for this doc
+    if (isPaid) {
+      for (const lead of MILESTONES) {
+        const id = reminderDocId(type, doc.id, `milestone_${lead}`);
+        const existing = await getReminderById(id);
+        if (existing && existing.resolvedAt === null) {
+          await resolveReminder(id, true);
+          autoResolved += 1;
+        }
       }
       continue;
     }
 
-    const triggerAt = computeDueTriggerAt(dueDate, DUE_LEAD_DAYS);
+    // Find the most urgent triggered milestone
+    let mostUrgentLead: number | null = null;
+    for (const lead of MILESTONES) {
+      const triggerAt = computeDueTriggerAt(dueDate, lead);
+      if (now >= triggerAt) {
+        mostUrgentLead = lead;
+        break; // MILESTONES is sorted [3, 2, 1, 0], so first match is most urgent
+      }
+    }
+
+    // Skip if no milestone has triggered yet
     const pendingUntil = addDays(now, PENDING_WINDOW_DAYS);
-    const inPendingWindow = dueDate <= pendingUntil;
-    if (!inPendingWindow) continue;
+    if (dueDate > pendingUntil || mostUrgentLead === null) continue;
 
-    const isTriggered = now >= triggerAt;
+    // Upsert the most urgent milestone and resolve all others
+    for (const lead of MILESTONES) {
+      const id = reminderDocId(type, doc.id, `milestone_${lead}`);
 
-    await upsertReminder({
-      id,
-      type,
-      source: { collection, id: doc.id },
-      title: titleFor(doc, dueDate),
-      message: messageFor(doc, dueDate, triggerAt),
-      triggerAt,
-      triggered: isTriggered,
-      resolvedAt: null,
-    });
-    upserted += 1;
+      if (lead === mostUrgentLead) {
+        const title = titleFor(doc, lead);
+        const daysDesc = lead === 0 ? "today" : lead === 1 ? "tomorrow" : `in ${lead} days`;
+        const message = `Due date is ${fmtDate(dueDate)}. Reminder for ${daysDesc}.`;
+
+        await upsertReminder({
+          id,
+          type,
+          source: { collection, id: doc.id },
+          title,
+          message,
+          triggerAt: computeDueTriggerAt(dueDate, lead),
+          triggered: true,
+          resolvedAt: null,
+        });
+        upserted += 1;
+      } else {
+        // Resolve any other milestone that might exist
+        const existing = await getReminderById(id);
+        if (existing && existing.resolvedAt === null) {
+          await resolveReminder(id, true);
+          autoResolved += 1;
+        }
+      }
+    }
   }
 
   return { scanned, upserted, autoResolved };
@@ -146,9 +180,10 @@ export async function GET(req: NextRequest) {
       collection: "utilities",
       docs: utilities,
       now,
-      titleFor: (u, due) => `Utility bill due: ${(u as any).name ?? "Utility"}`,
-      messageFor: (u, due, trig) =>
-        `Due on ${fmtDate(due)} (triggers ${DUE_LEAD_DAYS} days before, on ${fmtDate(trig)}).`,
+      titleFor: (u, lead) => {
+        const timePrefix = lead === 0 ? "URGENT: " : "";
+        return `${timePrefix}Utility bill due: ${(u as any).name ?? "Utility"}`;
+      },
       shouldAutoResolve: (u) => isUtilityPaid((u as any).status),
     });
 
@@ -157,9 +192,13 @@ export async function GET(req: NextRequest) {
       collection: "debts",
       docs: debts,
       now,
-      titleFor: (d, due) => `Debt due: ${(d as any).personName ?? "Person"}`,
-      messageFor: (d, due, trig) =>
-        `Due on ${fmtDate(due)} (triggers ${DUE_LEAD_DAYS} days before, on ${fmtDate(trig)}).`,
+      titleFor: (d, lead) => {
+        const debt = d as unknown as FirestoreDebt;
+        const loanType = debt.type === "loaned_in" ? "Loan-In (Payable)" : "Loan-Out (Receivable)";
+        const timePrefix = lead === 0 ? "URGENT: " : "";
+        return `${timePrefix}${loanType}: ${debt.personName}`;
+      },
+      shouldAutoResolve: (d) => isDebtPaid((d as unknown as FirestoreDebt).status),
     });
 
     // Optional run log for debugging

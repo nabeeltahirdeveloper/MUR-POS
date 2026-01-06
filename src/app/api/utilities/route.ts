@@ -44,6 +44,12 @@ export async function POST(request: NextRequest) {
 
         const utilityId = await createDoc<Omit<FirestoreUtility, 'id'>>('utilities', utilityData);
 
+        // Sync reminders immediately if due date is close
+        const { syncUtilityReminders } = await import("@/lib/reminders");
+        await syncUtilityReminders(utilityId).catch(err => {
+            console.error("Failed to sync reminders for new utility:", err);
+        });
+
         return NextResponse.json({ id: utilityId, ...utilityData }, { status: 201 });
     } catch (error) {
         console.error("Error creating utility:", error);

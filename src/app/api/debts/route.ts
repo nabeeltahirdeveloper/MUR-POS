@@ -45,6 +45,14 @@ export async function POST(request: NextRequest) {
 
         const debtId = await createDoc<Omit<FirestoreDebt, 'id'>>('debts', debtData);
 
+        // Sync reminders if due date is provided
+        if (debtData.dueDate) {
+            const { syncDebtReminders } = await import("@/lib/reminders");
+            await syncDebtReminders(debtId).catch(err => {
+                console.error("Failed to sync reminders for new debt:", err);
+            });
+        }
+
         return NextResponse.json({ id: debtId, ...debtData }, { status: 201 });
     } catch (error) {
         console.error("Error creating debt:", error);
