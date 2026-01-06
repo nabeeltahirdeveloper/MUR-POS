@@ -115,7 +115,7 @@ export default function LedgerTable({
             }
             else if (note.startsWith("[Bill] ")) {
                 title = note.replace("[Bill] ", "").trim();
-                itemName = "Utility Bill Payment";
+                itemName = "Utility Bill";
             }
             else {
                 title = "-";
