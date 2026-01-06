@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
@@ -18,7 +19,8 @@ import {
 } from "@heroicons/react/24/outline";
 import type { FirestoreUtility } from "@/types/firestore";
 
-export default function UtilitiesPage() {
+function UtilitiesPageContent() {
+    const searchParams = useSearchParams();
     const [utilities, setUtilities] = useState<FirestoreUtility[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -52,6 +54,22 @@ export default function UtilitiesPage() {
     useEffect(() => {
         fetchUtilities();
     }, []);
+
+    // Handle edit parameter from URL
+    useEffect(() => {
+        const editId = searchParams.get("edit");
+        if (editId && utilities.length > 0) {
+            const utility = utilities.find(u => u.id === editId);
+            if (utility) {
+                startEdit(utility);
+                // Scroll to form
+                setTimeout(() => {
+                    const formElement = document.querySelector('form');
+                    formElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+    }, [searchParams, utilities]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -391,5 +409,19 @@ export default function UtilitiesPage() {
                 </div>
             </div>
         </DashboardLayout>
+    );
+}
+
+export default function UtilitiesPage() {
+    return (
+        <Suspense fallback={
+            <DashboardLayout>
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                </div>
+            </DashboardLayout>
+        }>
+            <UtilitiesPageContent />
+        </Suspense>
     );
 }

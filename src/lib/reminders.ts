@@ -221,12 +221,13 @@ export async function syncUtilityReminders(utilityId: string): Promise<void> {
       // This is the active milestone - upsert it
       const timePrefix = lead === 0 ? "URGENT: " : "";
       const daysDesc = lead === 0 ? "today" : lead === 1 ? "tomorrow" : `in ${lead} days`;
+      const categoryLabel = u.category ? ` (${u.category})` : " (General)";
 
       await upsertReminder({
         id,
         type: "bill_due",
         source: { collection: "utilities", id: utilityId },
-        title: `${timePrefix}Utility bill due: ${u.name}`,
+        title: `${timePrefix}Utility bill due: ${u.name}${categoryLabel}`,
         message: `Due date is ${fmtDate(dueDate)}. Reminder for ${daysDesc}.`,
         triggerAt: computeDueTriggerAt(dueDate, lead),
         triggered: true,
