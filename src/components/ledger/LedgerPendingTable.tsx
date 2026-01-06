@@ -101,6 +101,63 @@ export default function LedgerPendingTable({
         return { orderNumber, title, itemName, advance, remaining };
     };
 
+    // Group data by Order Number or (Date + Customer)
+    const groupedData = React.useMemo(() => {
+        const groups: Record<string, {
+            ids: (string | number)[];
+            date: string;
+            orderNumber: string;
+            customerName: string;
+            items: string[];
+            totalBill: number;
+            advance: number;
+            remaining: number;
+            rawNote: string;
+        }> = {};
+
+        data.forEach(entry => {
+            const details = parsePendingDetails(entry.note);
+            // Unique Key: OrderNumber if exists, else Date+Customer
+            const key = details.orderNumber !== "-"
+                ? `ORD-${details.orderNumber}`
+                : `DATE-${entry.date.split('T')[0]}-CUS-${details.title}`;
+
+            if (!groups[key]) {
+                groups[key] = {
+                    ids: [],
+                    date: entry.date,
+                    orderNumber: details.orderNumber,
+                    customerName: details.title,
+                    items: [],
+                    totalBill: 0,
+                    // One-time capture of bill-level fields (Advance/Remaining are pre-calculated per bill in the note)
+                    advance: details.advance,
+                    remaining: details.remaining,
+                    rawNote: entry.note || ""
+                };
+            }
+
+            groups[key].ids.push(entry.id);
+            groups[key].items.push(details.itemName);
+            groups[key].totalBill += Number(entry.amount);
+            // Note: We don't sum remaining/advance because the note repeats the *bill total* remaining/advance for every item.
+        });
+
+        // Convert to array
+        return Object.values(groups).map((g, index) => ({
+            ...g,
+            id: g.ids[0], // Use first ID as row key
+            itemSummary: g.items.join(", ")
+        }));
+    }, [data]);
+
+    const handleGroupDelete = (ids: (string | number)[]) => {
+        if (confirm(`Delete this entire bill (${ids.length} items)?`)) {
+            ids.forEach(id => onDelete(id));
+        }
+    };
+
+
     const columns = [
         {
             key: "date",
@@ -110,76 +167,79 @@ export default function LedgerPendingTable({
         {
             key: "order",
             header: "#",
-            render: (_: any, row: LedgerEntry) => {
-                const { orderNumber } = parsePendingDetails(row.note);
-                return <span className="text-gray-600 font-medium">{orderNumber}</span>;
+            render: (_: any, row: any) => {
+                return <span className="text-gray-600 font-medium">{row.orderNumber}</span>;
             },
         },
         {
             key: "title",
             header: "Customer",
-            render: (_: any, row: LedgerEntry) => {
-                const { title } = parsePendingDetails(row.note);
-                return <span className="text-gray-900 font-medium">{title}</span>;
+            render: (_: any, row: any) => {
+                return <span className="text-gray-900 font-medium">{row.customerName}</span>;
             },
         },
         {
             key: "item",
-            header: "Item",
-            render: (_: any, row: LedgerEntry) => {
-                const { itemName } = parsePendingDetails(row.note);
-                return <span className="text-gray-900 font-medium">{itemName}</span>;
+            header: "Items",
+            render: (_: any, row: any) => {
+                return (
+                    <div className="max-w-[200px] truncate" title={row.itemSummary}>
+                        <span className="text-gray-900 font-medium">{row.items.length > 1 ? `(${row.items.length}) ` : ""}{row.itemSummary}</span>
+                    </div>
+                );
             },
         },
         {
             key: "amount",
             header: "Total Bill",
-            render: (value: any, row: LedgerEntry) => (
+            render: (_: any, row: any) => (
                 <span className="font-mono font-bold text-gray-900 block text-right">
-                    {formatCurrency(value)}
+                    {formatCurrency(row.totalBill)}
                 </span>
             ),
         },
         {
             key: "advance",
             header: "Advance",
-            render: (_: any, row: LedgerEntry) => {
-                const { advance } = parsePendingDetails(row.note);
-                return <span className="font-mono font-bold text-green-600 block text-right">{formatCurrency(advance)}</span>;
+            render: (_: any, row: any) => {
+                return <span className="font-mono font-bold text-green-600 block text-right">{formatCurrency(row.advance)}</span>;
             },
         },
         {
             key: "remaining",
             header: "Remaining",
-            render: (_: any, row: LedgerEntry) => {
-                const { remaining } = parsePendingDetails(row.note);
-                return <span className="font-mono font-bold text-red-600 block text-right">{formatCurrency(remaining)}</span>;
+            render: (_: any, row: any) => {
+                return <span className="font-mono font-bold text-red-600 block text-right">{formatCurrency(row.remaining)}</span>;
             },
         },
         {
             key: "actions",
             header: "Actions",
-            render: (_: any, row: LedgerEntry) => (
+            render: (_: any, row: any) => (
                 <div className="flex gap-2">
                     <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => window.open(`/ledger/receipt/${row.id}`, '_blank')}
-                        title="Print Receipt"
+                        onClick={() => {
+                            const ids = row.ids.join(',');
+                            window.open(`/ledger/receipt/batch?ids=${ids}`, '_blank');
+                        }}
+                        title="Print Bill"
                     >
                         Print
                     </Button>
                     <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => onEdit(row.id)}
+                        onClick={() => onEdit(row.id)} // Edits just the first item for now, or we need a batch edit page
+                        title="Edit First Item (Batch Edit WIP)"
                     >
                         Edit
                     </Button>
                     <Button
                         size="sm"
                         variant="danger"
-                        onClick={() => onDelete(row.id)}
+                        onClick={() => handleGroupDelete(row.ids)}
                     >
                         Delete
                     </Button>
@@ -198,7 +258,7 @@ export default function LedgerPendingTable({
 
     return (
         <Table
-            data={data}
+            data={groupedData}
             columns={columns}
             emptyMessage="No pending payments found."
         />
