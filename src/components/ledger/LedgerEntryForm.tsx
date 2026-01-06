@@ -83,6 +83,11 @@ export default function LedgerEntryForm({
     const [quantity, setQuantity] = useState<string>("1");
     const [unitPrice, setUnitPrice] = useState<number>(0);
     const [lineAmount, setLineAmount] = useState<string>("");
+    const [itemType, setItemType] = useState<"Stock" | "Customize">("Stock");
+
+    // Payment Details State
+    const [advanceAmount, setAdvanceAmount] = useState<string>("");
+    const [remainingAmount, setRemainingAmount] = useState<number>(0);
 
     // Cart / Items List
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -96,6 +101,7 @@ export default function LedgerEntryForm({
     const [error, setError] = useState("");
     const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
+
 
     useEffect(() => {
         // Fetch Next Order Number
@@ -192,6 +198,17 @@ export default function LedgerEntryForm({
         setLineAmount(total);
     }, [unitPrice, quantity]);
 
+    // Calculate Grand Total and update Remaining
+    const displayTotal = cartItems.reduce((acc, curr) => acc + curr.amount, 0);
+
+    useEffect(() => {
+        if (advanceAmount === "") {
+            setRemainingAmount(displayTotal);
+        } else {
+            setRemainingAmount(displayTotal - Number(advanceAmount));
+        }
+    }, [displayTotal, advanceAmount]);
+
     // --- Handlers ---
 
     const handleSelectItem = (item: Item) => {
@@ -214,12 +231,14 @@ export default function LedgerEntryForm({
 
         // Stock Validation Implementation
         // Only apply stock check for Cash-In (type === 'credit') as this represents a Sale (Stock Out)
-        if (type === 'credit') {
+        // SKIP IF CUSTOMIZE
+        if (type === 'credit' && itemType === 'Stock') {
             const currentStock = selectedItem.currentStock || 0;
 
             // Calculate quantity already in cart for this specific item (excluding current edit item)
+            // Also ensure we only count 'Stock' items in cart against inventory? Assuming yes.
             const existingInCart = cartItems
-                .filter(item => item.item.id === selectedItem.id && item.tempId !== editingCartId)
+                .filter(item => item.item.id === selectedItem.id && item.tempId !== editingCartId && (!item.note || item.note === 'Stock'))
                 .reduce((sum, item) => sum + item.quantity, 0);
 
             const availableStock = currentStock - existingInCart;
@@ -252,6 +271,7 @@ export default function LedgerEntryForm({
             quantity: Number(quantity),
             unitPrice: unitPrice,
             amount: Number(lineAmount),
+            note: itemType,
         };
 
         if (editingCartId) {
@@ -267,6 +287,7 @@ export default function LedgerEntryForm({
         setQuantity("1");
         setUnitPrice(0);
         setLineAmount("");
+        setItemType("Stock"); // Reset to default
         setEditingCartId(null);
     };
 
@@ -277,6 +298,9 @@ export default function LedgerEntryForm({
             setSearchTerm(itemToEdit.item.name);
             setQuantity(itemToEdit.quantity.toString());
             setUnitPrice(itemToEdit.unitPrice);
+            if (itemToEdit.note === 'Customize' || itemToEdit.note === 'Stock') {
+                setItemType(itemToEdit.note as "Stock" | "Customize");
+            }
             setEditingCartId(itemToEdit.tempId);
         }
     };
@@ -290,6 +314,7 @@ export default function LedgerEntryForm({
             setQuantity("1");
             setUnitPrice(0);
             setLineAmount("");
+            setItemType("Stock");
         }
     };
 
@@ -401,7 +426,15 @@ export default function LedgerEntryForm({
                 if (partyPhone) parts.push(`Phone: ${partyPhone}`);
                 if (partyAddress) parts.push(`Address: ${partyAddress}`);
                 parts.push(`Payment: ${paymentType}`);
-                parts.push(`Item: ${cartItem.item.name} (Qty: ${cartItem.quantity} @ ${cartItem.unitPrice})`);
+
+                // Item Note: [Stock/Customize] Item Name (Qty...)
+                const typePrefix = cartItem.note ? `[${cartItem.note}] ` : "";
+                parts.push(`Item: ${typePrefix}${cartItem.item.name} (Qty: ${cartItem.quantity} @ ${cartItem.unitPrice})`);
+
+                // Add Advance & Remaining to the first item (or all, but parsing will take first valid)
+                if (advanceAmount !== "") parts.push(`Advance: ${advanceAmount}`);
+                if (remainingAmount !== undefined) parts.push(`Remaining: ${remainingAmount}`);
+
                 const finalNote = parts.join('\n');
 
                 const payload = {
@@ -462,6 +495,8 @@ export default function LedgerEntryForm({
             setQuantity("1");
             setUnitPrice(0);
             setLineAmount("");
+            setAdvanceAmount("");
+            setRemainingAmount(0);
 
             // Note: We stay on the page to show the receipt, so no router.back() here unless New Transaction is clicked.
             setLoading(false);
@@ -485,8 +520,11 @@ export default function LedgerEntryForm({
         let customerAddress = "";
         let paymentType = "Cash";
         let itemName = "Item";
+        let itemType = "Stock";
         let quantity = 1;
         let unitPrice = 0;
+        let advance = undefined;
+        let remaining = undefined;
 
         lines.forEach(line => {
             if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
@@ -495,27 +533,30 @@ export default function LedgerEntryForm({
             else if (line.startsWith("Phone: ")) customerPhone = line.replace("Phone: ", "").trim();
             else if (line.startsWith("Address: ")) customerAddress = line.replace("Address: ", "").trim();
             else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
+            else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
+            else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
             else if (line.startsWith("Item: ")) {
-                // Item: Name (Qty: X @ Y)
-                const match = line.match(/Item: (.*) \(Qty: (\d+) @ (.*)\)/);
+                // Item: [Type] Name (Qty: X @ Y)
+                const match = line.match(/Item: (?:\[(.*?)\] )?(.*) \(Qty: (\d+) @ (.*)\)/);
                 if (match) {
-                    itemName = match[1];
-                    quantity = Number(match[2]);
-                    unitPrice = Number(match[3]);
+                    itemType = match[1] || "Stock";
+                    itemName = match[2];
+                    quantity = Number(match[3]);
+                    unitPrice = Number(match[4]);
                 } else {
                     itemName = line.replace("Item: ", "").trim();
                 }
             }
         });
 
-        return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice };
+        return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining };
     };
 
 
 
     // Calculate Grand Total
     const grandTotal = cartItems.reduce((acc, curr) => acc + curr.amount, 0) + ((itemsToSave => itemsToSave.length === 0 && selectedItem ? Number(lineAmount) : 0)(cartItems));
-    const displayTotal = cartItems.reduce((acc, curr) => acc + curr.amount, 0);
+    // displayTotal already defined above
 
     // --- Render Receipt View ---
     // Scroll to receipt when it appears
@@ -751,6 +792,19 @@ export default function LedgerEntryForm({
                                     )}
                                 </div>
 
+                                {/* Items Type */}
+                                <div className="w-full md:w-32">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Item Type</label>
+                                    <select
+                                        value={itemType}
+                                        onChange={(e) => setItemType(e.target.value as "Stock" | "Customize")}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-gray-900"
+                                    >
+                                        <option value="Stock">Stock</option>
+                                        <option value="Customize">Customize</option>
+                                    </select>
+                                </div>
+
                                 {/* Payment Type */}
                                 <div className="w-full md:w-32">
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Payment</label>
@@ -886,6 +940,35 @@ export default function LedgerEntryForm({
                                 </table>
                             </div>
                         )}
+
+                        {/* Totals Section: Advance / Remaining */}
+                        <div className="flex flex-col md:flex-row gap-4 justify-end items-end mt-4 p-4 bg-gray-50/50 rounded-xl border border-gray-100">
+                            <div className="flex flex-col gap-1 w-full md:w-48">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Advance</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rs.</span>
+                                    <input
+                                        type="number"
+                                        value={advanceAmount}
+                                        onChange={(e) => setAdvanceAmount(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none transition-all shadow-sm font-bold text-gray-800"
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-1 w-full md:w-48">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Remaining</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rs.</span>
+                                    <input
+                                        type="number"
+                                        value={remainingAmount}
+                                        readOnly
+                                        className="w-full pl-10 pr-4 py-2 bg-gray-100 border border-transparent rounded-lg font-bold text-red-500 cursor-not-allowed"
+                                    />
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Bottom Right SAVE OPTIONS */}
                         <div className="flex justify-end pt-4 gap-3 mt-auto">
