@@ -34,26 +34,32 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        // Process Debts (Active Loan-In and Loan-Out)
-        // Loan-In: Money taken, increases business cash balance
-        // Loan-Out: Money given, decreases business cash balance
+        // Process Debts (Treat New Loans as Cash Flow)
         for (const debt of debts) {
-            const debtAmount = Number(debt.amount);
+            const amount = Number(debt.amount);
+            if (debt.type === 'loaned_in') {
+                // We received money (Credit / Cash-In)
+                totalCredit += amount;
+            } else if (debt.type === 'loaned_out') {
+                // We gave money (Debit / Cash-Out)
+                totalDebit += amount;
+            }
+        }
 
-            // Calculate total payments for this specific debt
-            const totalPaid = debtPayments
-                .filter(p => p.debtId === debt.id)
-                .reduce((sum, p) => sum + Number(p.amount), 0);
+        // Process Debt Payments (Treat Payments as Cash Flow)
+        for (const payment of debtPayments) {
+            const amount = Number(payment.amount);
 
-            const remaining = Math.max(0, debtAmount - totalPaid);
-
-            if (remaining > 0) {
+            // We need to know the debt type to determine direction
+            // Since we fetched all debts, we can find it
+            const debt = debts.find(d => d.id === payment.debtId);
+            if (debt) {
                 if (debt.type === 'loaned_in') {
-                    // Money we have but owe back
-                    totalCredit += remaining;
+                    // We are paying back (Debit / Cash-Out)
+                    totalDebit += amount;
                 } else if (debt.type === 'loaned_out') {
-                    // Money we gave out and are waiting for
-                    totalDebit += remaining;
+                    // We are receiving back (Credit / Cash-In)
+                    totalCredit += amount;
                 }
             }
         }

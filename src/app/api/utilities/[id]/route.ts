@@ -24,6 +24,11 @@ export async function PATCH(
         const existingUtility = await getDocById<FirestoreUtility>('utilities', id);
         const isPayment = existingUtility && existingUtility.status === 'unpaid' && status === 'paid';
 
+        // Capture paidAt date when marking as paid
+        if (isPayment) {
+            updateData.paidAt = new Date();
+        }
+
         await updateDoc('utilities', id, updateData);
 
         // If paying a bill, create a ledger entry

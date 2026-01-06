@@ -14,8 +14,8 @@ export default function ReportsSection() {
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [filters, setFilters] = useState({
-        from: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split("T")[0],
-        to: new Date().toISOString().split("T")[0],
+        from: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0], // Start of current month
+        to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split("T")[0], // End of current month
         categoryId: "",
     });
     const [summary, setSummary] = useState({ credit: 0, debit: 0, net: 0 });
