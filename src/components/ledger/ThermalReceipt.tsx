@@ -5,6 +5,7 @@ import React, { useRef, useEffect, useState } from "react";
 // Unified types to support both Ledger and Purchase Order data
 export type ReceiptItem = {
     name: string;
+    itemType?: string; // e.g. Stock, Customize
     quantity: number;
     unitPrice: number;
     amount: number;
@@ -20,6 +21,8 @@ export type ReceiptData = {
     customerAddress?: string;
     items: ReceiptItem[];
     total: number;
+    advance?: number;
+    remaining?: number;
     notes?: string;
     terms?: string;
 };
@@ -203,7 +206,9 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         <div className="mt-2 space-y-1 text-base font-semibold text-gray-900">
                             {data.items.map((it, idx) => (
                                 <div key={idx} className="grid grid-cols-[1fr_4ch_8ch_9ch] gap-2">
-                                    <div className="truncate">{it.name}</div>
+                                    <div className="break-words">
+                                        {it.name}
+                                    </div>
                                     <div className="text-right">{it.quantity}</div>
                                     <div className="text-right">{fmt(it.unitPrice)}</div>
                                     <div className="text-right">{fmt(it.amount)}</div>
@@ -218,10 +223,22 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                             <span>TOTAL</span>
                             <span>PKR {fmt(data.total)}</span>
                         </div>
+                        {(data.advance !== undefined || data.remaining !== undefined) && (
+                            <>
+                                <div className="flex justify-between font-semibold text-sm text-gray-800 mt-1">
+                                    <span>Advance</span>
+                                    <span>PKR {fmt(data.advance || 0)}</span>
+                                </div>
+                                <div className="flex justify-between font-bold text-base text-gray-900 border-t border-dashed border-gray-400 mt-1 pt-1">
+                                    <span>REMAINING</span>
+                                    <span>PKR {fmt(data.remaining || (data.total - (data.advance || 0)))}</span>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Footer */}
-                    <div className="mt-4 text-center text-sm font-semibold text-gray-800 pb-32 print:pb-[150px]">
+                    <div className="mt-4 text-center text-sm font-semibold text-gray-800 pb-48 print:pb-[200px]">
                         --- END ---
                     </div>
                 </div>

@@ -7,6 +7,7 @@ import { DashboardLayout } from "@/components/layout";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 // Helper to parse transaction notes
+// Helper to parse transaction notes
 const parseTransactionNote = (note: string) => {
     const lines = note.split('\n');
     let orderNumber = "";
@@ -15,8 +16,11 @@ const parseTransactionNote = (note: string) => {
     let customerAddress = "";
     let paymentType = "Cash";
     let itemName = "Item";
+    let itemType = "Stock";
     let quantity = 1;
     let unitPrice = 0;
+    let advance = undefined;
+    let remaining = undefined;
 
     lines.forEach(line => {
         if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
@@ -25,19 +29,22 @@ const parseTransactionNote = (note: string) => {
         else if (line.startsWith("Phone: ")) customerPhone = line.replace("Phone: ", "").trim();
         else if (line.startsWith("Address: ")) customerAddress = line.replace("Address: ", "").trim();
         else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
+        else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
+        else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
         else if (line.startsWith("Item: ")) {
-            const match = line.match(/Item: (.*) \(Qty: (\d+) @ (.*)\)/);
+            const match = line.match(/Item: (?:\[(.*?)\] )?(.*) \(Qty: (\d+) @ (.*)\)/);
             if (match) {
-                itemName = match[1];
-                quantity = Number(match[2]);
-                unitPrice = Number(match[3]);
+                itemType = match[1] || "Stock";
+                itemName = match[2];
+                quantity = Number(match[3]);
+                unitPrice = Number(match[4]);
             } else {
                 itemName = line.replace("Item: ", "").trim();
             }
         }
     });
 
-    return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice };
+    return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining };
 };
 
 function BatchReceiptContent() {
@@ -76,6 +83,7 @@ function BatchReceiptContent() {
                     const parsed = parseTransactionNote(entry.note || "");
                     return {
                         name: parsed.itemName,
+                        itemType: parsed.itemType,
                         quantity: parsed.quantity,
                         unitPrice: parsed.unitPrice || (entry.amount / parsed.quantity) || 0,
                         amount: Number(entry.amount)
@@ -94,6 +102,8 @@ function BatchReceiptContent() {
                     customerAddress: meta.customerAddress,
                     items: combinedItems,
                     total: total,
+                    advance: meta.advance,
+                    remaining: meta.remaining,
                     notes: `Batch of ${results.length} items`
                 });
             } catch (err: any) {

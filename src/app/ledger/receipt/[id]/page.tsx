@@ -6,6 +6,7 @@ import ThermalReceipt from "@/components/ledger/ThermalReceipt";
 import { DashboardLayout } from "@/components/layout";
 
 // Helper to parse transaction notes (duplicated from LedgerEntryForm for self-containment)
+// Helper to parse transaction notes (duplicated from LedgerEntryForm for self-containment)
 const parseTransactionNote = (note: string) => {
     const lines = note.split('\n');
     let orderNumber = "";
@@ -14,8 +15,11 @@ const parseTransactionNote = (note: string) => {
     let customerAddress = "";
     let paymentType = "Cash";
     let itemName = "Item";
+    let itemType = "Stock";
     let quantity = 1;
     let unitPrice = 0;
+    let advance = undefined;
+    let remaining = undefined;
 
     lines.forEach(line => {
         if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
@@ -24,20 +28,23 @@ const parseTransactionNote = (note: string) => {
         else if (line.startsWith("Phone: ")) customerPhone = line.replace("Phone: ", "").trim();
         else if (line.startsWith("Address: ")) customerAddress = line.replace("Address: ", "").trim();
         else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
+        else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
+        else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
         else if (line.startsWith("Item: ")) {
-            // Item: Name (Qty: X @ Y)
-            const match = line.match(/Item: (.*) \(Qty: (\d+) @ (.*)\)/);
+            // Item: [Type] Name (Qty: X @ Y)
+            const match = line.match(/Item: (?:\[(.*?)\] )?(.*) \(Qty: (\d+) @ (.*)\)/);
             if (match) {
-                itemName = match[1];
-                quantity = Number(match[2]);
-                unitPrice = Number(match[3]);
+                itemType = match[1] || "Stock";
+                itemName = match[2];
+                quantity = Number(match[3]);
+                unitPrice = Number(match[4]);
             } else {
                 itemName = line.replace("Item: ", "").trim();
             }
         }
     });
 
-    return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice };
+    return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining };
 };
 
 export default function ReceiptPage() {
@@ -56,11 +63,12 @@ export default function ReceiptPage() {
                 return res.json();
             })
             .then(entry => {
-                const { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, quantity, unitPrice } = parseTransactionNote(entry.note || "");
+                const { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining } = parseTransactionNote(entry.note || "");
 
                 // Construct data for ThermalReceipt
                 const item = {
                     name: itemName,
+                    itemType: itemType,
                     quantity: quantity,
                     unitPrice: unitPrice || (entry.amount / quantity) || 0,
                     amount: Number(entry.amount)
@@ -76,6 +84,8 @@ export default function ReceiptPage() {
                     customerAddress: customerAddress,
                     items: [item],
                     total: Number(entry.amount),
+                    advance: advance,
+                    remaining: remaining,
                     notes: entry.note
                 });
             })
