@@ -83,6 +83,10 @@ export async function GET(req: NextRequest) {
             });
         }
 
+        // Filter out physical legacy utility entries to avoid double counting
+        // (Since we now inject them as virtual entries from the Utilities collection)
+        entries = entries.filter(entry => !entry.note || !entry.note.startsWith("Utility payment:"));
+
         // Map Debts to virtual entries
         const dateFrom = from ? new Date(from) : null;
         if (dateFrom) dateFrom.setHours(0, 0, 0, 0);
@@ -146,9 +150,9 @@ export async function GET(req: NextRequest) {
                 id: `util_${util.id}`,
                 type: 'debit',
                 amount: util.amount,
-                note: `[Bill] ${util.name}`,
+                note: `[Bill] ${util.name} - ${util.category || 'General'}`,
                 date: util.dueDate,
-                category: { name: util.category || 'Utility' }
+                category: { name: 'Utility' }
             });
         });
 

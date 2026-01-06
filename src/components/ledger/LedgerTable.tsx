@@ -114,8 +114,17 @@ export default function LedgerTable({
                 }
             }
             else if (note.startsWith("[Bill] ")) {
-                title = note.replace("[Bill] ", "").trim();
-                itemName = "Utility Bill";
+                // Expected format: [Bill] Name - Category
+                const content = note.replace("[Bill] ", "").trim();
+                const separatorIndex = content.lastIndexOf(" - ");
+
+                if (separatorIndex !== -1) {
+                    title = content.substring(0, separatorIndex).trim();
+                    itemName = content.substring(separatorIndex + 3).trim();
+                } else {
+                    title = content;
+                    itemName = "Utility Bill";
+                }
             }
             else {
                 title = "-";

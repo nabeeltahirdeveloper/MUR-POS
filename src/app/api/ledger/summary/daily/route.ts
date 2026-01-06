@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db, Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById } from "@/lib/firestore-helpers";
-import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
         endOfDay.setHours(23, 59, 59, 999);
 
         // Fetch everything relevant for today
-        const [entries, newDebts, todayPayments] = await Promise.all([
+        const [entries, newDebts, todayPayments, paidUtilities] = await Promise.all([
             queryDocs<FirestoreLedger>('ledger', [
                 { field: 'date', operator: '>=', value: Timestamp.fromDate(startOfDay) },
                 { field: 'date', operator: '<=', value: Timestamp.fromDate(endOfDay) },
@@ -44,7 +44,12 @@ export async function GET(req: NextRequest) {
             queryDocs<FirestoreDebtPayment>('debt_payments', [
                 { field: 'date', operator: '>=', value: Timestamp.fromDate(startOfDay) },
                 { field: 'date', operator: '<=', value: Timestamp.fromDate(endOfDay) },
-            ])
+            ]),
+            queryDocs<FirestoreUtility>('utilities', [
+                { field: 'status', operator: '==', value: 'paid' },
+                { field: 'dueDate', operator: '>=', value: Timestamp.fromDate(startOfDay) },
+                { field: 'dueDate', operator: '<=', value: Timestamp.fromDate(endOfDay) },
+            ]),
         ]);
 
         // Fetch categories for entries
@@ -68,6 +73,9 @@ export async function GET(req: NextRequest) {
 
         // 1. Process Ledger entries
         for (const entry of entriesWithCategories) {
+            // Skip legacy utility entries to avoid double counting with virtual entries
+            if (entry.note && entry.note.startsWith("Utility payment:")) continue;
+
             const amount = Number(entry.amount);
             if (entry.type === "credit") {
                 totalCredit += amount;
@@ -122,6 +130,18 @@ export async function GET(req: NextRequest) {
                 totalCredit += amount;
                 categoryBreakdown[catName].credit += amount;
             }
+        }
+
+        // 4. Process Paid Utilities due today
+        for (const util of paidUtilities) {
+            const amount = Number(util.amount);
+            const catName = util.category || "Utility";
+            if (!categoryBreakdown[catName]) {
+                categoryBreakdown[catName] = { name: catName, credit: 0, debit: 0 };
+            }
+            // Utilities are expenses (debit)
+            totalDebit += amount;
+            categoryBreakdown[catName].debit += amount;
         }
 
         const net = totalCredit - totalDebit;

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById } from "@/lib/firestore-helpers";
-import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory } from "@/types/firestore";
+import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreUtility } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -38,13 +38,20 @@ export async function GET(req: NextRequest) {
         endDate.setHours(23, 59, 59, 999);
 
         // Fetch all entries for the month
-        const entries = await queryDocs<FirestoreLedger>('ledger', [
-            { field: 'date', operator: '>=', value: Timestamp.fromDate(startDate) },
-            { field: 'date', operator: '<=', value: Timestamp.fromDate(endDate) },
-        ], {
-            orderBy: 'date',
-            orderDirection: 'asc',
-        });
+        const [entries, paidUtilities] = await Promise.all([
+            queryDocs<FirestoreLedger>('ledger', [
+                { field: 'date', operator: '>=', value: Timestamp.fromDate(startDate) },
+                { field: 'date', operator: '<=', value: Timestamp.fromDate(endDate) },
+            ], {
+                orderBy: 'date',
+                orderDirection: 'asc',
+            }),
+            queryDocs<FirestoreUtility>('utilities', [
+                { field: 'status', operator: '==', value: 'paid' },
+                { field: 'dueDate', operator: '>=', value: Timestamp.fromDate(startDate) },
+                { field: 'dueDate', operator: '<=', value: Timestamp.fromDate(endDate) },
+            ])
+        ]);
 
         // Fetch categories for entries
         const entriesWithCategories = await Promise.all(
@@ -68,7 +75,11 @@ export async function GET(req: NextRequest) {
         const categoryBreakdown: Record<string, { name: string; credit: number; debit: number }> = {};
         const dailyBreakdown: Record<string, { date: string; credit: number; debit: number; net: number }> = {};
 
+        // 1. Process Ledger Entries
         for (const entry of entriesWithCategories) {
+            // Skip legacy utility entries to avoid double counting with virtual entries
+            if (entry.note && entry.note.startsWith("Utility payment:")) continue;
+
             const amount = Number(entry.amount);
             // Convert Firestore Timestamp to Date if needed
             const entryDate = entry.date instanceof Date ? entry.date : (entry.date as any).toDate ? (entry.date as any).toDate() : new Date(entry.date);
@@ -101,6 +112,29 @@ export async function GET(req: NextRequest) {
             } else {
                 dailyBreakdown[dateKey].debit += amount;
             }
+        }
+
+        // 2. Process Paid Utilities
+        for (const util of paidUtilities) {
+            const amount = Number(util.amount);
+            const entryDate = util.dueDate instanceof Date ? util.dueDate : (util.dueDate as any).toDate ? (util.dueDate as any).toDate() : new Date(util.dueDate);
+            const dateKey = entryDate.toISOString().split("T")[0];
+
+            // Global Totals (Utilities are expenses/debit)
+            totalDebit += amount;
+
+            // Category Breakdown
+            const catName = util.category || "Utility";
+            if (!categoryBreakdown[catName]) {
+                categoryBreakdown[catName] = { name: catName, credit: 0, debit: 0 };
+            }
+            categoryBreakdown[catName].debit += amount;
+
+            // Daily Breakdown
+            if (!dailyBreakdown[dateKey]) {
+                dailyBreakdown[dateKey] = { date: dateKey, credit: 0, debit: 0, net: 0 };
+            }
+            dailyBreakdown[dateKey].debit += amount;
         }
 
         // Calc nets for daily

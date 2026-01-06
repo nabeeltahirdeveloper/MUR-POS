@@ -27,24 +27,26 @@ export async function PATCH(
         await updateDoc('utilities', id, updateData);
 
         // If paying a bill, create a ledger entry
-        if (isPayment && existingUtility) {
-            try {
-                const { createDoc } = await import('@/lib/firestore-helpers');
-                const ledgerEntry = {
-                    type: 'debit' as const,
-                    amount: existingUtility.amount,
-                    categoryId: null,
-                    note: `Utility payment: ${existingUtility.name}${existingUtility.category ? ` (${existingUtility.category})` : ''}`,
-                    date: new Date(),
-                    createdAt: new Date(),
-                };
-                await createDoc('ledger', ledgerEntry);
-                console.log(`Created ledger entry for utility payment: ${existingUtility.name}`);
-            } catch (ledgerError) {
-                console.error("Failed to create ledger entry for utility payment:", ledgerError);
-                // Don't fail the whole request if ledger creation fails
-            }
-        }
+        // NOTE: We now use "Virtual Entries" in the Ledger API to display paid utilities.
+        // Creating a physical ledger entry here causes duplicates.
+        // if (isPayment && existingUtility) {
+        //     try {
+        //         const { createDoc } = await import('@/lib/firestore-helpers');
+        //         const ledgerEntry = {
+        //             type: 'debit' as const,
+        //             amount: existingUtility.amount,
+        //             categoryId: null,
+        //             note: `Utility payment: ${existingUtility.name}${existingUtility.category ? ` (${existingUtility.category})` : ''}`,
+        //             date: new Date(),
+        //             createdAt: new Date(),
+        //         };
+        //         await createDoc('ledger', ledgerEntry);
+        //         console.log(`Created ledger entry for utility payment: ${existingUtility.name}`);
+        //     } catch (ledgerError) {
+        //         console.error("Failed to create ledger entry for utility payment:", ledgerError);
+        //         // Don't fail the whole request if ledger creation fails
+        //     }
+        // }
 
         // Sync reminders if due date or status changed
         const { syncUtilityReminders } = await import("@/lib/reminders");
