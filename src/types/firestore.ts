@@ -109,6 +109,7 @@ export interface FirestoreUtility {
     name: string;
     amount: number;
     dueDate: Date | any;
+    paidAt?: Date | any; // Capture when the bill was paid
     category?: string | null;
     status: 'paid' | 'unpaid';
     createdAt: Date | any;

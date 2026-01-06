@@ -141,17 +141,27 @@ export async function GET(req: NextRequest) {
             // Only show paid utilities as ledger entries (Cash-Out)
             if (util.status !== 'paid') return;
 
-            const uDate = util.dueDate instanceof Date ? util.dueDate : (util.dueDate?.toDate ? util.dueDate.toDate() : new Date(util.dueDate));
+            // Use paidAt if available, otherwise fallback to dueDate or createdAt to guess when it was paid
+            // For older records without paidAt, dueDate is the best proxy we have for "Cash Out" timing relation
+            // unless we want to assume they were just paid "now" (which is wrong for history).
+            let uDate = util.dueDate instanceof Date ? util.dueDate : (util.dueDate?.toDate ? util.dueDate.toDate() : new Date(util.dueDate));
+
+            if (util.paidAt) {
+                uDate = util.paidAt instanceof Date ? util.paidAt : (util.paidAt?.toDate ? util.paidAt.toDate() : new Date(util.paidAt));
+            }
+
             if (dateFrom && uDate < dateFrom) return;
             if (dateTo && uDate > dateTo) return;
             if (type && type !== 'debit') return; // Utilities are usually expenses (debit)
 
+            // Category logic: The USER requested the Category Column to show "Utility"
+            // AND the Name/Title to show "Name - SubCategory".
             virtualEntries.push({
                 id: `util_${util.id}`,
                 type: 'debit',
                 amount: util.amount,
                 note: `[Bill] ${util.name} - ${util.category || 'General'}`,
-                date: util.dueDate,
+                date: uDate, // Use the resolved date
                 category: { name: 'Utility' }
             });
         });
