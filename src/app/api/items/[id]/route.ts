@@ -155,6 +155,14 @@ export async function DELETE(
         // Delete the item itself
         await deleteDoc('items', id);
 
+        // Delete associated low stock reminder
+        try {
+            const { reminderDocId, deleteReminder } = await import('@/lib/reminders');
+            await deleteReminder(reminderDocId("low_stock", id));
+        } catch (e) {
+            console.error("Failed to delete reminder:", e);
+        }
+
         const deletedCounts = {
             stockLogs: stockLogsSnapshot.size,
             purchaseOrderItems: poItemsSnapshot.size,

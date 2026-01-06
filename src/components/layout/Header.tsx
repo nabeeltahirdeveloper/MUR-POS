@@ -8,6 +8,7 @@ import {
     Bars3Icon,
     BellIcon,
     MagnifyingGlassIcon,
+    XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { reminderTypeLabel } from "@/lib/reminders-shared";
 
@@ -200,38 +201,42 @@ export default function Header({
                                                             </div>
                                                         )}
                                                     </div>
-                                                    {r.type === "low_stock" && r.source?.id ? (
-                                                        <Link
-                                                            href={`/items/${encodeURIComponent(r.source.id)}/stock`}
-                                                            className="shrink-0 text-xs font-medium text-primary-dark hover:underline"
-                                                            onClick={() => setPanelOpen(false)}
-                                                        >
-                                                            Restock
-                                                        </Link>
-                                                    ) : r.type === "bill_due" && r.source?.id ? (
-                                                        <Link
-                                                            href={`/utilities?edit=${encodeURIComponent(r.source.id)}`}
-                                                            className="shrink-0 text-xs font-medium text-green-700 hover:underline"
-                                                            onClick={() => setPanelOpen(false)}
-                                                        >
-                                                            Pay Bill
-                                                        </Link>
-                                                    ) : r.type === "debt_due" && r.source?.id ? (
-                                                        <Link
-                                                            href={`/debts`}
-                                                            className="shrink-0 text-xs font-medium text-amber-700 hover:underline"
-                                                            onClick={() => setPanelOpen(false)}
-                                                        >
-                                                            View Loan
-                                                        </Link>
-                                                    ) : (
+                                                    <div className="flex items-center gap-3 shrink-0">
+                                                        {r.type === "low_stock" && r.source?.id && (
+                                                            <Link
+                                                                href={`/items/${encodeURIComponent(r.source.id)}/stock`}
+                                                                className="text-xs font-medium text-primary-dark hover:underline"
+                                                                onClick={() => setPanelOpen(false)}
+                                                            >
+                                                                Restock
+                                                            </Link>
+                                                        )}
+                                                        {r.type === "bill_due" && r.source?.id && (
+                                                            <Link
+                                                                href={`/utilities?edit=${encodeURIComponent(r.source.id)}`}
+                                                                className="text-xs font-medium text-green-700 hover:underline"
+                                                                onClick={() => setPanelOpen(false)}
+                                                            >
+                                                                Pay Bill
+                                                            </Link>
+                                                        )}
+                                                        {r.type === "debt_due" && r.source?.id && (
+                                                            <Link
+                                                                href={`/debts`}
+                                                                className="text-xs font-medium text-amber-700 hover:underline"
+                                                                onClick={() => setPanelOpen(false)}
+                                                            >
+                                                                View Loan
+                                                            </Link>
+                                                        )}
                                                         <button
-                                                            className="shrink-0 text-xs font-medium text-green-700 hover:underline"
+                                                            className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                                                            title="Dismiss"
                                                             onClick={() => resolveFromHeader(r.id)}
                                                         >
-                                                            Resolve
+                                                            <XMarkIcon className="h-4 w-4" />
                                                         </button>
-                                                    )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
