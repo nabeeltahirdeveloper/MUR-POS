@@ -2,13 +2,14 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, BuildingStorefrontIcon, BanknotesIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, BuildingStorefrontIcon, BanknotesIcon, WrenchScrewdriverIcon } from "@heroicons/react/24/outline";
 import LedgerTable from "@/components/ledger/LedgerTable";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/layout";
 import LedgerCustomerSummary from "@/components/ledger/LedgerCustomerSummary";
 import LedgerSupplierSummary from "@/components/ledger/LedgerSupplierSummary";
 import LedgerLoanSummary from "@/components/ledger/LedgerLoanSummary";
+import LedgerUtilitySummary from "@/components/ledger/LedgerUtilitySummary";
 
 function LedgerPageContent() {
     const router = useRouter();
@@ -27,7 +28,21 @@ function LedgerPageContent() {
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
-    const [view, setView] = useState<"entries" | "customers" | "suppliers" | "loans">("entries");
+    const [view, setView] = useState<"entries" | "customers" | "suppliers" | "loans" | "utilities">((searchParams.get("view") as any) || "entries");
+
+    // Sync view with URL param
+    useEffect(() => {
+        const viewParam = searchParams.get("view");
+        if (viewParam && ["entries", "customers", "suppliers", "loans", "utilities"].includes(viewParam)) {
+            setView(viewParam as any);
+        }
+    }, [searchParams]);
+
+    const handleViewChange = (newView: "entries" | "customers" | "suppliers" | "loans" | "utilities") => {
+        setView(newView);
+        router.push(`/ledger?view=${newView}`);
+    };
+
     const [showTransactionModal, setShowTransactionModal] = useState(false);
 
     useEffect(() => {
@@ -129,7 +144,7 @@ function LedgerPageContent() {
                 <div className="flex gap-2 shrink-0">
                     <div className="bg-gray-100 p-1 rounded-lg flex mr-2">
                         <button
-                            onClick={() => setView("customers")}
+                            onClick={() => handleViewChange("customers")}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "customers"
                                 ? "bg-white text-blue-600 shadow-sm"
                                 : "text-gray-500 hover:text-gray-700"
@@ -139,7 +154,7 @@ function LedgerPageContent() {
                             By Customer
                         </button>
                         <button
-                            onClick={() => setView("suppliers")}
+                            onClick={() => handleViewChange("suppliers")}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "suppliers"
                                 ? "bg-white text-blue-600 shadow-sm"
                                 : "text-gray-500 hover:text-gray-700"
@@ -149,7 +164,7 @@ function LedgerPageContent() {
                             By Supplier
                         </button>
                         <button
-                            onClick={() => setView("loans")}
+                            onClick={() => handleViewChange("loans")}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "loans"
                                 ? "bg-white text-blue-600 shadow-sm"
                                 : "text-gray-500 hover:text-gray-700"
@@ -159,7 +174,17 @@ function LedgerPageContent() {
                             Loans
                         </button>
                         <button
-                            onClick={() => setView("entries")}
+                            onClick={() => handleViewChange("utilities")}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "utilities"
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                        >
+                            <WrenchScrewdriverIcon className="h-4 w-4 mr-1.5" />
+                            Utilities
+                        </button>
+                        <button
+                            onClick={() => handleViewChange("entries")}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "entries"
                                 ? "bg-white text-blue-600 shadow-sm"
                                 : "text-gray-500 hover:text-gray-700"
@@ -213,8 +238,8 @@ function LedgerPageContent() {
                             <input
                                 type="text"
                                 className={`w-full p-2 pr-10 border rounded-md text-sm text-gray-900 outline-none transition-all ${filters.search
-                                        ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
-                                        : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                    ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                    : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
                                     }`}
                                 placeholder="Search..."
                                 value={filters.search}
@@ -235,8 +260,8 @@ function LedgerPageContent() {
                             </label>
                             <select
                                 className={`w-full p-2 border rounded-md text-sm outline-none transition-all ${filters.type
-                                        ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
-                                        : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                    ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                    : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
                                     }`}
                                 value={filters.type}
                                 onChange={(e) => updateFilter("type", e.target.value)}
@@ -252,8 +277,8 @@ function LedgerPageContent() {
                             </label>
                             <select
                                 className={`w-full p-2 border rounded-md text-sm outline-none transition-all ${filters.categoryId
-                                        ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
-                                        : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                    ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                    : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
                                     }`}
                                 value={filters.categoryId}
                                 onChange={(e) => updateFilter("categoryId", e.target.value)}
@@ -274,8 +299,8 @@ function LedgerPageContent() {
                                 <input
                                     type="date"
                                     className={`w-full p-2 border rounded-md text-xs outline-none transition-all ${filters.from
-                                            ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
-                                            : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                        ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                        : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
                                         }`}
                                     value={filters.from}
                                     onChange={(e) => updateFilter("from", e.target.value)}
@@ -283,8 +308,8 @@ function LedgerPageContent() {
                                 <input
                                     type="date"
                                     className={`w-full p-2 border rounded-md text-xs outline-none transition-all ${filters.to
-                                            ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
-                                            : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                        ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                        : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
                                         }`}
                                     value={filters.to}
                                     onChange={(e) => updateFilter("to", e.target.value)}
@@ -301,6 +326,8 @@ function LedgerPageContent() {
                 <LedgerSupplierSummary onViewEntries={handleViewEntries} />
             ) : view === "loans" ? (
                 <LedgerLoanSummary />
+            ) : view === "utilities" ? (
+                <LedgerUtilitySummary />
             ) : (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <LedgerTable

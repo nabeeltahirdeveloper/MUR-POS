@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
@@ -13,7 +13,9 @@ export default function DashboardLayout({
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+            <Suspense fallback={<div className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-72 lg:flex-col bg-slate-900" />}>
+                <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+            </Suspense>
 
             <div className="lg:pl-72">
                 <Header setSidebarOpen={setSidebarOpen} />

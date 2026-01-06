@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 
 import {
@@ -39,6 +39,8 @@ const navigation = [
             { name: "All Entries", href: "/ledger" },
             { name: "Daily Summary", href: "/ledger/summary/daily", icon: CalendarIcon },
             { name: "Monthly Summary", href: "/ledger/summary/monthly", icon: CalendarDaysIcon },
+            { name: "By Customer", href: "/ledger?view=customers", icon: UserGroupIcon },
+            { name: "By Supplier", href: "/ledger?view=suppliers", icon: UserCircleIcon },
         ],
     },
     { name: "Reminders", href: "/reminders", icon: BellAlertIcon },
@@ -55,6 +57,7 @@ export default function Sidebar({
     setSidebarOpen: (open: boolean) => void;
 }) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     const [expandedItems, setExpandedItems] = useState<string[]>(["Ledger"]);
     const [businessName, setBusinessName] = useState("Moon Traders");
@@ -141,7 +144,22 @@ export default function Sidebar({
                             {hasChildren && isExpanded && (
                                 <div className="mt-1 ml-4 pl-4 border-l border-slate-700 space-y-1">
                                     {item.children?.map((child) => {
-                                        const childActive = pathname === child.href;
+                                        // Logic to determine if child is active
+                                        let childActive = false;
+                                        if (child.href === "/ledger") {
+                                            // Active if patchname is ledger AND no view param (or view=entries)
+                                            childActive = pathname === "/ledger" && (!searchParams.get("view") || searchParams.get("view") === "entries");
+                                        } else if (child.href.includes("?")) {
+                                            // Check strict match of pathname + query
+                                            const [path, query] = child.href.split("?");
+                                            const params = new URLSearchParams(query);
+                                            const currentView = searchParams.get("view");
+                                            const targetView = params.get("view");
+                                            childActive = pathname === path && currentView === targetView;
+                                        } else {
+                                            childActive = pathname === child.href;
+                                        }
+
                                         return (
                                             <Link
                                                 key={child.href}
