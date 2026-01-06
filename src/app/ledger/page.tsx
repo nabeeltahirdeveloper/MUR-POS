@@ -2,12 +2,13 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, BuildingStorefrontIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, BuildingStorefrontIcon, BanknotesIcon } from "@heroicons/react/24/outline";
 import LedgerTable from "@/components/ledger/LedgerTable";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/layout";
 import LedgerCustomerSummary from "@/components/ledger/LedgerCustomerSummary";
 import LedgerSupplierSummary from "@/components/ledger/LedgerSupplierSummary";
+import LedgerLoanSummary from "@/components/ledger/LedgerLoanSummary";
 
 function LedgerPageContent() {
     const router = useRouter();
@@ -26,7 +27,7 @@ function LedgerPageContent() {
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
-    const [view, setView] = useState<"entries" | "customers" | "suppliers">("entries");
+    const [view, setView] = useState<"entries" | "customers" | "suppliers" | "loans">("entries");
     const [showTransactionModal, setShowTransactionModal] = useState(false);
 
     useEffect(() => {
@@ -114,7 +115,7 @@ function LedgerPageContent() {
     };
 
     const hasActiveFilters =
-        filters.search || filters.type || filters.categoryId || filters.from || filters.to;
+        !!(filters.search || filters.type || filters.categoryId || filters.from || filters.to);
 
     const handleViewEntries = (name: string) => {
         setFilters(prev => ({ ...prev, search: name, page: 1 }));
@@ -148,6 +149,16 @@ function LedgerPageContent() {
                             By Supplier
                         </button>
                         <button
+                            onClick={() => setView("loans")}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "loans"
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                        >
+                            <BanknotesIcon className="h-4 w-4 mr-1.5" />
+                            Loans
+                        </button>
+                        <button
                             onClick={() => setView("entries")}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "entries"
                                 ? "bg-white text-blue-600 shadow-sm"
@@ -159,11 +170,15 @@ function LedgerPageContent() {
                         </button>
                     </div>
 
-                    <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
-                        <FunnelIcon className="h-5 w-5 mr-2" />
+                    <Button
+                        variant={hasActiveFilters ? "primary" : "secondary"} // Visual cue on the button too
+                        className={hasActiveFilters ? "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100" : ""}
+                        onClick={() => setShowFilters(!showFilters)}
+                    >
+                        <FunnelIcon className={`h-5 w-5 mr-2 ${hasActiveFilters ? "text-blue-700" : ""}`} />
                         Filters
                         {hasActiveFilters && (
-                            <span className="ml-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                            <span className="ml-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
                                 Active
                             </span>
                         )}
@@ -197,7 +212,10 @@ function LedgerPageContent() {
                             </label>
                             <input
                                 type="text"
-                                className="w-full p-2 pr-10 border rounded-md text-sm text-gray-900"
+                                className={`w-full p-2 pr-10 border rounded-md text-sm text-gray-900 outline-none transition-all ${filters.search
+                                        ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                        : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                    }`}
                                 placeholder="Search..."
                                 value={filters.search}
                                 onChange={(e) => updateFilter("search", e.target.value)}
@@ -216,7 +234,10 @@ function LedgerPageContent() {
                                 Type
                             </label>
                             <select
-                                className="w-full p-2 border rounded-md text-sm"
+                                className={`w-full p-2 border rounded-md text-sm outline-none transition-all ${filters.type
+                                        ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                        : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                    }`}
                                 value={filters.type}
                                 onChange={(e) => updateFilter("type", e.target.value)}
                             >
@@ -230,7 +251,10 @@ function LedgerPageContent() {
                                 Category
                             </label>
                             <select
-                                className="w-full p-2 border rounded-md text-sm"
+                                className={`w-full p-2 border rounded-md text-sm outline-none transition-all ${filters.categoryId
+                                        ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                        : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                    }`}
                                 value={filters.categoryId}
                                 onChange={(e) => updateFilter("categoryId", e.target.value)}
                             >
@@ -249,13 +273,19 @@ function LedgerPageContent() {
                             <div className="flex gap-2">
                                 <input
                                     type="date"
-                                    className="w-full p-2 border rounded-md text-xs"
+                                    className={`w-full p-2 border rounded-md text-xs outline-none transition-all ${filters.from
+                                            ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                            : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                        }`}
                                     value={filters.from}
                                     onChange={(e) => updateFilter("from", e.target.value)}
                                 />
                                 <input
                                     type="date"
-                                    className="w-full p-2 border rounded-md text-xs"
+                                    className={`w-full p-2 border rounded-md text-xs outline-none transition-all ${filters.to
+                                            ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                            : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                        }`}
                                     value={filters.to}
                                     onChange={(e) => updateFilter("to", e.target.value)}
                                 />
@@ -269,6 +299,8 @@ function LedgerPageContent() {
                 <LedgerCustomerSummary onViewEntries={handleViewEntries} />
             ) : view === "suppliers" ? (
                 <LedgerSupplierSummary onViewEntries={handleViewEntries} />
+            ) : view === "loans" ? (
+                <LedgerLoanSummary />
             ) : (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <LedgerTable
