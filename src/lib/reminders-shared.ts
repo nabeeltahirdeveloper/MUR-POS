@@ -30,7 +30,7 @@ export function computeDueTriggerAt(dueDate: Date, leadDays: number): Date {
 export function reminderTypeLabel(type: ReminderType): string {
   if (type === "low_stock") return "Low stock";
   if (type === "bill_due") return "Bill due";
-  if (type === "debt_due") return "Debt due";
+  if (type === "debt_due") return "Cash-Out due";
   return type;
 }
 

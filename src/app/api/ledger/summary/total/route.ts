@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getAllDocs } from "@/lib/firestore-helpers";
-import type { FirestoreLedger, FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import type { FirestoreLedger, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -11,10 +11,11 @@ export async function GET(req: NextRequest) {
         }
 
         // Fetch all relevant documents
-        const [ledgerEntries, debts, debtPayments] = await Promise.all([
+        const [ledgerEntries, debts, debtPayments, utilities] = await Promise.all([
             getAllDocs<FirestoreLedger>('ledger'),
             getAllDocs<FirestoreDebt>('debts'),
-            getAllDocs<FirestoreDebtPayment>('debt_payments')
+            getAllDocs<FirestoreDebtPayment>('debt_payments'),
+            getAllDocs<FirestoreUtility>('utilities')
         ]);
 
         let totalCredit = 0;
@@ -22,6 +23,9 @@ export async function GET(req: NextRequest) {
 
         // Process Ledger entries
         for (const entry of ledgerEntries) {
+            // Skip legacy utility entries to avoid double counting with virtual entries
+            if (entry.note && entry.note.startsWith("Utility payment:")) continue;
+
             const amount = Number(entry.amount);
             if (entry.type === "credit") {
                 totalCredit += amount;
@@ -51,6 +55,13 @@ export async function GET(req: NextRequest) {
                     // Money we gave out and are waiting for
                     totalDebit += remaining;
                 }
+            }
+        }
+
+        // Process Paid Utilities (Expenses)
+        for (const util of utilities) {
+            if (util.status === 'paid') {
+                totalDebit += Number(util.amount);
             }
         }
 
