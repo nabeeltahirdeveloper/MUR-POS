@@ -182,7 +182,8 @@ export async function GET(req: NextRequest) {
       now,
       titleFor: (u, lead) => {
         const timePrefix = lead === 0 ? "URGENT: " : "";
-        return `${timePrefix}Utility bill due: ${(u as any).name ?? "Utility"}`;
+        const categoryLabel = (u as any).category ? ` (${(u as any).category})` : " (General)";
+        return `${timePrefix}Utility bill due: ${(u as any).name ?? "Utility"}${categoryLabel}`;
       },
       shouldAutoResolve: (u) => isUtilityPaid((u as any).status),
     });

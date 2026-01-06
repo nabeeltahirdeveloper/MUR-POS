@@ -208,6 +208,22 @@ export default function Header({
                                                         >
                                                             Restock
                                                         </Link>
+                                                    ) : r.type === "bill_due" && r.source?.id ? (
+                                                        <Link
+                                                            href={`/utilities?edit=${encodeURIComponent(r.source.id)}`}
+                                                            className="shrink-0 text-xs font-medium text-green-700 hover:underline"
+                                                            onClick={() => setPanelOpen(false)}
+                                                        >
+                                                            Pay Bill
+                                                        </Link>
+                                                    ) : r.type === "debt_due" && r.source?.id ? (
+                                                        <Link
+                                                            href={`/debts`}
+                                                            className="shrink-0 text-xs font-medium text-amber-700 hover:underline"
+                                                            onClick={() => setPanelOpen(false)}
+                                                        >
+                                                            View Loan
+                                                        </Link>
                                                     ) : (
                                                         <button
                                                             className="shrink-0 text-xs font-medium text-green-700 hover:underline"

@@ -20,7 +20,31 @@ export async function PATCH(
         if (category !== undefined) updateData.category = category;
         if (status !== undefined) updateData.status = status;
 
+        // Check if this is a payment (status changing to paid)
+        const existingUtility = await getDocById<FirestoreUtility>('utilities', id);
+        const isPayment = existingUtility && existingUtility.status === 'unpaid' && status === 'paid';
+
         await updateDoc('utilities', id, updateData);
+
+        // If paying a bill, create a ledger entry
+        if (isPayment && existingUtility) {
+            try {
+                const { createDoc } = await import('@/lib/firestore-helpers');
+                const ledgerEntry = {
+                    type: 'debit' as const,
+                    amount: existingUtility.amount,
+                    categoryId: null,
+                    note: `Utility payment: ${existingUtility.name}${existingUtility.category ? ` (${existingUtility.category})` : ''}`,
+                    date: new Date(),
+                    createdAt: new Date(),
+                };
+                await createDoc('ledger', ledgerEntry);
+                console.log(`Created ledger entry for utility payment: ${existingUtility.name}`);
+            } catch (ledgerError) {
+                console.error("Failed to create ledger entry for utility payment:", ledgerError);
+                // Don't fail the whole request if ledger creation fails
+            }
+        }
 
         // Sync reminders if due date or status changed
         const { syncUtilityReminders } = await import("@/lib/reminders");

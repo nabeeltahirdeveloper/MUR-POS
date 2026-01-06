@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { DashboardLayout } from "@/components/layout";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +20,7 @@ import {
 import type { FirestoreUtility } from "@/types/firestore";
 
 export default function UtilitiesPage() {
+    const searchParams = useSearchParams();
     const [utilities, setUtilities] = useState<FirestoreUtility[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -52,6 +54,22 @@ export default function UtilitiesPage() {
     useEffect(() => {
         fetchUtilities();
     }, []);
+
+    // Handle edit parameter from URL
+    useEffect(() => {
+        const editId = searchParams.get("edit");
+        if (editId && utilities.length > 0) {
+            const utility = utilities.find(u => u.id === editId);
+            if (utility) {
+                startEdit(utility);
+                // Scroll to form
+                setTimeout(() => {
+                    const formElement = document.querySelector('form');
+                    formElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+    }, [searchParams, utilities]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
