@@ -220,7 +220,6 @@ export async function syncUtilityReminders(utilityId: string): Promise<void> {
     if (lead === mostUrgentLead) {
       // This is the active milestone - upsert it
       const timePrefix = lead === 0 ? "URGENT: " : "";
-      const daysDesc = lead === 0 ? "today" : lead === 1 ? "tomorrow" : `in ${lead} days`;
       const categoryLabel = u.category ? ` (${u.category})` : " (General)";
 
       await upsertReminder({
@@ -228,7 +227,7 @@ export async function syncUtilityReminders(utilityId: string): Promise<void> {
         type: "bill_due",
         source: { collection: "utilities", id: utilityId },
         title: `${timePrefix}Utility bill due: ${u.name}${categoryLabel}`,
-        message: `Due date is ${fmtDate(dueDate)}. Reminder for ${daysDesc}.`,
+        message: `Due date is ${fmtDate(dueDate)}.`,
         triggerAt: computeDueTriggerAt(dueDate, lead),
         triggered: true,
         resolvedAt: null,
@@ -281,14 +280,12 @@ export async function syncDebtReminders(debtId: string): Promise<void> {
       // This is the active milestone - upsert it
       const loanType = d.type === "loaned_in" ? "Loan-In (Payable)" : "Loan-Out (Receivable)";
       const timePrefix = lead === 0 ? "URGENT: " : "";
-      const daysDesc = lead === 0 ? "today" : lead === 1 ? "tomorrow" : `in ${lead} days`;
-
       await upsertReminder({
         id,
         type: "debt_due",
         source: { collection: "debts", id: debtId },
         title: `${timePrefix}${loanType}: ${d.personName}`,
-        message: `Due date is ${fmtDate(dueDate)}. Reminder for ${daysDesc}.`,
+        message: `Due date is ${fmtDate(dueDate)}.`,
         triggerAt: computeDueTriggerAt(dueDate, lead),
         triggered: true,
         resolvedAt: null,

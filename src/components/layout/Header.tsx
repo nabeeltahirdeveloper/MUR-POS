@@ -180,66 +180,85 @@ export default function Header({
                                     {status === "authenticated" &&
                                         !loadingReminders &&
                                         !remindersError &&
-                                        reminders.map((r) => (
-                                            <div
-                                                key={r.id}
-                                                className="px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
-                                            >
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div className="min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700">
+                                        reminders.map((r) => {
+                                            const isLowStock = r.type === "low_stock";
+                                            const isBill = r.type === "bill_due";
+                                            const isDebt = r.type === "debt_due";
+
+                                            let badgeStyle = "bg-gray-100 text-gray-700 border-gray-200";
+                                            if (isLowStock) badgeStyle = "bg-rose-50 text-rose-700 border-rose-100";
+                                            if (isBill) badgeStyle = "bg-blue-50 text-blue-700 border-blue-100";
+                                            if (isDebt) badgeStyle = "bg-amber-50 text-amber-700 border-amber-100";
+
+                                            return (
+                                                <div
+                                                    key={r.id}
+                                                    className="group px-4 py-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/80 transition-all duration-200"
+                                                >
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${badgeStyle}`}>
                                                                 {reminderTypeLabel(r.type)}
                                                             </span>
-                                                            <div className="text-sm font-semibold text-gray-900 truncate">
-                                                                {r.title}
-                                                            </div>
+                                                            <button
+                                                                className="text-gray-300 hover:text-gray-500 p-1 rounded-full hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100"
+                                                                title="Dismiss"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    resolveFromHeader(r.id);
+                                                                }}
+                                                            >
+                                                                <XMarkIcon className="h-4 w-4" />
+                                                            </button>
                                                         </div>
-                                                        {r.message && (
-                                                            <div className="mt-1 text-xs text-gray-600 line-clamp-2">
-                                                                {r.message}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center gap-3 shrink-0">
-                                                        {r.type === "low_stock" && r.source?.id && (
-                                                            <Link
-                                                                href={`/items/${encodeURIComponent(r.source.id)}/stock`}
-                                                                className="text-xs font-medium text-primary-dark hover:underline"
-                                                                onClick={() => setPanelOpen(false)}
-                                                            >
-                                                                Restock
-                                                            </Link>
-                                                        )}
-                                                        {r.type === "bill_due" && r.source?.id && (
-                                                            <Link
-                                                                href={`/utilities?edit=${encodeURIComponent(r.source.id)}`}
-                                                                className="text-xs font-medium text-green-700 hover:underline"
-                                                                onClick={() => setPanelOpen(false)}
-                                                            >
-                                                                Pay Bill
-                                                            </Link>
-                                                        )}
-                                                        {r.type === "debt_due" && r.source?.id && (
-                                                            <Link
-                                                                href={`/debts`}
-                                                                className="text-xs font-medium text-amber-700 hover:underline"
-                                                                onClick={() => setPanelOpen(false)}
-                                                            >
-                                                                View Loan
-                                                            </Link>
-                                                        )}
-                                                        <button
-                                                            className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                                                            title="Dismiss"
-                                                            onClick={() => resolveFromHeader(r.id)}
-                                                        >
-                                                            <XMarkIcon className="h-4 w-4" />
-                                                        </button>
+
+                                                        <div className="space-y-1">
+                                                            <p className="text-sm font-bold text-gray-900 leading-tight">
+                                                                {r.title}
+                                                            </p>
+                                                            {r.message && (
+                                                                <p className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                    </svg>
+                                                                    {r.message}
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            {isLowStock && r.source?.id && (
+                                                                <Link
+                                                                    href={`/items/${encodeURIComponent(r.source.id)}/stock`}
+                                                                    className="flex-1 text-center text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-100 py-1.5 rounded-lg transition-colors"
+                                                                    onClick={() => setPanelOpen(false)}
+                                                                >
+                                                                    Restock Now
+                                                                </Link>
+                                                            )}
+                                                            {isBill && r.source?.id && (
+                                                                <Link
+                                                                    href={`/utilities?edit=${encodeURIComponent(r.source.id)}`}
+                                                                    className="flex-1 text-center text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 py-1.5 rounded-lg transition-colors"
+                                                                    onClick={() => setPanelOpen(false)}
+                                                                >
+                                                                    Pay Bill
+                                                                </Link>
+                                                            )}
+                                                            {isDebt && r.source?.id && (
+                                                                <Link
+                                                                    href={`/debts`}
+                                                                    className="flex-1 text-center text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-100 py-1.5 rounded-lg transition-colors"
+                                                                    onClick={() => setPanelOpen(false)}
+                                                                >
+                                                                    View Loan
+                                                                </Link>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                 </div>
                             </div>
                         )}
