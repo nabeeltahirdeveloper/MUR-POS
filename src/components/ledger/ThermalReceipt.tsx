@@ -145,11 +145,7 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                     </div>
 
                     <div className="text-center mb-3 pb-2 border-b-2 border-gray-800">
-                        <img
-                            src="/favicon.jpg"
-                            alt="Logo"
-                            className="h-16 w-16 rounded-full mx-auto mb-2 object-cover receipt-logo"
-                        />
+
                         <div className="text-3xl font-bold text-gray-900 mb-1">Moon Traders</div>
                         <div className="text-sm text-gray-900 tracking-wide font-semibold uppercase">{data.title || "RECEIPT"}</div>
                     </div>
@@ -218,7 +214,7 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                                 <div key={idx} className="grid grid-cols-[1fr_4ch_8ch_9ch] gap-2">
                                     <div className="break-words relative">
                                         {it.itemType === "Customize" && (
-                                            <span className="inline-block mr-1 px-1 rounded-sm bg-gray-800 text-white text-[10px] font-bold leading-none py-[2px] align-middle">
+                                            <span className="inline-block mr-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">
                                                 C
                                             </span>
                                         )}
