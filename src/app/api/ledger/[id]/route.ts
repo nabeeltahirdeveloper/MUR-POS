@@ -20,7 +20,7 @@ export async function GET(
             return NextResponse.json({ error: "Entry not found" }, { status: 404 });
         }
 
-        const category = entry.categoryId 
+        const category = entry.categoryId
             ? await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId)
             : null;
 
@@ -68,7 +68,24 @@ export async function PUT(
         }
 
         if (categoryId !== undefined) {
-            const categoryExists = await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId);
+            let categoryExists: boolean = false;
+            if (categoryId) {
+                // Check Ledger Categories
+                categoryExists = !!(await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
+                if (!categoryExists) {
+                    // Check Inventory Categories
+                    const { getDocById } = await import('@/lib/firestore-helpers');
+                    // Note: getDocById is already imported top-level but ensuring type safety/scope
+                    // Actually better to use the top level import.
+                    // Re-using Top Level import for checking 'categories'
+                    const invCat = await getDocById('categories', categoryId);
+                    categoryExists = !!invCat;
+                }
+            } else {
+                // categoryId is null/empty, valid as 'no category'
+                categoryExists = true;
+            }
+
             if (!categoryExists) {
                 return NextResponse.json({ error: "Invalid Category" }, { status: 400 });
             }

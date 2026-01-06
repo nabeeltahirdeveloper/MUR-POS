@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 
@@ -103,9 +103,67 @@ export default function LedgerEntryForm({
     const [isLoaded, setIsLoaded] = useState(false);
 
 
+    // --- Initialize from existing data (Edit Mode) ---
     useEffect(() => {
-        // Fetch Next Order Number
-        if (!initialData?.id) {
+        if (initialData?.id) {
+            // Populate basic fields
+            if (initialData.categoryId) {
+                // Category is less important for display but stored. 
+            }
+            // Parse Note
+            const parsed = parseTransactionNote(initialData.note || "");
+            setOrderNumber(parsed.orderNumber);
+            setPartyName(parsed.partyName);
+            setPartyPhone(parsed.customerPhone);
+            setPartyAddress(parsed.customerAddress);
+            setPaymentType(parsed.paymentType as any);
+
+            // Reconstruct Cart Item
+            // Note: Since we only have one 'note' per entry traditionally, but logically we might have multiple if batch.
+            // But here initialData is a SINGLE LedgerEntry from /api/ledger/[id].
+            // If it was created as part of a batch, this entry represents ONE line item usually.
+            // If the user wants to edit the WHOLE bill, we might need a batch edit mode?
+            // Assuming simplified: 1 ledger entry = 1 transaction row.
+
+            // Rehydrate items into Cart
+            // We need to fetch the Item object to have full details (stock, prices) if we want full edit capability.
+            // For now we reconstruct a minimal CartItem.
+            const quantity = parsed.quantity || 1;
+            const unitPrice = parsed.unitPrice || 0;
+            const amount = Number(initialData.amount) || 0;
+
+            // Try to find item ID from initialData.itemId if available (schema check needed), 
+            // BUT schema says 'Ledger' has 'categoryId' but maybe not 'itemId' directly exposed in `LedgerEntry` type above?
+            // Actually `Ledger` does NOT have itemId in `src/components/ledger/LedgerEntryForm.tsx` type definition lines 7-14.
+            // It just has `note`. 
+            // Ideally we need the Item ID to properly edit/validate stock. 
+            // If we don't have it, we can't fully 'Edit' the item selection effectively without searching again.
+            // However, we can display it.
+
+            // Mock Item for Cart
+            const reconstructItem: CartItem = {
+                tempId: Date.now().toString(),
+                item: {
+                    id: 'unknown', // We might lose the link if not saved in note or separate field
+                    name: parsed.itemName,
+                    firstSalePrice: unitPrice, // assume current price
+                    categoryId: initialData.categoryId || undefined, // Preserve existing Category ID
+                },
+                quantity: quantity,
+                unitPrice: unitPrice,
+                amount: amount,
+                note: parsed.itemType
+            };
+            setCartItems([reconstructItem]);
+
+            // Set Advance/Remaining
+            if (parsed.advance != null) setAdvanceAmount(String(parsed.advance));
+            // If remaining is present, it will be auto-calced by effect if we set advance.
+
+            // However, if we are in 'Edit', we want to allow updating the Payment.
+            // If the user clears the remaining, they likely change 'Advance' to equal 'Total'.
+        } else {
+            // Fetch Next Order Number only if NEW entry
             fetch('/api/ledger/next-order')
                 .then(res => res.json())
                 .then(data => {
@@ -115,7 +173,7 @@ export default function LedgerEntryForm({
                 })
                 .catch(err => console.error("Failed to fetch next order number", err));
         }
-    }, [initialData?.id]);
+    }, [initialData]);
 
     const isEdit = !!initialData?.id;
 
@@ -199,15 +257,50 @@ export default function LedgerEntryForm({
     }, [unitPrice, quantity]);
 
     // Calculate Grand Total and update Remaining
-    const displayTotal = cartItems.reduce((acc, curr) => acc + curr.amount, 0);
+    // Calculate Grand Total and update Remaining
+    // We must include the current line item if it's being edited or typed but not added yet, 
+    // IF the user intends for "Advance" to apply to the whole expected bill.
+    // However, typically 'displayTotal' is just Cart. 
+    // If the user wants to calculate against the *Current Item* as well (Single Entry flow), we should include it.
+    const currentLineValue = parseFloat(lineAmount) || 0;
+    // If we are editing an item, its old value is in cart, so we should subtract old and add new? 
+    // Complexity! Simply: `displayTotal` is strictly CART items.
+    // If the user is typing a new item, it's NOT in `displayTotal`. 
+    // The user wants the Remaining to reflect (Cart + CurrentItem) - Advance.
+
+    // Logic: If there are cart items, use cart items. If cart is empty, use current line item. 
+    // BETTER Logic: Use (Cart Items + Current Item Amount (if valid item selected)).
+    // BUT: Does the user want `Remaining` to change as they type quantity? Yes.
+
+    // Correct logic for "Total Bill Value" currently on screen:
+    // If editingCartId -> exclude that item from cart sum, add current `lineAmount`.
+    // Else -> add `lineAmount` to cart sum.
+
+    const effectiveTotal = useMemo(() => {
+        let total = 0;
+        if (editingCartId) {
+            total = cartItems.reduce((acc, curr) => curr.tempId === editingCartId ? acc : acc + curr.amount, 0);
+            total += currentLineValue;
+        } else {
+            total = cartItems.reduce((acc, curr) => acc + curr.amount, 0);
+            // Only add current line value if there's a selected item, otherwise it might be just noise?
+            // Actually if they typed quantity and price, it's valid potential amount.
+            if (selectedItem) {
+                total += currentLineValue;
+            }
+        }
+        return total;
+    }, [cartItems, editingCartId, currentLineValue, selectedItem]);
+
+    const displayTotal = cartItems.reduce((acc, curr) => acc + curr.amount, 0); // Keep for Table Footer
 
     useEffect(() => {
         if (advanceAmount === "") {
-            setRemainingAmount(displayTotal);
+            setRemainingAmount(effectiveTotal);
         } else {
-            setRemainingAmount(displayTotal - Number(advanceAmount));
+            setRemainingAmount(effectiveTotal - Number(advanceAmount));
         }
-    }, [displayTotal, advanceAmount]);
+    }, [effectiveTotal, advanceAmount]);
 
     // --- Handlers ---
 
@@ -249,7 +342,7 @@ export default function LedgerEntryForm({
                 setStockErrorModal({
                     open: true,
                     message: existingInCart > 0
-                        ? `You have already added all available stock (${currentStock}) to the cart!`
+                        ? `You have already added all available stock(${currentStock}) to the cart!`
                         : "This item is currently out of stock!"
                 });
                 return;
@@ -259,7 +352,7 @@ export default function LedgerEntryForm({
             if (requestedQty > availableStock) {
                 setStockErrorModal({
                     open: true,
-                    message: `Only ${availableStock} item(s) are remaining in stock! Please decrease the quantity.` + (existingInCart > 0 ? ` (You have ${existingInCart} in cart)` : "")
+                    message: `Only ${availableStock} item(s) are remaining in stock! Please decrease the quantity.` + (existingInCart > 0 ? `(You have ${existingInCart} in cart)` : "")
                 });
                 return;
             }
@@ -414,26 +507,26 @@ export default function LedgerEntryForm({
                 });
                 if (!partyRes.ok) {
                     const d = await partyRes.json();
-                    throw new Error(d.error || `Failed to create ${type === 'credit' ? 'customer' : 'supplier'}`);
+                    throw new Error(d.error || `Failed to create ${type === 'credit' ? 'customer' : 'supplier'} `);
                 }
                 // Party created successfully
             }
 
             const promises = itemsToSave.map(cartItem => {
                 const parts = [];
-                if (orderNumber) parts.push(`Order #${orderNumber}`);
-                if (partyName) parts.push(`${type === 'credit' ? 'Customer' : 'Supplier'}: ${partyName}`);
-                if (partyPhone) parts.push(`Phone: ${partyPhone}`);
-                if (partyAddress) parts.push(`Address: ${partyAddress}`);
-                parts.push(`Payment: ${paymentType}`);
+                if (orderNumber) parts.push(`Order #${orderNumber} `);
+                if (partyName) parts.push(`${type === 'credit' ? 'Customer' : 'Supplier'}: ${partyName} `);
+                if (partyPhone) parts.push(`Phone: ${partyPhone} `);
+                if (partyAddress) parts.push(`Address: ${partyAddress} `);
+                parts.push(`Payment: ${paymentType} `);
 
                 // Item Note: [Stock/Customize] Item Name (Qty...)
-                const typePrefix = cartItem.note ? `[${cartItem.note}] ` : "";
-                parts.push(`Item: ${typePrefix}${cartItem.item.name} (Qty: ${cartItem.quantity} @ ${cartItem.unitPrice})`);
+                const typePrefix = cartItem.note ? `[${cartItem.note}]` : "";
+                parts.push(`Item: ${typePrefix}${cartItem.item.name} (Qty: ${cartItem.quantity} @${cartItem.unitPrice})`);
 
                 // Add Advance & Remaining to the first item (or all, but parsing will take first valid)
-                if (advanceAmount !== "") parts.push(`Advance: ${advanceAmount}`);
-                if (remainingAmount !== undefined) parts.push(`Remaining: ${remainingAmount}`);
+                if (advanceAmount !== "") parts.push(`Advance: ${advanceAmount} `);
+                if (remainingAmount !== undefined) parts.push(`Remaining: ${remainingAmount} `);
 
                 const finalNote = parts.join('\n');
 
@@ -467,7 +560,7 @@ export default function LedgerEntryForm({
 
             // Group as a single bill for the session history
             const billData = {
-                id: results[0].id || `batch-${Date.now()}`,
+                id: results[0].id || `batch - ${Date.now()} `,
                 allIds: results.map(r => r.id).filter(Boolean).join(','),
                 items: results.map(r => {
                     const parsed = parseTransactionNote(r.note || "");
@@ -523,8 +616,8 @@ export default function LedgerEntryForm({
         let itemType = "Stock";
         let quantity = 1;
         let unitPrice = 0;
-        let advance = undefined;
-        let remaining = undefined;
+        let advance: number | undefined = undefined;
+        let remaining: number | undefined = undefined;
 
         lines.forEach(line => {
             if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
@@ -586,7 +679,7 @@ export default function LedgerEntryForm({
                         <div>
                             <h2 className="text-2xl font-black text-white flex items-center gap-3">
                                 {isEdit ? "Edit Transaction" : (type === 'credit' ? 'Cash-In-Entry' : 'Cash-Out-Entry')}
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest ${type === 'credit' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                                <span className={`text - [10px] px - 2 py - 0.5 rounded - full uppercase tracking - widest ${type === 'credit' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'} `}>
                                     {type === 'credit' ? 'Cash-In' : 'Cash-Out'}
                                 </span>
                             </h2>
@@ -978,7 +1071,7 @@ export default function LedgerEntryForm({
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`w-full md:w-auto px-12 py-3 rounded-xl font-bold text-slate-900 shadow-xl shadow-primary/20 transition-all transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary hover:bg-primary-dark"}`}
+                                className={`w - full md: w - auto px - 12 py - 3 rounded - xl font - bold text - slate - 900 shadow - xl shadow - primary / 20 transition - all transform hover: -translate - y - 0.5 active: scale - 95 flex items - center justify - center gap - 3 whitespace - nowrap ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary hover:bg-primary-dark"} `}
                             >
                                 {loading && <svg className="animate-spin h-5 w-5 text-slate-900" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>}
                                 <span className="uppercase tracking-widest">{isEdit ? 'Update Entry' : 'Save'}</span>
@@ -1038,15 +1131,15 @@ export default function LedgerEntryForm({
                                             <td className="px-6 py-4 text-center text-gray-600 font-bold">
                                                 {bill.items.reduce((acc: number, it: any) => acc + (it.quantity || 0), 0)}
                                             </td>
-                                            <td className={`px-6 py-4 text-right font-bold text-lg ${bill.type === 'credit' ? 'text-emerald-600' : 'text-red-600'}`}>
+                                            <td className={`px - 6 py - 4 text - right font - bold text - lg ${bill.type === 'credit' ? 'text-emerald-600' : 'text-red-600'} `}>
                                                 Rs. {Number(bill.total).toLocaleString()}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() => {
-                                                            if (bill.allIds) window.open(`/ledger/receipt/batch?ids=${bill.allIds}`, '_blank');
-                                                            else if (bill.id) window.open(`/ledger/receipt/${bill.id}`, '_blank');
+                                                            if (bill.allIds) window.open(`/ ledger / receipt / batch ? ids = ${bill.allIds} `, '_blank');
+                                                            else if (bill.id) window.open(`/ ledger / receipt / ${bill.id} `, '_blank');
                                                         }}
                                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-800 hover:text-white text-gray-700 rounded-lg text-xs font-bold transition-all shadow-sm"
                                                         title="Print Bill"
