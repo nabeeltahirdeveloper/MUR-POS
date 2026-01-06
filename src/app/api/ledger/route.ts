@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById, getAllDocs } from "@/lib/firestore-helpers";
-import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -52,12 +52,13 @@ export async function GET(req: NextRequest) {
         let usedFallback = false;
 
         // Fetch everything relevant
-        const [rawLedger, rawDebts, rawPayments] = await Promise.all([
+        const [rawLedger, rawDebts, rawPayments, rawUtilities] = await Promise.all([
             filters.length > 0
                 ? queryDocs<FirestoreLedger>('ledger', filters).catch(() => { usedFallback = true; return getAllDocs<FirestoreLedger>('ledger'); })
                 : getAllDocs<FirestoreLedger>('ledger'),
             getAllDocs<FirestoreDebt>('debts'),
-            getAllDocs<FirestoreDebtPayment>('debt_payments')
+            getAllDocs<FirestoreDebtPayment>('debt_payments'),
+            getAllDocs<FirestoreUtility>('utilities')
         ]);
 
         entries = rawLedger;
@@ -131,6 +132,26 @@ export async function GET(req: NextRequest) {
             });
         });
 
+        // 3. Process Utilities (Paid Bills)
+        rawUtilities.forEach(util => {
+            // Only show paid utilities as ledger entries (Cash-Out)
+            if (util.status !== 'paid') return;
+
+            const uDate = util.dueDate instanceof Date ? util.dueDate : (util.dueDate?.toDate ? util.dueDate.toDate() : new Date(util.dueDate));
+            if (dateFrom && uDate < dateFrom) return;
+            if (dateTo && uDate > dateTo) return;
+            if (type && type !== 'debit') return; // Utilities are usually expenses (debit)
+
+            virtualEntries.push({
+                id: `util_${util.id}`,
+                type: 'debit',
+                amount: util.amount,
+                note: `[Bill] ${util.name}`,
+                date: util.dueDate,
+                category: { name: util.category || 'Utility' }
+            });
+        });
+
         // Merge and sort
         entries = [...entries, ...virtualEntries].sort((a, b) => {
             const da = a.date instanceof Date ? a.date : (a.date?.toDate ? a.date.toDate() : new Date(a.date));
@@ -142,7 +163,8 @@ export async function GET(req: NextRequest) {
         if (search) {
             const searchLower = search.toLowerCase();
             entries = entries.filter(entry =>
-                entry.note?.toLowerCase().includes(searchLower)
+                entry.note?.toLowerCase().includes(searchLower) ||
+                entry.category?.name?.toLowerCase().includes(searchLower)
             );
         }
 

@@ -52,11 +52,11 @@ export default function LedgerTable({
 
     // Helper to parse existing notes based on the standardized format
     const parseTransactionNote = (note: string | null) => {
-        if (!note) return { orderNumber: "-", customerName: "-", itemName: "-", quantity: null, unitPrice: null, isStructured: false };
+        if (!note) return { orderNumber: "-", title: "-", itemName: "-", quantity: null, unitPrice: null, isStructured: false };
 
         const lines = note.split('\n');
         let orderNumber = "";
-        let customerName = "";
+        let title = "";
         let itemName = "";
         let quantity: number | null = null;
         let unitPrice: number | null = null;
@@ -68,7 +68,11 @@ export default function LedgerTable({
                 isStructured = true;
             }
             else if (line.startsWith("Customer: ")) {
-                customerName = line.replace("Customer: ", "").trim();
+                title = line.replace("Customer: ", "").trim();
+                isStructured = true;
+            }
+            else if (line.startsWith("Supplier: ")) {
+                title = line.replace("Supplier: ", "").trim();
                 isStructured = true;
             }
             else if (line.startsWith("Item: ")) {
@@ -86,12 +90,42 @@ export default function LedgerTable({
 
         if (!isStructured) {
             // Fallback for manual/unstructured notes
-            return { orderNumber: "-", customerName: "-", itemName: note, quantity: null, unitPrice: null, isStructured: false };
+            // If it matches [Loan] Person: Note format (from virtual entries)
+            if (note.startsWith("[Loan] ") || note.startsWith("[Payment] ")) {
+                const parts = note.split(":");
+                title = parts[0].trim(); // "[Loan] Name" or "[Payment] Name" initially
+
+                // Try to extract strict name if pattern matches
+                const nameMatch = note.match(/^\[(Loan|Payment)\] (.*?):/);
+                if (nameMatch) {
+                    title = nameMatch[2].trim();
+                    itemName = note.replace(nameMatch[0], "").trim();
+                }
+
+                if (!itemName) itemName = note.startsWith("[Payment]") ? "Loan Repayment" : "Loan Given";
+
+                // If title still has the [Prefix], clean it up slightly if needed, but the regex above handles most.
+                // Fallback if regex didn't match (e.g. no colon)
+                if (title.startsWith("[")) {
+                    const endBracket = title.indexOf("]");
+                    if (endBracket !== -1) {
+                        title = title.substring(endBracket + 1).trim();
+                    }
+                }
+            }
+            else if (note.startsWith("[Bill] ")) {
+                title = note.replace("[Bill] ", "").trim();
+                itemName = "Utility Bill Payment";
+            }
+            else {
+                title = "-";
+                itemName = note;
+            }
         }
 
         return {
             orderNumber: orderNumber || "-",
-            customerName: customerName || "-",
+            title: title || "-",
             itemName: itemName || "-",
             quantity,
             unitPrice,
@@ -101,7 +135,7 @@ export default function LedgerTable({
 
     const isVirtualEntry = (id: string | number): boolean => {
         const idStr = String(id);
-        return idStr.startsWith('debt_') || idStr.startsWith('pay_');
+        return idStr.startsWith('debt_') || idStr.startsWith('pay_') || idStr.startsWith('util_');
     };
 
     const columns = [
@@ -119,16 +153,25 @@ export default function LedgerTable({
             },
         },
         {
-            key: "customer",
-            header: "Customer",
+            key: "category",
+            header: "Category",
+            render: (_: any, row: LedgerEntry) => (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                    {row.category?.name || "Uncategorized"}
+                </span>
+            ),
+        },
+        {
+            key: "title",
+            header: "Name / Title",
             render: (_: any, row: LedgerEntry) => {
-                const { customerName } = parseTransactionNote(row.note);
-                return <span className="text-gray-900 font-medium">{customerName}</span>;
+                const { title } = parseTransactionNote(row.note);
+                return <span className="text-gray-900 font-medium">{title}</span>;
             },
         },
         {
             key: "item",
-            header: "Item",
+            header: "Item / Note",
             render: (_: any, row: LedgerEntry) => {
                 const { itemName } = parseTransactionNote(row.note);
                 return <span className="text-gray-900 font-medium">{itemName}</span>;
@@ -181,19 +224,30 @@ export default function LedgerTable({
                 const isVirtual = isVirtualEntry(row.id);
 
                 if (isVirtual) {
-                    // For virtual loan entries, show "View Loan" button
+                    // For virtual entries
+                    const idStr = String(row.id);
+                    let redirectUrl = '/debts';
+                    let label = 'View Loan';
+                    let manageText = '(Manage in Debts)';
+
+                    if (idStr.startsWith('util_')) {
+                        redirectUrl = '/utilities'; // Assuming you have a utilities page
+                        label = 'View Bill';
+                        manageText = '(Manage in Utilities)';
+                    }
+
                     return (
                         <div className="flex gap-2">
                             <Button
                                 size="sm"
                                 variant="secondary"
-                                onClick={() => window.location.href = '/debts'}
-                                title="View in Loans page"
+                                onClick={() => window.location.href = redirectUrl}
+                                title={label}
                             >
-                                View Loan
+                                {label}
                             </Button>
-                            <span className="text-xs text-gray-400 self-center">
-                                (Manage in Debts)
+                            <span className="text-xs text-gray-400 self-center hidden lg:inline">
+                                {manageText}
                             </span>
                         </div>
                     );
