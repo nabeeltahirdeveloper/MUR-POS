@@ -2,11 +2,12 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, BuildingStorefrontIcon } from "@heroicons/react/24/outline";
 import LedgerTable from "@/components/ledger/LedgerTable";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/layout";
 import LedgerCustomerSummary from "@/components/ledger/LedgerCustomerSummary";
+import LedgerSupplierSummary from "@/components/ledger/LedgerSupplierSummary";
 
 function LedgerPageContent() {
     const router = useRouter();
@@ -25,7 +26,7 @@ function LedgerPageContent() {
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
-    const [view, setView] = useState<"entries" | "customers">("entries");
+    const [view, setView] = useState<"entries" | "customers" | "suppliers">("entries");
     const [showTransactionModal, setShowTransactionModal] = useState(false);
 
     useEffect(() => {
@@ -115,8 +116,8 @@ function LedgerPageContent() {
     const hasActiveFilters =
         filters.search || filters.type || filters.categoryId || filters.from || filters.to;
 
-    const handleViewEntries = (customerName: string) => {
-        setFilters(prev => ({ ...prev, search: customerName, page: 1 }));
+    const handleViewEntries = (name: string) => {
+        setFilters(prev => ({ ...prev, search: name, page: 1 }));
         setView("entries");
     };
 
@@ -124,7 +125,7 @@ function LedgerPageContent() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h1 className="text-2xl font-bold text-gray-900">Ledger</h1>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                     <div className="bg-gray-100 p-1 rounded-lg flex mr-2">
                         <button
                             onClick={() => setView("customers")}
@@ -137,6 +138,16 @@ function LedgerPageContent() {
                             By Customer
                         </button>
                         <button
+                            onClick={() => setView("suppliers")}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "suppliers"
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                        >
+                            <BuildingStorefrontIcon className="h-4 w-4 mr-1.5" />
+                            By Supplier
+                        </button>
+                        <button
                             onClick={() => setView("entries")}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "entries"
                                 ? "bg-white text-blue-600 shadow-sm"
@@ -147,17 +158,17 @@ function LedgerPageContent() {
                             All Entries
                         </button>
                     </div>
-                    {view === "entries" && (
-                        <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
-                            <FunnelIcon className="h-5 w-5 mr-2" />
-                            Filters
-                            {hasActiveFilters && (
-                                <span className="ml-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
-                                    Active
-                                </span>
-                            )}
-                        </Button>
-                    )}
+
+                    <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
+                        <FunnelIcon className="h-5 w-5 mr-2" />
+                        Filters
+                        {hasActiveFilters && (
+                            <span className="ml-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                                Active
+                            </span>
+                        )}
+                    </Button>
+
                     <Button onClick={() => setShowTransactionModal(true)}>
                         <PlusIcon className="h-5 w-5 mr-2" />
                         Add Entry
@@ -256,6 +267,8 @@ function LedgerPageContent() {
 
             {view === "customers" ? (
                 <LedgerCustomerSummary onViewEntries={handleViewEntries} />
+            ) : view === "suppliers" ? (
+                <LedgerSupplierSummary onViewEntries={handleViewEntries} />
             ) : (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <LedgerTable
