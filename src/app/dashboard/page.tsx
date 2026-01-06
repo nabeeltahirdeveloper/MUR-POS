@@ -25,6 +25,7 @@ function DashboardContent() {
     const [totalSummary, setTotalSummary] = useState<any>(null);
     const [upcomingUtilities, setUpcomingUtilities] = useState<any[]>([]);
     const [debtSummary, setDebtSummary] = useState<any[]>([]);
+    const [pendingLedger, setPendingLedger] = useState<any[]>([]);
     const [showTransactionModal, setShowTransactionModal] = useState(false);
     const [currency, setCurrency] = useState({ symbol: "Rs.", position: "prefix" });
 
@@ -73,6 +74,52 @@ function DashboardContent() {
                     if (Array.isArray(data)) {
                         const active = data.filter((d: any) => d.status === 'active').slice(0, 5);
                         setDebtSummary(active);
+                    }
+                }
+
+                const resLedger = await fetch('/api/ledger?search=Remaining:&limit=100');
+                if (resLedger.ok) {
+                    const data = await resLedger.json();
+                    if (data.data && Array.isArray(data.data)) {
+                        const pending = data.data.filter((e: any) => {
+                            const match = e.note?.match(/Remaining: (\d+)/);
+                            if (match) {
+                                return Number(match[1]) > 0;
+                            }
+                            return false;
+                        }).map((e: any) => {
+                            const remaining = Number(e.note?.match(/Remaining: (\d+)/)[1]);
+                            // Extract customer name
+                            let person = "Unknown";
+                            const customerMatch = e.note?.match(/Customer: (.*?)(?:\n|$)/);
+                            const supplierMatch = e.note?.match(/Supplier: (.*?)(?:\n|$)/);
+
+                            if (customerMatch) person = customerMatch[1].trim();
+                            else if (supplierMatch) person = supplierMatch[1].trim();
+
+                            return { ...e, remaining, personName: person };
+                        });
+                        // Deduplicate by Order # or Customer+Date
+                        const uniqueBills: any[] = [];
+                        const seenKeys = new Set();
+
+                        pending.forEach((e: any) => {
+                            let orderNum = "-";
+                            const orderMatch = e.note?.match(/Order #\s*([^\n]+)/);
+                            if (orderMatch) orderNum = orderMatch[1].trim();
+
+                            const key = orderNum !== "-"
+                                ? `ORD-${orderNum}`
+                                : `DATE-${e.date.split('T')[0]}-CUS-${e.personName}`;
+
+                            if (!seenKeys.has(key)) {
+                                seenKeys.add(key);
+                                uniqueBills.push(e);
+                            }
+                        });
+
+
+                        setPendingLedger(uniqueBills.slice(0, 5));
                     }
                 }
             } catch (err) {
@@ -270,14 +317,37 @@ function DashboardContent() {
                                 </div>
                                 <h3 className="font-bold text-gray-900">Pending Payments</h3>
                             </div>
-                            <Link href="/ledger?view=pending" className="text-xs font-bold text-yellow-700 hover:underline">View All</Link>
+                            <Link href="/ledger?search=Remaining:" className="text-xs font-bold text-yellow-700 hover:underline">View All</Link>
                         </div>
-                        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                            <div className="p-3 bg-yellow-50 rounded-full mb-3">
-                                <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </div>
-                            <p className="text-sm font-bold text-gray-500 mb-1">Check Ledger</p>
-                            <p className="text-xs text-gray-400">View transactions with remaining amounts</p>
+                        <div className="flex-1">
+                            {pendingLedger.length > 0 ? (
+                                <div className="divide-y divide-gray-100">
+                                    {pendingLedger.map((entry) => (
+                                        <div key={entry.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/80 transition-colors">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-gray-900">{entry.personName}</span>
+                                                <span className="text-[10px] font-bold text-gray-400">
+                                                    {new Date(entry.date).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-mono font-bold text-red-600">{formatCurr(entry.remaining)}</p>
+                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block mt-1 ${entry.type === 'credit' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                                    {entry.type === 'credit' ? 'Receivable' : 'Payable'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
+                                    <div className="p-3 bg-yellow-50 rounded-full mb-3">
+                                        <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </div>
+                                    <p className="text-sm font-bold text-gray-500 mb-1">No Pending Payments</p>
+                                    <p className="text-xs text-gray-400">All transactions are settled.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
