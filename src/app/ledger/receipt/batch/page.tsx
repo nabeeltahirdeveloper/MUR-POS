@@ -32,10 +32,11 @@ const parseTransactionNote = (note: string) => {
         else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
         else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
         else if (line.startsWith("Item: ")) {
-            const match = line.match(/Item: (?:\[(.*?)\] )?(.*) \(Qty: (\d+) @ (.*)\)/);
+            // Robust Regex matching updated LedgerEntryForm
+            const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (\d+)\s*@\s*(.*)\)/);
             if (match) {
                 itemType = match[1] || "Stock";
-                itemName = match[2];
+                itemName = match[2].trim();
                 quantity = Number(match[3]);
                 unitPrice = Number(match[4]);
             } else {

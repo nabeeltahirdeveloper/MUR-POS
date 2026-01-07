@@ -521,7 +521,7 @@ export default function LedgerEntryForm({
                 parts.push(`Payment: ${paymentType} `);
 
                 // Item Note: [Stock/Customize] Item Name (Qty...)
-                const typePrefix = cartItem.note ? `[${cartItem.note}]` : "";
+                const typePrefix = cartItem.note ? `[${cartItem.note}] ` : "";
                 parts.push(`Item: ${typePrefix}${cartItem.item.name} (Qty: ${cartItem.quantity} @${cartItem.unitPrice})`);
 
                 // Add Advance & Remaining to the first item (or all, but parsing will take first valid)
@@ -629,8 +629,8 @@ export default function LedgerEntryForm({
             else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
             else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
             else if (line.startsWith("Item: ")) {
-                // Item: [Type] Name (Qty: X @ Y)
-                const match = line.match(/Item: (?:\[(.*?)\] )?(.*) \(Qty: (\d+) @ (.*)\)/);
+                // Item: [Type] Name (Qty: X @ Y) - Handle optional space after ]
+                const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (\d+)\s*@\s*(.*)\)/);
                 if (match) {
                     itemType = match[1] || "Stock";
                     itemName = match[2];
@@ -1040,7 +1040,7 @@ export default function LedgerEntryForm({
                                         {cartItems.map((item) => (
                                             <tr key={item.tempId} className="hover:bg-primary/5 transition-colors">
                                                 <td className="px-4 py-3 font-medium text-gray-800">{item.item.name}</td>
-                                                <td className="px-4 py-3 text-center">{item.quantity}</td>
+                                                <td className="px-4 py-3 text-center text-gray-900 font-bold">{item.quantity}</td>
                                                 <td className="px-4 py-3 text-right text-gray-500">Rs. {item.unitPrice}</td>
                                                 <td className="px-4 py-3 text-right font-bold text-gray-800">Rs. {item.amount.toLocaleString()}</td>
                                                 <td className="px-4 py-3 text-center space-x-2">
@@ -1101,8 +1101,9 @@ export default function LedgerEntryForm({
                                     <th className="px-6 py-3">{type === 'credit' ? 'Customer' : 'Supplier'}</th>
                                     <th className="px-6 py-3">Date & Time</th>
                                     <th className="px-6 py-3">Item</th>
+                                    <th className="px-6 py-3 text-center">Price</th>
                                     <th className="px-6 py-3 text-center">Qty</th>
-                                    <th className="px-6 py-3 text-right">Amount</th>
+                                    <th className="px-6 py-3 text-center">Amount</th>
                                     <th className="px-6 py-3 text-center">Action</th>
                                 </tr>
                             </thead>
@@ -1132,18 +1133,25 @@ export default function LedgerEntryForm({
                                                     bill.items[0]?.itemName || "N/A"
                                                 )}
                                             </td>
+                                            <td className="px-6 py-4 text-center text-gray-600 font-medium">
+                                                {bill.items.length > 1 ? (
+                                                    <span className="text-xs text-gray-400">---</span>
+                                                ) : (
+                                                    `Rs. ${bill.items[0]?.unitPrice || 0}`
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 text-center text-gray-600 font-bold">
                                                 {bill.items.reduce((acc: number, it: any) => acc + (it.quantity || 0), 0)}
                                             </td>
-                                            <td className={`px - 6 py - 4 text - right font - bold text - lg ${bill.type === 'credit' ? 'text-emerald-600' : 'text-red-600'} `}>
+                                            <td className={`px-6 py-4 text-center font-bold text-lg ${bill.type === 'credit' ? 'text-emerald-600' : 'text-red-600'} `}>
                                                 Rs. {Number(bill.total).toLocaleString()}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() => {
-                                                            if (bill.allIds) window.open(`/ ledger / receipt / batch ? ids = ${bill.allIds} `, '_blank');
-                                                            else if (bill.id) window.open(`/ ledger / receipt / ${bill.id} `, '_blank');
+                                                            if (bill.allIds) window.open(`/ledger/receipt/batch?ids=${bill.allIds}`, '_blank');
+                                                            else if (bill.id) window.open(`/ledger/receipt/${bill.id}`, '_blank');
                                                         }}
                                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-800 hover:text-white text-gray-700 rounded-lg text-xs font-bold transition-all shadow-sm"
                                                         title="Print Bill"
