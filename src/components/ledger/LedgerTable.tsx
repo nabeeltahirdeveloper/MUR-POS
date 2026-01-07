@@ -18,6 +18,8 @@ interface LedgerTableProps {
     onEdit: (id: string | number) => void;
     onDelete: (id: string | number) => void;
     loading?: boolean;
+    selectedIds?: (string | number)[];
+    onSelectionChange?: (ids: (string | number)[]) => void;
 }
 
 export default function LedgerTable({
@@ -25,6 +27,8 @@ export default function LedgerTable({
     onEdit,
     onDelete,
     loading,
+    selectedIds = [],
+    onSelectionChange,
 }: LedgerTableProps) {
     const [currency, setCurrency] = React.useState({ symbol: "Rs.", position: "prefix" });
 
@@ -160,7 +164,38 @@ export default function LedgerTable({
         return idStr.startsWith('debt_') || idStr.startsWith('pay_') || idStr.startsWith('util_');
     };
 
+    const toggleSelection = (id: string | number) => {
+        if (!onSelectionChange) return;
+        const newSelection = selectedIds.includes(id)
+            ? selectedIds.filter(selectedId => selectedId !== id)
+            : [...selectedIds, id];
+        onSelectionChange(newSelection);
+    };
+
+    const toggleSelectAll = () => {
+        if (!onSelectionChange) return;
+        if (selectedIds.length === data.length && data.length > 0) {
+            onSelectionChange([]);
+        } else {
+            onSelectionChange(data.map(d => d.id));
+        }
+    };
+
     const columns = [
+        {
+            key: "select",
+            header: <div className="flex justify-center"><input type="checkbox" checked={data.length > 0 && selectedIds.length === data.length} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></div>,
+            render: (_: any, row: LedgerEntry) => (
+                <div className="flex justify-center">
+                    <input
+                        type="checkbox"
+                        checked={selectedIds.includes(row.id)}
+                        onChange={() => toggleSelection(row.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                </div>
+            ),
+        },
         {
             key: "date",
             header: "Date",
