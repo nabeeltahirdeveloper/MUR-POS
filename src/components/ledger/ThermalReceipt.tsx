@@ -72,8 +72,9 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                     .print-hide { display: none !important; }
                     .receipt {
                         width: var(--paper-width) !important;
-                        margin: 0 auto !important;
-                        padding: 30px 6mm !important;
+                        margin: -95px auto !important;
+                        overflow: visible !important;
+                        padding: 0 6mm !important;
                         box-shadow: none !important;
                         border: none !important;
                         position: relative !important;
