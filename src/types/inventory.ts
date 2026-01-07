@@ -21,6 +21,8 @@ export interface Item {
     secondPurchasePrice?: number | null;
     supplierId?: string | null;
     orderNumber?: number | null;
+    image?: string | null;
+    description?: string | null;
     createdAt: string;
 
     category?: Category;

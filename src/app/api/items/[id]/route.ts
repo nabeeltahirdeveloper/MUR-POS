@@ -62,7 +62,10 @@ export async function PUT(
             firstSalePrice,
             secondPurchasePrice,
             supplierId,
+
             orderNumber,
+            image,
+            description,
         } = body;
 
         // TODO: Add check if we can change units safely if stock exists?
@@ -87,6 +90,8 @@ export async function PUT(
         }
         if (supplierId !== undefined) updateData.supplierId = supplierId || null;
         if (orderNumber !== undefined) updateData.orderNumber = orderNumber || null;
+        if (image !== undefined) updateData.image = image || null;
+        if (description !== undefined) updateData.description = description || null;
 
         const { updateDoc } = await import('@/lib/firestore-helpers');
         await updateDoc<Partial<FirestoreItem>>('items', id, updateData);

@@ -109,6 +109,8 @@ export async function POST(request: NextRequest) {
             firstSalePrice,
             secondPurchasePrice,
             supplierId,
+            image,
+            description,
         } = body;
 
         if (!name || !baseUnitId || !saleUnitId) {
@@ -141,6 +143,8 @@ export async function POST(request: NextRequest) {
             firstSalePrice: firstSalePrice !== undefined && firstSalePrice !== null ? Number(firstSalePrice) : null,
             secondPurchasePrice: secondPurchasePrice !== undefined && secondPurchasePrice !== null ? Number(secondPurchasePrice) : null,
             supplierId: supplierId || null,
+            image: image || null,
+            description: description || null,
             orderNumber: nextOrderNumber,
             createdAt: new Date(),
         };
