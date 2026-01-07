@@ -48,9 +48,20 @@ function LedgerPrintContent() {
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/ledger/customers");
+            const query = new URLSearchParams();
+            if (filters.from) query.append("from", filters.from);
+            if (filters.to) query.append("to", filters.to);
+
+            const res = await fetch(`/api/ledger/customers?${query.toString()}`);
             if (res.ok) {
-                const data = await res.json();
+                let data = await res.json();
+
+                // Client-side search for name
+                if (filters.search) {
+                    const term = filters.search.toLowerCase();
+                    data = data.filter((c: any) => c.name.toLowerCase().includes(term));
+                }
+
                 setCustomers(data || []);
             }
         } catch (error) {
@@ -94,11 +105,6 @@ function LedgerPrintContent() {
         } finally {
             setLoading(false);
         }
-    };
-
-    const formatCurrency = (value: number | string) => {
-        const num = Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        return currency.position === "prefix" ? `${currency.symbol} ${num}` : `${num} ${currency.symbol}`;
     };
 
     // Calculate totals for Entries View
@@ -148,137 +154,120 @@ function LedgerPrintContent() {
     };
 
     return (
-        <div className="bg-white min-h-screen text-black p-8 print:p-0 font-sans">
-            {/* Header */}
-            <div className="mb-6 border-b-2 border-gray-800 pb-4">
-                <div className="flex justify-between items-start mb-4">
-                    <div>
-                        <h1 className="text-4xl font-black uppercase tracking-tight mb-1">
-                            {view === 'customers' ? 'Customer Accounts' : 'Ledger Report'}
-                        </h1>
-                        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">
-                            Generated on {new Date().toLocaleString()}
+        <div className="bg-white min-h-screen text-black font-sans font-bold text-sm leading-snug p-2 print:p-0">
+            {/* Thermal Receipt Container - 80mm ~ 300px */}
+            {/* Added px-2 padding to container to prevent edge clipping */}
+            <div className="max-w-[80mm] mx-auto print:w-full print:max-w-none px-1">
+
+                {/* Header */}
+                <div className="text-center mb-6 border-b-2 border-black pb-4 border-dashed">
+                    <h1 className="text-xl font-black uppercase mb-1 tracking-tight break-words">
+                        {view === 'customers' ? 'CUS. LIST' : 'LEDGER RPT'}
+                    </h1>
+                    <p className="text-xs font-bold text-black break-words">
+                        {new Date().toLocaleString()}
+                    </p>
+                    {filters.from && filters.to && (
+                        <p className="text-xs font-bold mt-1 text-black break-words">
+                            {new Date(filters.from).toLocaleDateString()} - {new Date(filters.to).toLocaleDateString()}
                         </p>
-                    </div>
-                    <button
-                        onClick={() => window.print()}
-                        className="print:hidden bg-gray-900 text-white px-6 py-2.5 rounded-lg shadow-lg hover:bg-gray-800 transition-all font-bold flex items-center gap-2"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                        </svg>
-                        Print Report
-                    </button>
+                    )}
                 </div>
 
-                {view !== 'customers' && (
-                    <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Date Range</span>
-                            <span className="font-semibold text-gray-900">{filters.from || "Start"} — {filters.to || "End"}</span>
-                        </div>
-                        {filters.type && (
-                            <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Type</span>
-                                <span className="font-semibold text-gray-900">{filters.type === 'credit' ? 'Cash-In' : 'Cash-Out'}</span>
-                            </div>
-                        )}
-                        {filters.ids && (
-                            <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Selection</span>
-                                <span className="font-semibold text-gray-900">{filters.ids.split(',').length} items selected</span>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {loading ? (
-                <div className="text-center py-12 text-gray-500 italic">Preparing report...</div>
-            ) : (
-                <>
-                    {view === 'customers' ? (
-                        <table className="w-full text-left text-sm border-collapse">
-                            <thead>
-                                <tr className="border-b-2 border-gray-200">
-                                    <th className="py-3 pl-2 font-bold uppercase text-xs tracking-wider text-gray-500 w-1/4">Customer Name</th>
-                                    <th className="py-3 font-bold uppercase text-xs tracking-wider text-gray-500 w-1/4">Last Transaction</th>
-                                    <th className="py-3 font-bold uppercase text-xs tracking-wider text-right text-gray-500">Total Cash-In</th>
-                                    <th className="py-3 font-bold uppercase text-xs tracking-wider text-right text-gray-500">Total Cash-Out</th>
-                                    <th className="py-3 pr-2 font-bold uppercase text-xs tracking-wider text-right text-gray-500">Net Balance</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
+                {loading ? (
+                    <div className="text-center py-4 font-bold">LOADING...</div>
+                ) : (
+                    <>
+                        {view === 'customers' ? (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-12 font-black border-b-2 border-black pb-2 mb-2 text-xs uppercase tracking-wider">
+                                    <div className="col-span-12 mb-1">Name / Last Tx</div>
+                                    <div className="col-span-6 text-left">In/Out</div>
+                                    <div className="col-span-6 text-right">Balance</div>
+                                </div>
                                 {customers.map((c: any, index) => (
-                                    <tr key={index} className="break-inside-avoid hover:bg-gray-50">
-                                        <td className="py-3 pl-2 text-gray-900 font-bold">{c.name}</td>
-                                        <td className="py-3 text-gray-600">{c.lastEntryDate ? new Date(c.lastEntryDate).toLocaleDateString() : '-'}</td>
-                                        <td className="py-3 text-right text-emerald-700 font-medium tabular-nums">{formatCurrency(c.totalCredit)}</td>
-                                        <td className="py-3 text-right text-rose-700 font-medium tabular-nums">{formatCurrency(c.totalDebit)}</td>
-                                        <td className={`py-3 pr-2 text-right font-bold tabular-nums ${c.balance >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-                                            {formatCurrency(c.balance)}
-                                        </td>
-                                    </tr>
+                                    <div key={index} className="flex flex-col py-2 border-b border-black border-dashed">
+                                        <div className="font-black text-sm mb-1 break-words whitespace-normal leading-tight">
+                                            {c.name}
+                                        </div>
+                                        <div className="flex justify-between items-end">
+                                            <div className="text-xs font-bold">
+                                                <div>+{Math.round(c.totalCredit).toLocaleString()}</div>
+                                                <div>-{Math.round(c.totalDebit).toLocaleString()}</div>
+                                            </div>
+                                            <div className="text-base font-black text-right">
+                                                {Math.round(c.balance).toLocaleString()}
+                                            </div>
+                                        </div>
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
-                    ) : (
-                        <table className="w-full text-left text-sm border-collapse">
-                            <thead>
-                                <tr className="border-b-2 border-gray-200">
-                                    <th className="py-3 pl-2 font-bold uppercase text-xs tracking-wider text-gray-500 w-24">Date</th>
-                                    <th className="py-3 font-bold uppercase text-xs tracking-wider text-gray-500 w-1/4">Name / Title</th>
-                                    <th className="py-3 font-bold uppercase text-xs tracking-wider text-gray-500">Description</th>
-                                    <th className="py-3 font-bold uppercase text-xs tracking-wider text-right text-gray-500 w-32">Cash-In</th>
-                                    <th className="py-3 pr-2 font-bold uppercase text-xs tracking-wider text-right text-gray-500 w-32">Cash-Out</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {entries.map((entry: any) => {
-                                    const { title, itemName } = parseTransactionNote(entry.note);
-                                    return (
-                                        <tr key={entry.id} className="break-inside-avoid hover:bg-gray-50">
-                                            <td className="py-3 pl-2 align-top text-gray-500 font-medium tabular-nums">
-                                                {new Date(entry.date).toLocaleDateString()}
-                                            </td>
-                                            <td className="py-3 align-top font-bold text-gray-900">
-                                                {title}
-                                            </td>
-                                            <td className="py-3 align-top text-gray-700">
-                                                {itemName}
-                                                {entry.category && (
-                                                    <span className="ml-2 px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-widest border border-gray-200">
-                                                        {entry.category.name}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {/* Entries List */}
+                                <div>
+                                    <div className="grid grid-cols-12 font-black border-b-2 border-black pb-2 mb-2 text-xs uppercase tracking-wider">
+                                        <div className="col-span-4">Date</div>
+                                        <div className="col-span-8 text-right">Amount</div>
+                                    </div>
+
+                                    {entries.map((entry: any) => {
+                                        const { title, itemName } = parseTransactionNote(entry.note);
+                                        const isCredit = entry.type === 'credit';
+                                        return (
+                                            <div key={entry.id} className="mb-3 border-b border-black border-dashed pb-2 last:border-0">
+                                                <div className="flex justify-between font-black text-sm mb-1 items-start">
+                                                    <span className="whitespace-nowrap mr-2">{new Date(entry.date).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' })}</span>
+                                                    <span className="text-right flex-1 break-words">
+                                                        {isCredit ? "+" : "-"} {Number(entry.amount).toLocaleString()}
                                                     </span>
-                                                )}
-                                            </td>
-                                            <td className="py-3 align-top text-right text-emerald-700 font-medium tabular-nums">
-                                                {entry.type === 'credit' ? formatCurrency(entry.amount) : '-'}
-                                            </td>
-                                            <td className="py-3 pr-2 align-top text-right text-rose-700 font-medium tabular-nums">
-                                                {entry.type === 'debit' ? formatCurrency(entry.amount) : '-'}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                            <tfoot className="border-t-2 border-gray-800 bg-gray-50/50">
-                                <tr>
-                                    <td colSpan={3} className="py-4 pl-2 text-right pr-6 text-xs font-bold uppercase tracking-wider text-gray-500">Totals</td>
-                                    <td className="py-4 text-right text-emerald-700 font-bold tabular-nums">{formatCurrency(totalCashIn)}</td>
-                                    <td className="py-4 pr-2 text-right text-rose-700 font-bold tabular-nums">{formatCurrency(totalCashOut)}</td>
-                                </tr>
-                                <tr className="border-t border-gray-200">
-                                    <td colSpan={3} className="py-4 pl-2 text-right pr-6 text-xs font-bold uppercase tracking-wider text-gray-500">Net Balance</td>
-                                    <td colSpan={2} className={`py-4 pr-2 text-right text-xl font-black tabular-nums ${balance >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                                        {formatCurrency(balance)}
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    )}
-                </>
-            )}
+                                                </div>
+                                                {/* Ensure full text wrapping with break-words and whitespace-normal */}
+                                                <div className="text-xs font-bold uppercase mb-0.5 text-black break-words whitespace-normal leading-tight">
+                                                    {title}
+                                                </div>
+                                                <div className="text-xs font-bold text-black break-words whitespace-normal leading-tight text-gray-800">
+                                                    {itemName}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Footer / Totals */}
+                                <div className="border-t-2 border-black border-dashed pt-4 mt-2">
+                                    <div className="flex justify-between text-xs font-bold mb-1">
+                                        <span>TOTAL IN:</span>
+                                        <span>{totalCashIn.toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs font-bold mb-2">
+                                        <span>TOTAL OUT:</span>
+                                        <span>{totalCashOut.toLocaleString()}</span>
+                                    </div>
+                                    {/* Removed negative margins and background to prevent overflow printing issues */}
+                                    <div className="flex justify-between text-lg font-black mt-2 border-t-4 border-black pt-2 text-black">
+                                        <span>NET:</span>
+                                        <span>{balance.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* Print Button - Hidden on Print */}
+                <div className="print:hidden mt-8 text-center">
+                    <button
+                        onClick={() => window.print()}
+                        className="bg-black text-white px-8 py-3 rounded-full font-black text-base shadow-xl hover:scale-105 transition-transform"
+                    >
+                        PRINT (80MM)
+                    </button>
+                    <p className="text-xs font-bold text-gray-500 mt-4 max-w-[200px] mx-auto">
+                        High Contrast Mode Enabled. Select 80mm paper.
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }
