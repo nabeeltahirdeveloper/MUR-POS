@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, BuildingStorefrontIcon, BanknotesIcon, WrenchScrewdriverIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, BuildingStorefrontIcon, BanknotesIcon, WrenchScrewdriverIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import LedgerTable from "@/components/ledger/LedgerTable";
 import LedgerPendingTable from "@/components/ledger/LedgerPendingTable";
 import { Button } from "@/components/ui/Button";
@@ -147,8 +147,37 @@ function LedgerPageContent() {
         return match ? Number(match[1]) > 0 : false;
     };
 
+    const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
+
+    useEffect(() => {
+        // Clear selection when filters change
+        setSelectedIds([]);
+        fetchEntries();
+    }, [filters]);
+
+    // ... (keep existing fetchCategories, fetchEntries, handleDelete)
+
+    const handlePrint = () => {
+        const query = new URLSearchParams();
+
+        // Always pass the current view
+        query.append("view", view);
+
+        if (view === "entries" || view === "pending") {
+            if (selectedIds.length > 0) {
+                query.append("ids", selectedIds.join(","));
+            } else {
+                (Object.keys(filters) as Array<keyof typeof filters>).forEach((key) => {
+                    if (filters[key]) query.append(key, String(filters[key]));
+                });
+            }
+        }
+
+        window.open(`/ledger/print?${query.toString()}`, '_blank');
+    };
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 relative pb-20">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h1 className="text-2xl font-bold text-gray-900">Ledger</h1>
                 <div className="flex gap-2 shrink-0 overflow-x-auto pb-2 sm:pb-0">
@@ -375,6 +404,8 @@ function LedgerPageContent() {
                         loading={loading}
                         onEdit={(id) => router.push(`/ledger/${id}/edit`)}
                         onDelete={handleDelete}
+                        selectedIds={selectedIds}
+                        onSelectionChange={setSelectedIds}
                     />
 
                     {/* Pagination */}
@@ -424,6 +455,19 @@ function LedgerPageContent() {
                     </div>
                 </div>
             )}
+
+            {/* Fixed Bottom Right Print Button */}
+            <div className="fixed bottom-8 right-8 z-40">
+                <Button
+                    onClick={handlePrint}
+                    className="shadow-xl rounded-full px-6 py-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white transition-all transform hover:scale-105"
+                >
+                    <PrinterIcon className="h-6 w-6" />
+                    <span className="font-bold text-base">
+                        {selectedIds.length > 0 ? `Print (${selectedIds.length})` : "Print Report"}
+                    </span>
+                </Button>
+            </div>
 
             {/* Transaction Type Selection Modal */}
             {showTransactionModal && (
