@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
+import { RECEIPT_LOGO_BASE64 } from "./ReceiptLogoBase64";
 
 // Unified types to support both Ledger and Purchase Order data
 export type ReceiptItem = {
@@ -101,9 +102,21 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                     
                     /* Optimize logo for thermal printing */
                     .receipt-logo {
-                        filter: grayscale(100%) contrast(200%) brightness(150%);
+                        width: 100%;
+                        max-width: 250px;
+                        height: auto;
+                        display: block;
+                        margin: 0 auto -10px auto;
+                        image-rendering: pixelated;
+                        filter: contrast(160%);
                         -webkit-print-color-adjust: exact !important;
                         color-adjust: exact !important;
+                        position: relative !important;
+                    }
+                    .receipt-title {
+                        margin-top: -20px !important;
+                        position: relative !important;
+                        z-index: 10 !important;
                     }
                 }
             `}</style>
@@ -145,8 +158,13 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                     </div>
 
                     <div className="text-center mb-3 pb-2 border-b-2 border-gray-800">
-
-                        <div className="text-3xl font-bold text-gray-900 mb-1">Moon Traders</div>
+                        {/* Logo for thermal printing */}
+                        <img
+                            src={RECEIPT_LOGO_BASE64}
+                            alt="Moon Traders"
+                            className="receipt-logo"
+                        />
+                        <div className="text-3xl font-bold text-gray-900 mb-1 receipt-title">Moon Traders</div>
                         <div className="text-sm text-gray-900 tracking-wide font-semibold uppercase">{data.title || "RECEIPT"}</div>
                     </div>
 
