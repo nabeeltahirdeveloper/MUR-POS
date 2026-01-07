@@ -157,19 +157,19 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         </div>
                     </div>
 
-                    <div className="text-center mb-3 pb-2 border-b-2 border-gray-800">
+                    <div className="text-center mb-1">
                         {/* Logo for thermal printing */}
                         <img
                             src={RECEIPT_LOGO_BASE64}
                             alt="Moon Traders"
                             className="receipt-logo"
                         />
-                        <div className="text-3xl font-bold text-gray-900 mb-1 receipt-title">Moon Traders</div>
-                        <div className="text-sm text-gray-900 tracking-wide font-semibold uppercase">{data.title || "RECEIPT"}</div>
+                        <div className="text-sm text-gray-900 tracking-wide font-semibold uppercase mt-[-50px] relative z-50">{data.title || "RECEIPT"}</div>
                     </div>
+                    <div className="border-b-2 border-gray-800 relative z-50 mb-3"></div>
 
                     {/* Barcode & Meta */}
-                    <div className="my-3 border-t-2 border-b-2 border-gray-800 py-2 text-base">
+                    <div className="my-3 border-t-2 border-b-2 border-gray-800 py-2 text-base relative z-10">
                         <div className="flex flex-col items-center text-center">
                             {/* QR Code */}
                             <img
