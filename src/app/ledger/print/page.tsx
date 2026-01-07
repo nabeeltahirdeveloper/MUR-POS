@@ -3,6 +3,8 @@
 import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { RECEIPT_LOGO_BASE64 } from "@/components/ledger/ReceiptLogoBase64";
+
 function LedgerPrintContent() {
     const searchParams = useSearchParams();
     const [entries, setEntries] = useState([]);
@@ -157,22 +159,59 @@ function LedgerPrintContent() {
         <div className="bg-white min-h-screen text-black font-sans font-bold text-sm leading-snug p-2 print:p-0">
             {/* Thermal Receipt Container - 80mm ~ 300px */}
             {/* Added px-2 padding to container to prevent edge clipping */}
-            <div className="max-w-[80mm] mx-auto print:w-full print:max-w-none px-1">
+            <div className="report-container max-w-[80mm] mx-auto print:w-full print:max-w-none px-1">
+                <style jsx global>{`
+                    @media print {
+                        @page { margin: 0; size: auto; }
+                        body { margin: 0; padding: 0; }
+                        /* Hide app chrome in print preview */
+                        header, nav, aside, .sidebar, .topbar, .header, .search, .toggle, .bell, .app-header, .AppHeader, .site-header { display: none !important; visibility: hidden !important; }
+                        
+                        .report-container {
+                            margin-top: -60px !important;
+                            overflow: visible !important;
+                        }
+
+                        /* Receipt specific optimizations */
+                        .receipt-logo {
+                            width: 100%;
+                            max-width: 250px;
+                            height: auto;
+                            display: block;
+                            margin: 0 auto -20px auto;
+                            image-rendering: pixelated;
+                            filter: contrast(160%);
+                            position: relative !important;
+                        }
+                        .receipt-title {
+                            margin-top: -20px !important;
+                            position: relative !important;
+                            z-index: 10 !important;
+                        }
+                    }
+                `}</style>
 
                 {/* Header */}
-                <div className="text-center mb-6 border-b-2 border-black pb-4 border-dashed">
-                    <h1 className="text-xl font-black uppercase mb-1 tracking-tight break-words">
+                <div className="text-center mb-1">
+                    {/* Logo */}
+                    <img
+                        src={RECEIPT_LOGO_BASE64}
+                        alt="Moon Traders"
+                        className="receipt-logo"
+                    />
+                    <h1 className="text-xl font-black uppercase tracking-tight break-words mt-[-50px] relative z-50 receipt-title">
                         {view === 'customers' ? 'CUS. LIST' : 'LEDGER RPT'}
                     </h1>
-                    <p className="text-xs font-bold text-black break-words">
+                    <p className="text-xs font-bold text-black break-words relative z-50">
                         {new Date().toLocaleString()}
                     </p>
                     {filters.from && filters.to && (
-                        <p className="text-xs font-bold mt-1 text-black break-words">
+                        <p className="text-xs font-bold mt-1 text-black break-words relative z-50">
                             {new Date(filters.from).toLocaleDateString()} - {new Date(filters.to).toLocaleDateString()}
                         </p>
                     )}
                 </div>
+                <div className="border-b-2 border-black border-dashed relative z-50 mb-3"></div>
 
                 {loading ? (
                     <div className="text-center py-4 font-bold">LOADING...</div>
