@@ -284,7 +284,7 @@ function LedgerPageContent() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="relative">
                             <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Search Note
+                                Search
                             </label>
                             <input
                                 type="text"
@@ -292,7 +292,7 @@ function LedgerPageContent() {
                                     ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
                                     : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
                                     }`}
-                                placeholder="Search..."
+                                placeholder="Search Name or Note..."
                                 value={filters.search}
                                 onChange={(e) => updateFilter("search", e.target.value)}
                             />
@@ -305,43 +305,50 @@ function LedgerPageContent() {
                                 </span>
                             )}
                         </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Type
-                            </label>
-                            <select
-                                className={`w-full p-2 border rounded-md text-sm outline-none transition-all ${filters.type
-                                    ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
-                                    : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                                    }`}
-                                value={filters.type}
-                                onChange={(e) => updateFilter("type", e.target.value)}
-                            >
-                                <option value="">All</option>
-                                <option value="credit">Cash-In</option>
-                                <option value="debit">Cash-Out</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Category
-                            </label>
-                            <select
-                                className={`w-full p-2 border rounded-md text-sm outline-none transition-all ${filters.categoryId
-                                    ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
-                                    : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                                    }`}
-                                value={filters.categoryId}
-                                onChange={(e) => updateFilter("categoryId", e.target.value)}
-                            >
-                                <option value="">All</option>
-                                {categories.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+
+                        {/* Type and Category only for Entry views */}
+                        {view === "entries" && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                        Type
+                                    </label>
+                                    <select
+                                        className={`w-full p-2 border rounded-md text-sm outline-none transition-all ${filters.type
+                                            ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                            : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                            }`}
+                                        value={filters.type}
+                                        onChange={(e) => updateFilter("type", e.target.value)}
+                                    >
+                                        <option value="">All</option>
+                                        <option value="credit">Cash-In</option>
+                                        <option value="debit">Cash-Out</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                        Category
+                                    </label>
+                                    <select
+                                        className={`w-full p-2 border rounded-md text-sm outline-none transition-all ${filters.categoryId
+                                            ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/10'
+                                            : 'border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                            }`}
+                                        value={filters.categoryId}
+                                        onChange={(e) => updateFilter("categoryId", e.target.value)}
+                                    >
+                                        <option value="">All</option>
+                                        {categories.map((c) => (
+                                            <option key={c.id} value={c.id}>
+                                                {c.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </>
+                        )}
+
                         <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">
                                 Date Range
@@ -372,13 +379,13 @@ function LedgerPageContent() {
             )}
 
             {view === "customers" ? (
-                <LedgerCustomerSummary onViewEntries={handleViewEntries} />
+                <LedgerCustomerSummary onViewEntries={handleViewEntries} filters={filters} />
             ) : view === "suppliers" ? (
-                <LedgerSupplierSummary onViewEntries={handleViewEntries} />
+                <LedgerSupplierSummary onViewEntries={handleViewEntries} filters={filters} />
             ) : view === "loans" ? (
-                <LedgerLoanSummary />
+                <LedgerLoanSummary filters={filters} />
             ) : view === "utilities" ? (
-                <LedgerUtilitySummary />
+                <LedgerUtilitySummary filters={filters} />
             ) : view === "pending" ? (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="p-4 border-b border-gray-200 bg-yellow-50">
@@ -456,18 +463,18 @@ function LedgerPageContent() {
                 </div>
             )}
 
-            {/* Fixed Bottom Right Print Button */}
-            <div className="fixed bottom-8 right-8 z-40">
-                <Button
-                    onClick={handlePrint}
-                    className="shadow-xl rounded-full px-6 py-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white transition-all transform hover:scale-105"
-                >
-                    <PrinterIcon className="h-6 w-6" />
-                    <span className="font-bold text-base">
-                        {selectedIds.length > 0 ? `Print (${selectedIds.length})` : "Print Report"}
-                    </span>
-                </Button>
-            </div>
+            {/* Floating Print Button - Only for supported views */}
+            {['entries', 'customers', 'suppliers'].includes(view) && (
+                <div className="fixed bottom-8 right-8 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <Button
+                        onClick={handlePrint}
+                        className="shadow-2xl hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 rounded-full px-6 py-4 h-auto text-base font-bold bg-gray-900 text-white border-2 border-white/20 backdrop-blur-sm"
+                    >
+                        <PrinterIcon className="h-5 w-5 mr-2" />
+                        {selectedIds.length > 0 ? `Print (${selectedIds.length})` : 'Print Report'}
+                    </Button>
+                </div>
+            )}
 
             {/* Transaction Type Selection Modal */}
             {showTransactionModal && (

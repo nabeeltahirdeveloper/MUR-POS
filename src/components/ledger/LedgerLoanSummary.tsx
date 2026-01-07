@@ -15,13 +15,26 @@ interface Debt {
     createdAt: string;
 }
 
-export default function LedgerLoanSummary() {
+interface LedgerLoanSummaryProps {
+    filters?: {
+        search?: string;
+        from?: string;
+        to?: string;
+    };
+}
+
+export default function LedgerLoanSummary({ filters }: LedgerLoanSummaryProps) {
     const [debts, setDebts] = useState<Debt[]>([]);
+    const [filteredDebts, setFilteredDebts] = useState<Debt[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchDebts();
     }, []);
+
+    useEffect(() => {
+        filterDebts();
+    }, [debts, filters]);
 
     const fetchDebts = async () => {
         setLoading(true);
@@ -36,6 +49,32 @@ export default function LedgerLoanSummary() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const filterDebts = () => {
+        let valid = [...debts];
+
+        if (filters?.search) {
+            const term = filters.search.toLowerCase();
+            valid = valid.filter(d =>
+                d.personName.toLowerCase().includes(term) ||
+                (d.note && d.note.toLowerCase().includes(term))
+            );
+        }
+
+        if (filters?.from) {
+            const from = new Date(filters.from);
+            from.setHours(0, 0, 0, 0);
+            valid = valid.filter(d => new Date(d.createdAt) >= from);
+        }
+
+        if (filters?.to) {
+            const to = new Date(filters.to);
+            to.setHours(23, 59, 59, 999);
+            valid = valid.filter(d => new Date(d.createdAt) <= to);
+        }
+
+        setFilteredDebts(valid);
     };
 
     const columns = [
@@ -118,7 +157,7 @@ export default function LedgerLoanSummary() {
                 <span className="text-xs text-gray-500">Showing all records from Debts book</span>
             </div>
             <Table
-                data={debts}
+                data={filteredDebts}
                 columns={columns}
                 emptyMessage="No loan records found."
             />
