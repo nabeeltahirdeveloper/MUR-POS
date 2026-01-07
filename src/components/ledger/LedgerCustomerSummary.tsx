@@ -14,22 +14,38 @@ interface CustomerSummary {
 
 interface LedgerCustomerSummaryProps {
     onViewEntries: (customerName: string) => void;
+    filters?: {
+        from?: string;
+        to?: string;
+        search?: string;
+    };
 }
 
-export default function LedgerCustomerSummary({ onViewEntries }: LedgerCustomerSummaryProps) {
+export default function LedgerCustomerSummary({ onViewEntries, filters }: LedgerCustomerSummaryProps) {
     const [customers, setCustomers] = useState<CustomerSummary[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchCustomers();
-    }, []);
+    }, [filters]);
 
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/ledger/customers");
+            const query = new URLSearchParams();
+            if (filters?.from) query.append("from", filters.from);
+            if (filters?.to) query.append("to", filters.to);
+
+            const res = await fetch(`/api/ledger/customers?${query.toString()}`);
             if (res.ok) {
-                const data = await res.json();
+                let data = await res.json();
+
+                // Client-side search for name (since API only does date)
+                if (filters?.search) {
+                    const term = filters.search.toLowerCase();
+                    data = data.filter((c: CustomerSummary) => c.name.toLowerCase().includes(term));
+                }
+
                 setCustomers(data);
             }
         } catch (error) {

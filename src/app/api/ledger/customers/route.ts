@@ -10,6 +10,15 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const { searchParams } = new URL(req.url);
+        const fromDate = searchParams.get("from") ? new Date(searchParams.get("from")!) : null;
+        const toDate = searchParams.get("to") ? new Date(searchParams.get("to")!) : null;
+
+        if (toDate) {
+            // Set to end of day
+            toDate.setHours(23, 59, 59, 999);
+        }
+
         // Fetch all relevant data
         const [ledgerEntries, debts, payments] = await Promise.all([
             getAllDocs<FirestoreLedger>('ledger'),
@@ -26,6 +35,12 @@ export async function GET(req: NextRequest) {
 
         const updateCustomer = (name: string, type: 'credit' | 'debit', amount: number, date: any) => {
             if (!name || name === "-") return;
+
+            const entryDate = date instanceof Date ? date : (date?.toDate ? date.toDate() : new Date(date));
+
+            // Date Filtering Logic
+            if (fromDate && entryDate < fromDate) return;
+            if (toDate && entryDate > toDate) return;
 
             const normalizedName = name.trim();
             if (!customerMap[normalizedName]) {
@@ -44,7 +59,6 @@ export async function GET(req: NextRequest) {
                 customer.debit += amount;
             }
 
-            const entryDate = date instanceof Date ? date : (date?.toDate ? date.toDate() : new Date(date));
             if (entryDate > customer.lastEntryDate) {
                 customer.lastEntryDate = entryDate;
             }

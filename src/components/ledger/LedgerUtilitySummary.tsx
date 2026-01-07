@@ -14,13 +14,26 @@ interface Utility {
     createdAt: string;
 }
 
-export default function LedgerUtilitySummary() {
+interface LedgerUtilitySummaryProps {
+    filters?: {
+        search?: string;
+        from?: string;
+        to?: string;
+    };
+}
+
+export default function LedgerUtilitySummary({ filters }: LedgerUtilitySummaryProps) {
     const [utilities, setUtilities] = useState<Utility[]>([]);
+    const [filteredUtilities, setFilteredUtilities] = useState<Utility[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchUtilities();
     }, []);
+
+    useEffect(() => {
+        filterUtilities();
+    }, [utilities, filters]);
 
     const fetchUtilities = async () => {
         setLoading(true);
@@ -35,6 +48,35 @@ export default function LedgerUtilitySummary() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const filterUtilities = () => {
+        let valid = [...utilities];
+
+        if (filters?.search) {
+            const term = filters.search.toLowerCase();
+            valid = valid.filter(u =>
+                u.name.toLowerCase().includes(term) ||
+                (u.category && u.category.toLowerCase().includes(term))
+            );
+        }
+
+        if (filters?.from) {
+            const from = new Date(filters.from);
+            from.setHours(0, 0, 0, 0);
+            // Using dueDate for utilities filtering as it's usually more relevant, 
+            // but sticking to createdAt if that's the standard for "Ledger"
+            // Let's us createdAt for consistency with other ledger views which show "When it was recorded"
+            valid = valid.filter(u => new Date(u.createdAt) >= from);
+        }
+
+        if (filters?.to) {
+            const to = new Date(filters.to);
+            to.setHours(23, 59, 59, 999);
+            valid = valid.filter(u => new Date(u.createdAt) <= to);
+        }
+
+        setFilteredUtilities(valid);
     };
 
     const columns = [
@@ -107,7 +149,7 @@ export default function LedgerUtilitySummary() {
                 <span className="text-xs text-gray-500">Showing all records from Utilities book</span>
             </div>
             <Table
-                data={utilities}
+                data={filteredUtilities}
                 columns={columns}
                 emptyMessage="No utility records found."
             />

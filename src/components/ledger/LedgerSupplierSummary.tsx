@@ -14,22 +14,38 @@ interface SupplierSummary {
 
 interface LedgerSupplierSummaryProps {
     onViewEntries: (supplierName: string) => void;
+    filters?: {
+        from?: string;
+        to?: string;
+        search?: string;
+    };
 }
 
-export default function LedgerSupplierSummary({ onViewEntries }: LedgerSupplierSummaryProps) {
+export default function LedgerSupplierSummary({ onViewEntries, filters }: LedgerSupplierSummaryProps) {
     const [suppliers, setSuppliers] = useState<SupplierSummary[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchSuppliers();
-    }, []);
+    }, [filters]);
 
     const fetchSuppliers = async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/ledger/suppliers");
+            const query = new URLSearchParams();
+            if (filters?.from) query.append("from", filters.from);
+            if (filters?.to) query.append("to", filters.to);
+
+            const res = await fetch(`/api/ledger/suppliers?${query.toString()}`);
             if (res.ok) {
-                const data = await res.json();
+                let data = await res.json();
+
+                // Client-side search behavior
+                if (filters?.search) {
+                    const term = filters.search.toLowerCase();
+                    data = data.filter((s: SupplierSummary) => s.name.toLowerCase().includes(term));
+                }
+
                 setSuppliers(data);
             }
         } catch (error) {

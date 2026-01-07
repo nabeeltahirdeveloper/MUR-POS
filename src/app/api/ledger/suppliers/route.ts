@@ -10,6 +10,14 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const { searchParams } = new URL(req.url);
+        const fromDate = searchParams.get("from") ? new Date(searchParams.get("from")!) : null;
+        const toDate = searchParams.get("to") ? new Date(searchParams.get("to")!) : null;
+
+        if (toDate) {
+            toDate.setHours(23, 59, 59, 999);
+        }
+
         // Fetch all relevant data
         // For suppliers, we primarily look at Ledger Entires marked with "Supplier:"
         // We currently DO NOT include Debts/Loans in the Supplier view to avoid overlap with Customers view,
@@ -25,6 +33,12 @@ export async function GET(req: NextRequest) {
 
         const updateSupplier = (name: string, type: 'credit' | 'debit', amount: number, date: any) => {
             if (!name || name === "-") return;
+
+            const entryDate = date instanceof Date ? date : (date?.toDate ? date.toDate() : new Date(date));
+
+            // Date Filter
+            if (fromDate && entryDate < fromDate) return;
+            if (toDate && entryDate > toDate) return;
 
             const normalizedName = name.trim();
             if (!supplierMap[normalizedName]) {
@@ -43,7 +57,6 @@ export async function GET(req: NextRequest) {
                 supplier.debit += amount;
             }
 
-            const entryDate = date instanceof Date ? date : (date?.toDate ? date.toDate() : new Date(date));
             if (entryDate > supplier.lastEntryDate) {
                 supplier.lastEntryDate = entryDate;
             }
