@@ -237,6 +237,11 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                                                 C
                                             </span>
                                         )}
+                                        {it.itemType === "Stock" && (
+                                            <span className="inline-block mr-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">
+                                                S
+                                            </span>
+                                        )}
                                         <span className="align-middle">{it.name}</span>
                                     </div>
                                     <div className="text-right">{it.quantity}</div>
