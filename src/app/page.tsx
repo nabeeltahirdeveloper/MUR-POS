@@ -283,9 +283,15 @@ export default async function Home() {
 
             {/* Links */}
             <div className="flex items-center gap-8">
-              <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">
-                Sign In
-              </Link>
+              {session ? (
+                <Link href="/dashboard" className="text-sm text-slate-400 hover:text-white transition-colors">
+                  Dashboard
+                </Link>
+              ) : (
+                <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">
+                  Sign In
+                </Link>
+              )}
               {/* <Link href="/signup" className="text-sm text-slate-400 hover:text-white transition-colors">
                 Sign Up
               </Link> */}
