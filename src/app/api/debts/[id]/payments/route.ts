@@ -42,6 +42,12 @@ export async function POST(
 
         if (totalPaid >= debt.amount) {
             await updateDoc('debts', debtId, { status: 'paid' });
+
+            // Sync reminders to remove them if paid
+            const { syncDebtReminders } = await import("@/lib/reminders");
+            await syncDebtReminders(debtId).catch(err => {
+                console.error("Failed to sync reminders after debt payment:", err);
+            });
         }
 
         return NextResponse.json({ id: paymentId, ...paymentData }, { status: 201 });
