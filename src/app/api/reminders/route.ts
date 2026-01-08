@@ -25,6 +25,15 @@ export async function GET(req: NextRequest) {
       cursor,
     });
 
+    // Check user notification preferences
+    const { getDocById } = await import("@/lib/firestore-helpers");
+    const settings = await getDocById<any>("settings", "global");
+
+    if (settings && settings.notifications && Array.isArray(settings.notifications.alertTypes)) {
+      const allowed = new Set(settings.notifications.alertTypes);
+      result.reminders = result.reminders.filter(r => allowed.has(r.type));
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     console.error("[reminders GET] failed:", error);
