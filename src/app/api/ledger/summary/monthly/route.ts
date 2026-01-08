@@ -38,7 +38,10 @@ export async function GET(req: NextRequest) {
         endDate.setHours(23, 59, 59, 999);
 
         // Fetch all entries for the month
-        const [entries, paidUtilities] = await Promise.all([
+        // Hybrid query for Utilities:
+        // 1. Get items physically paid this month (Cash Basis - New Data) - Single Field Index
+        // 2. Get items due this month that are paid (Fallback for Legacy Data) - Composite Index matching current schema
+        const results = await Promise.all([
             queryDocs<FirestoreLedger>('ledger', [
                 { field: 'date', operator: '>=', value: Timestamp.fromDate(startDate) },
                 { field: 'date', operator: '<=', value: Timestamp.fromDate(endDate) },
@@ -47,11 +50,34 @@ export async function GET(req: NextRequest) {
                 orderDirection: 'asc',
             }),
             queryDocs<FirestoreUtility>('utilities', [
-                { field: 'status', operator: '==', value: 'paid' },
+                { field: 'paidAt', operator: '>=', value: Timestamp.fromDate(startDate) },
+                { field: 'paidAt', operator: '<=', value: Timestamp.fromDate(endDate) },
+            ]),
+            queryDocs<FirestoreUtility>('utilities', [
                 { field: 'dueDate', operator: '>=', value: Timestamp.fromDate(startDate) },
                 { field: 'dueDate', operator: '<=', value: Timestamp.fromDate(endDate) },
             ])
         ]);
+
+        // Fixed syntax
+        const [entries, paidByDate, allDueThisMonth] = [
+            results[0] as FirestoreLedger[],
+            results[1] as FirestoreUtility[],
+            results[2] as FirestoreUtility[]
+        ];
+
+        // Filter legacy in memory
+        const paidByDue = allDueThisMonth.filter(u => u.status === 'paid');
+
+        // Merge utilities: prefer paidByDate
+        const paidUtilities = [...paidByDate];
+        const seenIds = new Set(paidByDate.map(u => u.id));
+
+        for (const u of paidByDue) {
+            if (!u.paidAt && !seenIds.has(u.id)) {
+                paidUtilities.push(u);
+            }
+        }
 
         // Fetch categories for entries
         const entriesWithCategories = await Promise.all(
@@ -117,7 +143,9 @@ export async function GET(req: NextRequest) {
         // 2. Process Paid Utilities
         for (const util of paidUtilities) {
             const amount = Number(util.amount);
-            const entryDate = util.dueDate instanceof Date ? util.dueDate : (util.dueDate as any).toDate ? (util.dueDate as any).toDate() : new Date(util.dueDate);
+            // Use paidAt if available, otherwise fallback to dueDate
+            const dateSource = util.paidAt || util.dueDate;
+            const entryDate = dateSource instanceof Date ? dateSource : (dateSource as any).toDate ? (dateSource as any).toDate() : new Date(dateSource);
             const dateKey = entryDate.toISOString().split("T")[0];
 
             // Global Totals (Utilities are expenses/debit)
@@ -158,7 +186,7 @@ export async function GET(req: NextRequest) {
     } catch (error) {
         console.error("Error fetching monthly summary:", error);
         return NextResponse.json(
-            { error: "Failed to fetch monthly summary" },
+            { error: `Failed to fetch monthly summary: ${error instanceof Error ? error.message : String(error)}` },
             { status: 500 }
         );
     }

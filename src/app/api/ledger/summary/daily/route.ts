@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
         endOfDay.setHours(23, 59, 59, 999);
 
         // Fetch everything relevant for today
-        const [entries, newDebts, todayPayments, paidUtilities] = await Promise.all([
+        const results = await Promise.all([
             queryDocs<FirestoreLedger>('ledger', [
                 { field: 'date', operator: '>=', value: Timestamp.fromDate(startOfDay) },
                 { field: 'date', operator: '<=', value: Timestamp.fromDate(endOfDay) },
@@ -45,12 +45,40 @@ export async function GET(req: NextRequest) {
                 { field: 'date', operator: '>=', value: Timestamp.fromDate(startOfDay) },
                 { field: 'date', operator: '<=', value: Timestamp.fromDate(endOfDay) },
             ]),
+            // Hybrid query for Utilities to handle new (paidAt) and legacy (dueDate) data
             queryDocs<FirestoreUtility>('utilities', [
-                { field: 'status', operator: '==', value: 'paid' },
+                { field: 'paidAt', operator: '>=', value: Timestamp.fromDate(startOfDay) },
+                { field: 'paidAt', operator: '<=', value: Timestamp.fromDate(endOfDay) },
+            ]),
+            // Fallback for Legacy Data
+            // Fallback for Legacy Data - Query by date only to avoid composite index, then filter in memory
+            queryDocs<FirestoreUtility>('utilities', [
                 { field: 'dueDate', operator: '>=', value: Timestamp.fromDate(startOfDay) },
                 { field: 'dueDate', operator: '<=', value: Timestamp.fromDate(endOfDay) },
             ]),
         ]);
+
+        // Fixed syntax
+        const [entries, newDebts, todayPayments, paidByDate, allDueToday] = [
+            results[0] as FirestoreLedger[],
+            results[1] as FirestoreDebt[],
+            results[2] as FirestoreDebtPayment[],
+            results[3] as FirestoreUtility[],
+            results[4] as FirestoreUtility[]
+        ];
+
+        // Filter legacy internally to avoid index error
+        const paidByDue = allDueToday.filter(u => u.status === 'paid');
+
+        // Merge utilities: prefer paidByDate. Use paidByDue only if paidAt is missing (legacy).
+        const paidUtilities = [...paidByDate];
+        const seenIds = new Set(paidByDate.map(u => u.id));
+
+        for (const u of paidByDue) {
+            if (!u.paidAt && !seenIds.has(u.id)) {
+                paidUtilities.push(u);
+            }
+        }
 
         // Fetch categories for entries
         const entriesWithCategories = await Promise.all(
@@ -132,7 +160,7 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        // 4. Process Paid Utilities due today
+        // 4. Process Paid Utilities paid today
         for (const util of paidUtilities) {
             const amount = Number(util.amount);
             const catName = util.category || "Utility";
@@ -158,7 +186,7 @@ export async function GET(req: NextRequest) {
     } catch (error) {
         console.error("Error fetching daily summary:", error);
         return NextResponse.json(
-            { error: "Failed to fetch daily summary" },
+            { error: `Failed to fetch daily summary: ${error instanceof Error ? error.message : String(error)}` },
             { status: 500 }
         );
     }
