@@ -36,8 +36,19 @@ type ThermalReceiptProps = {
 
 export default function ThermalReceipt({ data, onClose, autoPrint = false }: ThermalReceiptProps) {
     const [paperWidth, setPaperWidth] = useState<"80mm" | "58mm">("80mm");
+    const [currency, setCurrency] = useState({ symbol: "Rs.", code: "PKR", position: "prefix" });
 
     useEffect(() => {
+        // Fetch currency settings
+        fetch("/api/settings")
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.currency) {
+                    setCurrency(data.currency);
+                }
+            })
+            .catch(err => console.error("Failed to load receipt settings", err));
+
         if (autoPrint) {
             // Small delay to ensure render
             setTimeout(() => {
@@ -51,6 +62,11 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(Number(n || 0));
+
+    const priceDisplay = (val: number) => {
+        const formatted = fmt(val);
+        return currency.position === 'prefix' ? `${currency.symbol}${formatted}` : `${formatted} ${currency.symbol}`;
+    }
 
     return (
         <>
@@ -162,7 +178,7 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         {/* Logo for thermal printing */}
                         <img
                             src={RECEIPT_LOGO_BASE64}
-                            alt="Moon Traders"
+                            alt="Logo"
                             className="receipt-logo"
                         />
                         <div className="text-sm text-gray-900 tracking-wide font-semibold uppercase mt-[-50px] relative z-50">{data.title || "RECEIPT"}</div>
@@ -233,14 +249,10 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                                 <div key={idx} className="grid grid-cols-[1fr_4ch_8ch_9ch] gap-2">
                                     <div className="break-words relative">
                                         {it.itemType === "Customize" && (
-                                            <span className="inline-block mr-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">
-                                                C
-                                            </span>
+                                            <span className="inline-block mr-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">C</span>
                                         )}
                                         {it.itemType === "Stock" && (
-                                            <span className="inline-block mr-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">
-                                                S
-                                            </span>
+                                            <span className="inline-block mr-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">S</span>
                                         )}
                                         <span className="align-middle">{it.name}</span>
                                     </div>
@@ -258,20 +270,19 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                             <>
                                 <div className="flex justify-between font-semibold text-sm text-gray-800 mt-1">
                                     <span>Advance</span>
-                                    <span>PKR {fmt(data.advance || 0)}</span>
+                                    <span>{currency.code} {fmt(data.advance || 0)}</span>
                                 </div>
                                 <div className="flex justify-between font-semibold text-sm text-gray-800 mt-1 mb-2">
                                     <span>Remaining</span>
-                                    <span>PKR {fmt(data.remaining || (data.total - (data.advance || 0)))}</span>
+                                    <span>{currency.code} {fmt(data.remaining || (data.total - (data.advance || 0)))}</span>
                                 </div>
-                                {/* Dashed divider before Total since it's the sum/result context now */}
                                 <div className="border-t border-dashed border-gray-400 mt-1 pt-1"></div>
                             </>
                         )}
 
                         <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
                             <span>TOTAL</span>
-                            <span>PKR {fmt(data.total)}</span>
+                            <span>{currency.code} {fmt(data.total)}</span>
                         </div>
                     </div>
 

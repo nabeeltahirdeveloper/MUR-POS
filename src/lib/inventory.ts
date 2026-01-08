@@ -29,16 +29,21 @@ export async function calculateCurrentStock(itemId: string | number): Promise<nu
 export async function checkLowStock(itemId: string | number, currentStock?: number): Promise<boolean> {
     const item = await getDocById<FirestoreItem>('items', String(itemId));
 
-    if (!item || item.minStockLevel === null || item.minStockLevel === undefined) {
-        return false;
-    }
+    if (!item) return false;
 
     const stock = currentStock ?? await calculateCurrentStock(itemId);
 
-    // If minStockLevel is 0, we might want to consider it low stock only if it's strictly less than 0?
-    // Or usually minStock is a threshold. If stock <= minStock, it is low.
-    // Requirement says: "Compare with min_stock_level".
-    // Let's assume if stock <= minStockLevel, it's low (trigger reorder).
+    // Check item-specific threshold first
+    if (item.minStockLevel !== null && item.minStockLevel !== undefined) {
+        return stock <= item.minStockLevel;
+    }
 
-    return stock <= item.minStockLevel;
+    // Fallback to global settings
+    const settings = await getDocById<any>("settings", "global");
+
+    if (settings && settings.inventory && typeof settings.inventory.globalMinStockLevel === 'number' && settings.inventory.enableLowStockAlerts) {
+        return stock <= settings.inventory.globalMinStockLevel;
+    }
+
+    return false;
 }
