@@ -352,3 +352,17 @@ export function toTimestamp(d: Date): FirebaseFirestore.Timestamp {
 }
 
 
+
+export async function deleteUtilityReminders(utilityId: string): Promise<void> {
+  for (const lead of MILESTONES) {
+    const id = reminderDocId("bill_due", utilityId, `milestone_${lead}`);
+    await deleteReminder(id);
+  }
+}
+
+export async function deleteDebtReminders(debtId: string): Promise<void> {
+  for (const lead of MILESTONES) {
+    const id = reminderDocId("debt_due", debtId, `milestone_${lead}`);
+    await deleteReminder(id);
+  }
+}

@@ -32,11 +32,54 @@ type Party = {
 
 type CartItem = {
     tempId: string;
+    ledgerId?: string; // ID of the existing ledger entry if editing
     item: Item;
     quantity: number;
     unitPrice: number;
     amount: number;
     note?: string; // Additional details if needed
+};
+
+
+// Helper to parse existing notes for printing
+const parseTransactionNote = (note: string) => {
+    const lines = note.split('\n');
+    let orderNumber = "";
+    let partyName = "";
+    let customerPhone = "";
+    let customerAddress = "";
+    let paymentType = "Cash";
+    let itemName = "Item";
+    let itemType = "Stock";
+    let quantity = 1;
+    let unitPrice = 0;
+    let advance: number | undefined = undefined;
+    let remaining: number | undefined = undefined;
+
+    lines.forEach(line => {
+        if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
+        else if (line.startsWith("Customer: ")) partyName = line.replace("Customer: ", "").trim();
+        else if (line.startsWith("Supplier: ")) partyName = line.replace("Supplier: ", "").trim();
+        else if (line.startsWith("Phone: ")) customerPhone = line.replace("Phone: ", "").trim();
+        else if (line.startsWith("Address: ")) customerAddress = line.replace("Address: ", "").trim();
+        else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
+        else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
+        else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
+        else if (line.startsWith("Item: ")) {
+            // Item: [Type] Name (Qty: X @ Y) - Handle optional space after ]
+            const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (\d+)\s*@\s*(.*)\)/);
+            if (match) {
+                itemType = match[1] || "Stock";
+                itemName = match[2];
+                quantity = Number(match[3]);
+                unitPrice = Number(match[4]);
+            } else {
+                itemName = line.replace("Item: ", "").trim();
+            }
+        }
+    });
+
+    return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining };
 };
 
 export default function LedgerEntryForm({
@@ -92,6 +135,7 @@ export default function LedgerEntryForm({
     // Cart / Items List
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [editingCartId, setEditingCartId] = useState<string | null>(null);
+    const [originalBatchIds, setOriginalBatchIds] = useState<string[]>([]); // Track IDs for deletion handling
 
     // Stock Validation Modal State
     const [stockErrorModal, setStockErrorModal] = useState<{ open: boolean; message: string }>({ open: false, message: "" });
@@ -106,62 +150,76 @@ export default function LedgerEntryForm({
     // --- Initialize from existing data (Edit Mode) ---
     useEffect(() => {
         if (initialData?.id) {
-            // Populate basic fields
-            if (initialData.categoryId) {
-                // Category is less important for display but stored. 
-            }
-            // Parse Note
             const parsed = parseTransactionNote(initialData.note || "");
-            setOrderNumber(parsed.orderNumber);
+
+            // Common setup
             setPartyName(parsed.partyName);
             setPartyPhone(parsed.customerPhone);
             setPartyAddress(parsed.customerAddress);
             setPaymentType(parsed.paymentType as any);
-
-            // Reconstruct Cart Item
-            // Note: Since we only have one 'note' per entry traditionally, but logically we might have multiple if batch.
-            // But here initialData is a SINGLE LedgerEntry from /api/ledger/[id].
-            // If it was created as part of a batch, this entry represents ONE line item usually.
-            // If the user wants to edit the WHOLE bill, we might need a batch edit mode?
-            // Assuming simplified: 1 ledger entry = 1 transaction row.
-
-            // Rehydrate items into Cart
-            // We need to fetch the Item object to have full details (stock, prices) if we want full edit capability.
-            // For now we reconstruct a minimal CartItem.
-            const quantity = parsed.quantity || 1;
-            const unitPrice = parsed.unitPrice || 0;
-            const amount = Number(initialData.amount) || 0;
-
-            // Try to find item ID from initialData.itemId if available (schema check needed), 
-            // BUT schema says 'Ledger' has 'categoryId' but maybe not 'itemId' directly exposed in `LedgerEntry` type above?
-            // Actually `Ledger` does NOT have itemId in `src/components/ledger/LedgerEntryForm.tsx` type definition lines 7-14.
-            // It just has `note`. 
-            // Ideally we need the Item ID to properly edit/validate stock. 
-            // If we don't have it, we can't fully 'Edit' the item selection effectively without searching again.
-            // However, we can display it.
-
-            // Mock Item for Cart
-            const reconstructItem: CartItem = {
-                tempId: Date.now().toString(),
-                item: {
-                    id: 'unknown', // We might lose the link if not saved in note or separate field
-                    name: parsed.itemName,
-                    firstSalePrice: unitPrice, // assume current price
-                    categoryId: initialData.categoryId || undefined, // Preserve existing Category ID
-                },
-                quantity: quantity,
-                unitPrice: unitPrice,
-                amount: amount,
-                note: parsed.itemType
-            };
-            setCartItems([reconstructItem]);
-
-            // Set Advance/Remaining
             if (parsed.advance != null) setAdvanceAmount(String(parsed.advance));
-            // If remaining is present, it will be auto-calced by effect if we set advance.
 
-            // However, if we are in 'Edit', we want to allow updating the Payment.
-            // If the user clears the remaining, they likely change 'Advance' to equal 'Total'.
+            if (parsed.orderNumber) {
+                setOrderNumber(parsed.orderNumber);
+                // Fetch Siblings to reconstruct the whole bill
+                const fetchSiblings = async () => {
+                    // Don't set full loading to avoid flickering whole page if possible, but safer to block interaction
+                    // setLoading(true); 
+                    try {
+                        const res = await fetch(`/api/ledger?search=Order #${parsed.orderNumber}&limit=100`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            // Ensure exact order number match
+                            const siblings = (data.data || []).filter((e: any) => {
+                                const subParsed = parseTransactionNote(e.note || "");
+                                return subParsed.orderNumber === parsed.orderNumber;
+                            });
+
+                            const batchItems: CartItem[] = siblings.map((e: any) => {
+                                const p = parseTransactionNote(e.note || "");
+                                return {
+                                    tempId: e.id.toString(),
+                                    ledgerId: e.id,
+                                    item: {
+                                        id: e.itemId || 'unknown',
+                                        name: p.itemName,
+                                        firstSalePrice: p.unitPrice,
+                                        categoryId: e.categoryId,
+                                    },
+                                    quantity: p.quantity,
+                                    unitPrice: p.unitPrice,
+                                    amount: Number(e.amount),
+                                    note: p.itemType
+                                };
+                            });
+
+                            setCartItems(batchItems);
+                            setOriginalBatchIds(siblings.map((e: any) => e.id));
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch batch siblings", err);
+                    }
+                };
+                fetchSiblings();
+            } else {
+                // Single Item 
+                const reconstructItem: CartItem = {
+                    tempId: Date.now().toString(),
+                    ledgerId: String(initialData.id),
+                    item: {
+                        id: 'unknown',
+                        name: parsed.itemName,
+                        firstSalePrice: parsed.unitPrice,
+                        categoryId: initialData.categoryId || undefined,
+                    },
+                    quantity: parsed.quantity,
+                    unitPrice: parsed.unitPrice,
+                    amount: Number(initialData.amount),
+                    note: parsed.itemType
+                };
+                setCartItems([reconstructItem]);
+                setOriginalBatchIds([String(initialData.id)]);
+            }
         } else {
             // Fetch Next Order Number only if NEW entry
             fetch('/api/ledger/next-order')
@@ -512,7 +570,16 @@ export default function LedgerEntryForm({
                 // Party created successfully
             }
 
-            const promises = itemsToSave.map(cartItem => {
+            // Identify Deletions (if editing a batch)
+            const currentLedgerIds = itemsToSave.map(i => i.ledgerId).filter(Boolean);
+            const idsToDelete = originalBatchIds.filter(id => !currentLedgerIds.includes(id));
+
+            const deletePromises = idsToDelete.map(id =>
+                fetch(`/api/ledger/${id}`, { method: 'DELETE' })
+                    .then(res => { if (!res.ok) throw new Error("Failed to delete removed item"); return res.json(); })
+            );
+
+            const savePromises = itemsToSave.map(cartItem => {
                 const parts = [];
                 if (orderNumber) parts.push(`Order #${orderNumber} `);
                 if (partyName) parts.push(`${type === 'credit' ? 'Customer' : 'Supplier'}: ${partyName} `);
@@ -524,7 +591,7 @@ export default function LedgerEntryForm({
                 const typePrefix = cartItem.note ? `[${cartItem.note}] ` : "";
                 parts.push(`Item: ${typePrefix}${cartItem.item.name} (Qty: ${cartItem.quantity} @${cartItem.unitPrice})`);
 
-                // Add Advance & Remaining to the first item (or all, but parsing will take first valid)
+                // Add Advance & Remaining to ALL items in the batch so they are searchable/filterable
                 if (advanceAmount !== "") parts.push(`Advance: ${advanceAmount} `);
                 if (remainingAmount !== undefined) parts.push(`Remaining: ${remainingAmount} `);
 
@@ -534,14 +601,19 @@ export default function LedgerEntryForm({
                     type,
                     amount: cartItem.amount,
                     categoryId: cartItem.item.categoryId || null,
-                    itemId: cartItem.item.id,
+                    itemId: cartItem.item.id !== 'unknown' ? cartItem.item.id : undefined,
                     quantity: cartItem.quantity,
                     note: finalNote,
                     date: dateTime.toISOString(),
                 };
 
-                const url = isEdit && itemsToSave.length === 1 ? `/api/ledger/${initialData!.id}` : "/api/ledger";
-                const method = isEdit && itemsToSave.length === 1 ? "PUT" : "POST";
+                let url = "/api/ledger";
+                let method = "POST";
+
+                if (cartItem.ledgerId) {
+                    url = `/api/ledger/${cartItem.ledgerId}`;
+                    method = "PUT";
+                }
 
                 return fetch(url, {
                     method,
@@ -556,18 +628,30 @@ export default function LedgerEntryForm({
                 });
             });
 
-            const results = await Promise.all(promises);
+            const results = await Promise.all([...deletePromises, ...savePromises]);
 
-            // Group as a single bill for the session history
+            // Filter out delete results (usually {success: true}) from bill reconstruction
+            // Actually, keep it simple: we only care about saved items for receipt
+            // The results array will contain responses for deletes and saves.
+            // We need to isolate the saved items to show receipt.
+
+            // Re-fetch or use results that are from saves?
+            // Results are mixed.
+            // Let's rely on itemsToSave as the source of truth for the receipt.
+
             const billData = {
-                id: results[0].id || `batch - ${Date.now()} `,
-                allIds: results.map(r => r.id).filter(Boolean).join(','),
-                items: results.map(r => {
-                    const parsed = parseTransactionNote(r.note || "");
-                    return { ...parsed, amount: r.amount };
-                }),
-                total: results.reduce((acc, r) => acc + Number(r.amount), 0),
-                date: results[0].date,
+                id: results[0]?.id || `batch - ${Date.now()} `,
+                allIds: currentLedgerIds.join(','), // simplified
+                items: itemsToSave.map(item => ({
+                    ...parseTransactionNote(""), // defaults
+                    itemName: item.item.name,
+                    itemType: item.note || 'Stock',
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    amount: item.amount,
+                })),
+                total: itemsToSave.reduce((acc, r) => acc + Number(r.amount), 0),
+                date: dateTime.toISOString(),
                 partyName: partyName || "Walk-in",
                 orderNumber: orderNumber,
                 type: type // credit/debit
@@ -590,6 +674,7 @@ export default function LedgerEntryForm({
             setLineAmount("");
             setAdvanceAmount("");
             setRemainingAmount(0);
+            setOriginalBatchIds([]);
 
             // Note: We stay on the page to show the receipt, so no router.back() here unless New Transaction is clicked.
             setLoading(false);
@@ -604,46 +689,7 @@ export default function LedgerEntryForm({
         }
     };
 
-    // Helper to parse existing notes for printing
-    const parseTransactionNote = (note: string) => {
-        const lines = note.split('\n');
-        let orderNumber = "";
-        let partyName = "";
-        let customerPhone = "";
-        let customerAddress = "";
-        let paymentType = "Cash";
-        let itemName = "Item";
-        let itemType = "Stock";
-        let quantity = 1;
-        let unitPrice = 0;
-        let advance: number | undefined = undefined;
-        let remaining: number | undefined = undefined;
 
-        lines.forEach(line => {
-            if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
-            else if (line.startsWith("Customer: ")) partyName = line.replace("Customer: ", "").trim();
-            else if (line.startsWith("Supplier: ")) partyName = line.replace("Supplier: ", "").trim();
-            else if (line.startsWith("Phone: ")) customerPhone = line.replace("Phone: ", "").trim();
-            else if (line.startsWith("Address: ")) customerAddress = line.replace("Address: ", "").trim();
-            else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
-            else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
-            else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
-            else if (line.startsWith("Item: ")) {
-                // Item: [Type] Name (Qty: X @ Y) - Handle optional space after ]
-                const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (\d+)\s*@\s*(.*)\)/);
-                if (match) {
-                    itemType = match[1] || "Stock";
-                    itemName = match[2];
-                    quantity = Number(match[3]);
-                    unitPrice = Number(match[4]);
-                } else {
-                    itemName = line.replace("Item: ", "").trim();
-                }
-            }
-        });
-
-        return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining };
-    };
 
 
 

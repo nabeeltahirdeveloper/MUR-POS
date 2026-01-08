@@ -76,6 +76,12 @@ export async function DELETE(
 ) {
     const { id } = await params;
     try {
+        // Delete associated reminders first
+        const { deleteUtilityReminders } = await import("@/lib/reminders");
+        await deleteUtilityReminders(id).catch(err => {
+            console.error("Failed to delete reminders for utility:", err);
+        });
+
         await deleteDoc('utilities', id);
         return NextResponse.json({ success: true });
     } catch (error) {

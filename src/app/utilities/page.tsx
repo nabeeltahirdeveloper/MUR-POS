@@ -379,7 +379,7 @@ function UtilitiesPageContent() {
                             </div>
                             <div className="flex justify-end pt-4">
                                 <Button type="submit" isLoading={saving} className="px-8 shadow-lg shadow-blue-200">
-                                    {editingId ? "Update Bill" : "Save Utility Bill"}
+                                    {editingId ? "Update Bill" : "Save Bill"}
                                 </Button>
                             </div>
                         </form>

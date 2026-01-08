@@ -82,6 +82,12 @@ export async function DELETE(
             await deleteDoc('debt_payments', payment.id);
         }
 
+        // Delete associated reminders
+        const { deleteDebtReminders } = await import("@/lib/reminders");
+        await deleteDebtReminders(id).catch(err => {
+            console.error("Failed to delete reminders for debt:", err);
+        });
+
         await deleteDoc('debts', id);
         return NextResponse.json({ success: true });
     } catch (error) {

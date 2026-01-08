@@ -317,7 +317,7 @@ function DashboardContent() {
                                 </div>
                                 <h3 className="font-bold text-gray-900">Pending Payments</h3>
                             </div>
-                            <Link href="/ledger?search=Remaining:" className="text-xs font-bold text-yellow-700 hover:underline">View All</Link>
+                            <Link href="/ledger?view=pending" className="text-xs font-bold text-yellow-700 hover:underline">View All</Link>
                         </div>
                         <div className="flex-1">
                             {pendingLedger.length > 0 ? (
