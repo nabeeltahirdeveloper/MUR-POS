@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useAlert } from "@/contexts/AlertContext";
 
 interface Supplier {
     id: string;
@@ -19,6 +21,7 @@ interface SuppliersResponse {
 }
 
 export default function SuppliersPage() {
+    const { showConfirm } = useAlert();
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
@@ -90,7 +93,7 @@ export default function SuppliersPage() {
                         </Link>
                         <button
                             onClick={() => handleDelete(row)}
-                            className="text-red-600 hover:text-red-800 font-medium"
+                            className="text-red-600 hover:text-red-800 font-medium cursor-pointer"
                         >
                             Delete
                         </button>
@@ -134,7 +137,7 @@ export default function SuppliersPage() {
     };
 
     const handleDelete = async (supplier: Supplier) => {
-        const ok = confirm(`Delete supplier "${supplier.name}"?`);
+        const ok = await showConfirm(`Delete supplier "${supplier.name}"?`);
         if (!ok) return;
 
         setSaving(true);
@@ -227,7 +230,9 @@ export default function SuppliersPage() {
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-10">Loading suppliers...</div>
+                    <div className="flex justify-center py-10">
+                        <LoadingSpinner />
+                    </div>
                 ) : (
                     <>
                         <Table data={suppliers} columns={columns} emptyMessage="No suppliers found." />

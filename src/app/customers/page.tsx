@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useAlert } from "@/contexts/AlertContext";
 
 interface Customer {
     id: string;
@@ -19,6 +21,7 @@ interface CustomersResponse {
 }
 
 export default function CustomersPage() {
+    const { showConfirm } = useAlert();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
@@ -134,7 +137,7 @@ export default function CustomersPage() {
     };
 
     const handleDelete = async (customer: Customer) => {
-        const ok = confirm(`Delete customer "${customer.name}"?`);
+        const ok = await showConfirm(`Delete customer "${customer.name}"?`, { variant: "danger" });
         if (!ok) return;
 
         setSaving(true);
@@ -227,7 +230,7 @@ export default function CustomersPage() {
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-10">Loading customers...</div>
+                    <LoadingSpinner message="Loading customers..." />
                 ) : (
                     <>
                         <Table data={customers} columns={columns} emptyMessage="No customers found." />

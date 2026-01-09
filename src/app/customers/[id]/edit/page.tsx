@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useAlert } from "@/contexts/AlertContext";
 
 interface Customer {
     id: string;
@@ -17,6 +19,7 @@ export default function EditCustomerPage() {
     const params = useParams();
     const router = useRouter();
     const id = params.id as string;
+    const { showConfirm, showAlert } = useAlert();
 
     const [customer, setCustomer] = useState<Customer | null>(null);
     const [loading, setLoading] = useState(true);
@@ -68,7 +71,7 @@ export default function EditCustomerPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error || "Failed to update customer");
             setCustomer(data);
-            alert("Customer updated");
+            await showAlert("Customer updated", { variant: "success" });
         } catch (e: any) {
             setError(e.message || "Failed to update customer");
         } finally {
@@ -78,7 +81,7 @@ export default function EditCustomerPage() {
 
     const handleDelete = async () => {
         if (!customer) return;
-        const ok = confirm(`Delete customer "${customer.name}"?`);
+        const ok = await showConfirm(`Delete customer "${customer.name}"?`, { variant: "danger" });
         if (!ok) return;
 
         setSaving(true);
@@ -95,7 +98,7 @@ export default function EditCustomerPage() {
         }
     };
 
-    if (loading) return <div className="p-6">Loading...</div>;
+    if (loading) return <div className="p-6 flex justify-center"><LoadingSpinner /></div>;
 
     return (
         <div className="p-6 max-w-2xl mx-auto space-y-6">

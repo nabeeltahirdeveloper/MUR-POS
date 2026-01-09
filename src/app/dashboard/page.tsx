@@ -17,6 +17,7 @@ import {
 import LowStockWidget from "@/components/dashboard/LowStockWidget";
 import StockValueWidget from "@/components/dashboard/StockValueWidget";
 import ReportsSection from "@/components/dashboard/ReportsSection";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 function DashboardContent() {
     const router = useRouter();
@@ -443,10 +444,7 @@ export default function DashboardPage() {
     return (
         <Suspense fallback={
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-gray-500 font-bold animate-pulse">Loading Workspace...</p>
-                </div>
+                <LoadingSpinner size="lg" message="Loading Workspace..." />
             </div>
         }>
             <DashboardContent />

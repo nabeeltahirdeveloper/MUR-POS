@@ -209,7 +209,7 @@ export function ItemForm({ initialData, isEditing = false }: ItemFormProps) {
                                     setSupplierSearchTerm("");
                                     setNewSupplierData({ phone: "", address: "" });
                                 }}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
                             >
                                 ✕
                             </button>
@@ -246,7 +246,7 @@ export function ItemForm({ initialData, isEditing = false }: ItemFormProps) {
                                             setIsNewSupplier(true);
                                             setShowSupplierResults(false);
                                         }}
-                                        className="mt-2 text-indigo-600 hover:text-indigo-800 font-medium"
+                                        className="mt-2 text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer"
                                     >
                                         + Create New Supplier
                                     </button>
@@ -309,7 +309,7 @@ export function ItemForm({ initialData, isEditing = false }: ItemFormProps) {
                                     <button
                                         type="button"
                                         onClick={() => setFormData(prev => ({ ...prev, image: "" }))}
-                                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md transition-transform transform hover:scale-110"
+                                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md transition-transform transform hover:scale-110 cursor-pointer"
                                         title="Remove Image"
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -378,7 +378,7 @@ export function ItemForm({ initialData, isEditing = false }: ItemFormProps) {
                         <button
                             type="button"
                             onClick={() => setShowCategoryManager(true)}
-                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
                         >
                             + Manage Categories
                         </button>

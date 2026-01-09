@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useAlert } from "@/contexts/AlertContext";
 
 interface Item {
     id: string;
@@ -39,6 +41,7 @@ interface PurchaseOrder {
 export default function PurchaseOrderDetailPage() {
     const params = useParams();
     const id = params.id as string;
+    const { showConfirm, showAlert } = useAlert();
 
     const [po, setPo] = useState<PurchaseOrder | null>(null);
     const [items, setItems] = useState<POItem[]>([]);
@@ -50,6 +53,7 @@ export default function PurchaseOrderDetailPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState<Item[]>([]);
     const [showResults, setShowResults] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
 
     // New Item Input State
     const [newItemQty, setNewItemQty] = useState(1);
@@ -105,8 +109,11 @@ export default function PurchaseOrderDetailPage() {
             if (q.length < 1) {
                 setSearchResults([]);
                 setShowResults(false);
+                setIsSearching(false);
                 return;
             }
+
+            setIsSearching(true);
             try {
                 const res = await fetch(`/api/items?search=${encodeURIComponent(q)}`);
                 const data = await res.json();
@@ -115,6 +122,8 @@ export default function PurchaseOrderDetailPage() {
                 setShowResults(true);
             } catch (e) {
                 console.error(e);
+            } finally {
+                setIsSearching(false);
             }
         }, 250);
 
@@ -155,10 +164,10 @@ export default function PurchaseOrderDetailPage() {
             });
             if (!res.ok) throw new Error("Failed to save items");
             await fetchPO(); // Reload to get fresh totals
-            alert("Items saved successfully");
+            await showAlert("Items saved successfully", { variant: "success", title: "Success" });
         } catch (err) {
             console.error(err);
-            alert("Failed to save items");
+            await showAlert("Failed to save items", { variant: "danger", title: "Error" });
         } finally {
             setSaving(false);
         }
@@ -192,7 +201,7 @@ export default function PurchaseOrderDetailPage() {
     };
 
     const handleStatusChange = async (newStatus: string) => {
-        if (!confirm(`Are you sure you want to change status to ${newStatus}?`)) return;
+        if (!await showConfirm(`Are you sure you want to change status to ${newStatus}?`)) return;
 
         setSaving(true);
         try {
@@ -208,14 +217,14 @@ export default function PurchaseOrderDetailPage() {
             await fetchPO();
         } catch (err) {
             console.error(err);
-            alert((err as any).message || "Failed to update status");
+            await showAlert((err as any).message || "Failed to update status", { variant: "danger" });
         } finally {
             setSaving(false);
         }
     };
 
     const handleReceive = async () => {
-        if (!confirm("This will add items to stock. This cannot be undone. Proceed?")) return;
+        if (!await showConfirm("This will add items to stock. This cannot be undone. Proceed?")) return;
 
         setSaving(true);
         try {
@@ -227,17 +236,17 @@ export default function PurchaseOrderDetailPage() {
                 throw new Error(err.error || "Failed to receive.");
             }
             await fetchPO();
-            alert("Purchase Order Received! Stock updated.");
+            await showAlert("Purchase Order Received! Stock updated.", { variant: "success" });
         } catch (err: any) {
             console.error(err);
-            alert(err.message);
+            await showAlert(err.message, { variant: "danger" });
         } finally {
             setSaving(false);
         }
     };
 
     const handleCancel = async () => {
-        if (!confirm("Are you sure you want to cancel this PO?")) return;
+        if (!await showConfirm("Are you sure you want to cancel this PO?", { variant: "danger" })) return;
         setSaving(true);
         try {
             const res = await fetch(`/api/purchase-orders/${id}/cancel`, { method: "POST" });
@@ -248,13 +257,13 @@ export default function PurchaseOrderDetailPage() {
             await fetchPO();
         } catch (err) {
             console.error(err);
-            alert((err as any).message || "Failed to cancel");
+            await showAlert((err as any).message || "Failed to cancel", { variant: "danger" });
         } finally {
             setSaving(false);
         }
     }
 
-    if (loading || !po) return <div className="p-6">Loading...</div>;
+    if (loading || !po) return <div className="p-6 flex justify-center"><LoadingSpinner /></div>;
 
     const canEditItems = po.status === "draft";
 
@@ -281,9 +290,9 @@ export default function PurchaseOrderDetailPage() {
             <div className="flex justify-between items-start">
                 <div>
                     <div className="flex items-center gap-2 mb-2">
-                        <Link href="/purchase-orders" className="text-gray-500 hover:text-gray-700">&larr; Back</Link>
-                        <span className="text-gray-300">|</span>
-                        <span className="text-gray-500">PO #{po.id}</span>
+                        <Link href="/purchase-orders" className="text-gray-600 hover:text-gray-900 font-medium">&larr; Back</Link>
+                        <span className="text-gray-400">|</span>
+                        <span className="text-gray-600 font-medium">PO #{po.id}</span>
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900">{supplierName}</h1>
                     <div className="mt-2 flex gap-2">
@@ -294,14 +303,14 @@ export default function PurchaseOrderDetailPage() {
                             }`}>
                             {po.status}
                         </span>
-                        <span className="text-gray-500 text-sm py-1">
+                        <span className="text-gray-600 text-sm py-1 font-medium">
                             Created: {new Date(po.createdAt).toLocaleDateString()}
                         </span>
                     </div>
                 </div>
 
                 <div className="flex gap-2">
-                    <Link href={`/purchase-orders/${id}/print`} target="_blank" className="px-4 py-2 border rounded hover:bg-gray-50">
+                    <Link href={`/purchase-orders/${id}/print`} target="_blank" className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded shadow-sm hover:bg-gray-50 transition-colors">
                         Print
                     </Link>
 
@@ -309,7 +318,7 @@ export default function PurchaseOrderDetailPage() {
                         <button
                             onClick={() => handleStatusChange('pending')}
                             disabled={saving || !hasItems}
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
                             title={!hasItems ? "Add at least one item before submitting" : undefined}
                         >
                             Submit for Approval
@@ -319,19 +328,19 @@ export default function PurchaseOrderDetailPage() {
                         <button
                             onClick={() => handleStatusChange('approved')}
                             disabled={saving || !hasItems}
-                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 cursor-pointer"
                             title={!hasItems ? "Add at least one item before approving" : undefined}
                         >
                             Approve
                         </button>
                     )}
                     {po.status === 'approved' && (
-                        <button onClick={handleReceive} disabled={saving} className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                        <button onClick={handleReceive} disabled={saving} className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 cursor-pointer">
                             Receive Goods
                         </button>
                     )}
                     {(po.status !== 'received' && po.status !== 'cancelled') && (
-                        <button onClick={handleCancel} disabled={saving} className="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200">
+                        <button onClick={handleCancel} disabled={saving} className="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 cursor-pointer">
                             Cancel PO
                         </button>
                     )}
@@ -405,12 +414,12 @@ export default function PurchaseOrderDetailPage() {
                 ) : (
                     <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <div className="text-xs uppercase tracking-wide text-gray-500">Notes</div>
-                            <div className="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{po.notes || "—"}</div>
+                            <div className="text-xs uppercase tracking-wide text-gray-600 font-semibold">Notes</div>
+                            <div className="mt-1 text-sm text-gray-800 whitespace-pre-wrap">{po.notes || "—"}</div>
                         </div>
                         <div>
-                            <div className="text-xs uppercase tracking-wide text-gray-500">Terms</div>
-                            <div className="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{po.terms || "—"}</div>
+                            <div className="text-xs uppercase tracking-wide text-gray-600 font-semibold">Terms</div>
+                            <div className="mt-1 text-sm text-gray-800 whitespace-pre-wrap">{po.terms || "—"}</div>
                         </div>
                     </div>
                 )}
@@ -425,7 +434,7 @@ export default function PurchaseOrderDetailPage() {
                         <button
                             onClick={handleSaveItems}
                             disabled={saving}
-                            className="text-sm px-3 py-1 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-50"
+                            className="text-sm px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 font-medium cursor-pointer"
                         >
                             {saving ? "Saving..." : "Save Items"}
                         </button>
@@ -435,10 +444,10 @@ export default function PurchaseOrderDetailPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Item</th>
+                            <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Qty</th>
+                            <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Price</th>
+                            <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Total</th>
                             {canEditItems && <th className="px-4 py-3 text-right"></th>}
                         </tr>
                     </thead>
@@ -484,7 +493,7 @@ export default function PurchaseOrderDetailPage() {
                                 </td>
                                 {canEditItems && (
                                     <td className="px-4 py-3 text-right">
-                                        <button onClick={() => handleRemoveItem(idx)} className="text-red-500 hover:text-red-700">
+                                        <button onClick={() => handleRemoveItem(idx)} className="text-red-500 hover:text-red-700 cursor-pointer">
                                             &times;
                                         </button>
                                     </td>
@@ -496,23 +505,33 @@ export default function PurchaseOrderDetailPage() {
                         {canEditItems && (
                             <tr className="bg-blue-50">
                                 <td className="px-4 py-3 relative">
-                                    <input
-                                        type="text"
-                                        className="w-full border rounded px-2 py-1 text-gray-900"
-                                        placeholder="Search items..."
-                                        value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            className="w-full border rounded px-2 py-1 pr-8 text-gray-900"
+                                            placeholder="Search items..."
+                                            value={searchTerm}
+                                            onChange={e => setSearchTerm(e.target.value)}
+                                        />
+                                        {isSearching && (
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                                <svg className="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            </div>
+                                        )}
+                                    </div>
                                     {showResults && searchResults.length > 0 && (
-                                        <div className="absolute z-20 left-0 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto">
+                                        <div className="absolute z-20 left-4 mt-1 w-96 bg-white border border-gray-200 rounded shadow-lg max-h-48 overflow-y-auto">
                                             {searchResults.map(res => (
                                                 <div
                                                     key={res.id}
-                                                    className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                                    className="p-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
                                                     onClick={() => handleAddItem(res)}
                                                 >
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <span className="truncate">{res.name}</span>
+                                                        <span className="truncate font-medium text-gray-900">{res.name}</span>
                                                         {res.category?.name ? (
                                                             <span className="text-xs text-gray-500 truncate">{res.category.name}</span>
                                                         ) : null}
@@ -522,7 +541,7 @@ export default function PurchaseOrderDetailPage() {
                                         </div>
                                     )}
                                     {showResults && searchResults.length === 0 && (
-                                        <div className="absolute z-20 left-0 mt-1 w-full bg-white border border-gray-200 rounded shadow-lg p-2 text-sm text-gray-500">
+                                        <div className="absolute z-20 left-4 mt-1 w-64 bg-white border border-gray-200 rounded shadow-lg p-2 text-sm text-gray-700">
                                             No items found
                                         </div>
                                     )}

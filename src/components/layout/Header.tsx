@@ -106,7 +106,7 @@ export default function Header({
             {/* Mobile menu button */}
             <button
                 type="button"
-                className="lg:hidden -m-2.5 p-2.5 text-gray-700 hover:text-gray-900"
+                className="lg:hidden -m-2.5 p-2.5 text-gray-700 hover:text-gray-900 cursor-pointer"
                 onClick={() => setSidebarOpen(true)}
             >
                 <span className="sr-only">Open sidebar</span>
@@ -126,7 +126,7 @@ export default function Header({
                     <div className="relative" ref={panelRef}>
                         <button
                             type="button"
-                            className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative"
+                            className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative cursor-pointer"
                             onClick={() => {
                                 const next = !panelOpen;
                                 setPanelOpen(next);
@@ -201,7 +201,7 @@ export default function Header({
                                                                 {reminderTypeLabel(r.type)}
                                                             </span>
                                                             <button
-                                                                className="text-gray-300 hover:text-gray-500 p-1 rounded-full hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100"
+                                                                className="text-gray-300 hover:text-gray-500 p-1 rounded-full hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
                                                                 title="Dismiss"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -284,7 +284,7 @@ export default function Header({
                             <>
                                 <button
                                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                    className="flex items-center gap-x-3 hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                                    className="flex items-center gap-x-3 hover:bg-gray-50 p-2 rounded-lg transition-colors cursor-pointer"
                                 >
                                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-semibold text-sm">
                                         {session?.user?.name?.charAt(0)?.toUpperCase() || "U"}
@@ -315,7 +315,7 @@ export default function Header({
                                         <div className="p-1">
                                             <button
                                                 onClick={() => signOut({ callbackUrl: "/" })}
-                                                className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                                 role="menuitem"
                                             >
                                                 <ArrowRightOnRectangleIcon className="h-4 w-4" />

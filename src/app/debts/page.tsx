@@ -20,6 +20,8 @@ import {
 } from "@heroicons/react/24/outline";
 import type { FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
 import DebtDetails from "@/components/debts/DebtDetails";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useAlert } from "@/contexts/AlertContext";
 
 interface DebtWithPayments extends FirestoreDebt {
     payments?: FirestoreDebtPayment[];
@@ -28,6 +30,7 @@ interface DebtWithPayments extends FirestoreDebt {
 }
 
 export default function DebtsPage() {
+    const { showConfirm } = useAlert();
     const [debts, setDebts] = useState<DebtWithPayments[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -109,7 +112,7 @@ export default function DebtsPage() {
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (!confirm(`Delete debt for "${name}"? This will also delete all payment history.`)) return;
+        if (!await showConfirm(`Delete debt for "${name}"? This will also delete all payment history.`, { variant: "danger" })) return;
         try {
             const res = await fetch(`/api/debts/${id}`, { method: "DELETE" });
             if (!res.ok) throw new Error("Failed to delete debt");
@@ -339,10 +342,7 @@ export default function DebtsPage() {
                         </div>
                     </div>
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-4">
-                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-                            <p className="text-gray-500">Loading records...</p>
-                        </div>
+                        <LoadingSpinner message="Loading records..." />
                     ) : (
                         <Table
                             data={debts}
