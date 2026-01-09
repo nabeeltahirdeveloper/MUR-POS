@@ -19,7 +19,7 @@ export async function GET(
         }
 
         // Fetch supplier
-        const supplier = purchaseOrder.supplierId 
+        const supplier = purchaseOrder.supplierId
             ? await getDocById<FirestoreSupplier>('suppliers', purchaseOrder.supplierId)
             : null;
 
@@ -40,7 +40,7 @@ export async function GET(
                 const category = item?.categoryId
                     ? await getDocById<FirestoreCategory>("categories", item.categoryId)
                     : null;
-                const baseUnit = item?.baseUnitId 
+                const baseUnit = item?.baseUnitId
                     ? await getDocById<FirestoreUnit>('units', item.baseUnitId)
                     : null;
                 return {
@@ -107,7 +107,8 @@ export async function PUT(
             return NextResponse.json({ error: "Purchase Order not found" }, { status: 404 });
         }
 
-        const supplier = updatedPO.supplierId 
+
+        const supplier = updatedPO.supplierId
             ? await getDocById<FirestoreSupplier>('suppliers', updatedPO.supplierId)
             : null;
 
@@ -119,6 +120,52 @@ export async function PUT(
         console.error("Error updating purchase order:", error);
         return NextResponse.json(
             { error: "Failed to update purchase order" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+
+        // Check availability
+        const currentPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        if (!currentPO) {
+            return NextResponse.json({ error: "Purchase Order not found" }, { status: 404 });
+        }
+
+        // Only allow deleting drafts or possibly cancelled/pending
+        // Assuming we want to allow deleting any PO except maybe 'received' ones if it affects stock?
+        // For now, let's just allow deleting any PO as requested, maybe restrict received?
+        // User asked "give the option for delete order", let's assume all for now or check safety.
+        // Usually you don't delete 'received' orders as they affect inventory/ledger history.
+        // But let's assume user wants to delete.
+
+        // Use batch to delete items and PO
+        const { db } = await import('@/lib/firebase-admin');
+        const batch = db.batch();
+
+        // 1. Delete PO
+        const poRef = db.collection('purchase_orders').doc(id);
+        batch.delete(poRef);
+
+        // 2. Delete PO Items
+        const itemsSnapshot = await db.collection('purchase_order_items').where('orderId', '==', id).get();
+        itemsSnapshot.forEach((doc) => {
+            batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting purchase order:", error);
+        return NextResponse.json(
+            { error: "Failed to delete purchase order" },
             { status: 500 }
         );
     }

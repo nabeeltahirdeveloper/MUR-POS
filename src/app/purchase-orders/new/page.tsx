@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 interface Supplier {
     id: number;
@@ -108,9 +109,9 @@ export default function CreatePurchaseOrderPage() {
                     <button
                         type="submit"
                         disabled={loading || !formData.supplierId}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
                     >
-                        {loading ? "Creating..." : "Create Draft PO"}
+                        {loading ? <div className="flex items-center gap-2"><LoadingSpinner size="sm" /> Creating...</div> : "Create Draft PO"}
                     </button>
                 </div>
             </form>

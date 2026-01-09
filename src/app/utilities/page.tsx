@@ -6,6 +6,8 @@ import { DashboardLayout } from "@/components/layout";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useAlert } from "@/contexts/AlertContext";
 import {
     BoltIcon,
     CalendarIcon,
@@ -21,6 +23,7 @@ import type { FirestoreUtility } from "@/types/firestore";
 
 function UtilitiesPageContent() {
     const searchParams = useSearchParams();
+    const { showConfirm } = useAlert();
     const [utilities, setUtilities] = useState<FirestoreUtility[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -126,7 +129,7 @@ function UtilitiesPageContent() {
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (!confirm(`Delete utility bill "${name}"?`)) return;
+        if (!await showConfirm(`Delete utility bill "${name}"?`, { variant: "danger", title: "Confirm Deletion" })) return;
         try {
             const res = await fetch(`/api/utilities/${id}`, { method: "DELETE" });
             if (!res.ok) throw new Error("Failed to delete utility");
@@ -221,7 +224,7 @@ function UtilitiesPageContent() {
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${value === "paid"
                         ? "bg-green-100 text-green-800 hover:bg-green-200"
                         : "bg-red-100 text-red-800 hover:bg-red-200"
-                        }`}
+                        } cursor-pointer`}
                 >
                     {value === "paid" ? <CheckCircleIcon className="h-3.5 w-3.5" /> : <XCircleIcon className="h-3.5 w-3.5" />}
                     {value.toUpperCase()}
@@ -235,13 +238,13 @@ function UtilitiesPageContent() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => startEdit(row)}
-                        className="text-gray-400 hover:text-blue-600 transition-colors"
+                        className="text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
                     >
                         <PencilSquareIcon className="h-5 w-5" />
                     </button>
                     <button
                         onClick={() => handleDelete(row.id, row.name)}
-                        className="text-gray-400 hover:text-red-600 transition-colors"
+                        className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
                     >
                         <TrashIcon className="h-5 w-5" />
                     </button>
@@ -395,10 +398,7 @@ function UtilitiesPageContent() {
                         </div>
                     </div>
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-4">
-                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-                            <p className="text-gray-500">Fetching your bills...</p>
-                        </div>
+                        <LoadingSpinner message="Fetching your bills..." />
                     ) : (
                         <Table
                             data={utilities}
@@ -417,7 +417,7 @@ export default function UtilitiesPage() {
         <Suspense fallback={
             <DashboardLayout>
                 <div className="flex items-center justify-center min-h-screen">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                    <LoadingSpinner />
                 </div>
             </DashboardLayout>
         }>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAlert } from "@/contexts/AlertContext";
 
 type Category = {
     id: string;
@@ -14,6 +15,7 @@ export default function CategoryManager({
     onClose?: () => void;
     onChange?: () => void;
 }) {
+    const { showConfirm } = useAlert();
     const [categories, setCategories] = useState<Category[]>([]);
     const [newCategory, setNewCategory] = useState("");
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -104,7 +106,7 @@ export default function CategoryManager({
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure?")) return;
+        if (!await showConfirm("Are you sure?", { variant: "danger" })) return;
         setLoading(true);
         setError("");
         try {
@@ -131,7 +133,7 @@ export default function CategoryManager({
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Manage Categories</h3>
                 {onClose && (
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700 cursor-pointer">
                         ✕
                     </button>
                 )}
@@ -155,7 +157,7 @@ export default function CategoryManager({
                 <button
                     type="submit"
                     disabled={loading || !newCategory.trim()}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
                 >
                     Add
                 </button>
@@ -177,7 +179,7 @@ export default function CategoryManager({
                                 />
                                 <button
                                     onClick={() => handleUpdate(cat.id)}
-                                    className="text-green-600 hover:text-green-800 text-sm"
+                                    className="text-green-600 hover:text-green-800 text-sm cursor-pointer"
                                 >
                                     Save
                                 </button>
@@ -186,7 +188,7 @@ export default function CategoryManager({
                                         setEditingId(null);
                                         setEditName("");
                                     }}
-                                    className="text-gray-500 hover:text-gray-700 text-sm"
+                                    className="text-gray-500 hover:text-gray-700 text-sm cursor-pointer"
                                 >
                                     Cancel
                                 </button>
@@ -200,13 +202,13 @@ export default function CategoryManager({
                                             setEditingId(cat.id);
                                             setEditName(cat.name);
                                         }}
-                                        className="text-blue-500 hover:text-blue-700 text-sm"
+                                        className="text-blue-500 hover:text-blue-700 text-sm cursor-pointer"
                                     >
                                         Edit
                                     </button>
                                     <button
                                         onClick={() => handleDelete(cat.id)}
-                                        className="text-red-500 hover:text-red-700 text-sm"
+                                        className="text-red-500 hover:text-red-700 text-sm cursor-pointer"
                                     >
                                         Delete
                                     </button>

@@ -9,9 +9,11 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 import { DashboardLayout } from "@/components/layout";
 import { PlusIcon } from "@heroicons/react/24/outline";
+import { useAlert } from "@/contexts/AlertContext";
 
 export default function ItemsPage() {
     const [items, setItems] = useState<Item[]>([]);
+    const { showConfirm, showAlert } = useAlert();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +36,7 @@ export default function ItemsPage() {
     }, []);
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this item?")) return;
+        if (!await showConfirm("Are you sure you want to delete this item?")) return;
 
         try {
             const res = await fetch(`/api/items/${id}`, {
@@ -43,13 +45,13 @@ export default function ItemsPage() {
 
             if (!res.ok) {
                 const data = await res.json();
-                alert(data.error || "Failed to delete item");
+                await showAlert(data.error || "Failed to delete item", { variant: "danger", title: "Error" });
                 return;
             }
 
             fetchItems();
         } catch (err) {
-            alert("An error occurred while deleting");
+            await showAlert("An error occurred while deleting", { variant: "danger", title: "Error" });
         }
     };
 

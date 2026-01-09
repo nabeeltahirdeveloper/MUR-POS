@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { RECEIPT_LOGO_BASE64 } from "@/components/ledger/ReceiptLogoBase64";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 function LedgerPrintContent() {
     const searchParams = useSearchParams();
@@ -214,7 +215,7 @@ function LedgerPrintContent() {
                 <div className="border-b-2 border-black border-dashed relative z-50 mb-3"></div>
 
                 {loading ? (
-                    <div className="text-center py-4 font-bold">LOADING...</div>
+                    <div className="flex justify-center py-4 font-bold"><LoadingSpinner /></div>
                 ) : (
                     <>
                         {view === 'customers' ? (
@@ -313,7 +314,7 @@ function LedgerPrintContent() {
 
 export default function LedgerPrintPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center h-screen"><LoadingSpinner /></div>}>
             <LedgerPrintContent />
         </Suspense>
     );

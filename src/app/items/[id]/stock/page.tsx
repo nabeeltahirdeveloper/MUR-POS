@@ -157,7 +157,7 @@ export default function ItemStockPage({ params }: { params: Promise<{ id: string
                                     className={`${activeTab === "logs"
                                         ? "border-blue-500 text-blue-600"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                        } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                                        } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm cursor-pointer`}
                                 >
                                     <ClockIcon className="h-5 w-5" />
                                     History
@@ -167,7 +167,7 @@ export default function ItemStockPage({ params }: { params: Promise<{ id: string
                                     className={`${activeTab === "add"
                                         ? "border-green-500 text-green-600"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                        } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                                        } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm cursor-pointer`}
                                 >
                                     <PlusIcon className="h-5 w-5" />
                                     Add Stock
@@ -177,7 +177,7 @@ export default function ItemStockPage({ params }: { params: Promise<{ id: string
                                     className={`${activeTab === "remove"
                                         ? "border-red-500 text-red-600"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                        } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                                        } flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm cursor-pointer`}
                                 >
                                     <MinusIcon className="h-5 w-5" />
                                     Remove Stock

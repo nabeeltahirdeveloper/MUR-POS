@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useAlert } from "@/contexts/AlertContext";
 
 interface PurchaseOrder {
     id: string;
@@ -20,6 +22,7 @@ interface Supplier {
 }
 
 export default function PurchaseOrdersPage() {
+    const { showConfirm, showAlert } = useAlert();
     const [orders, setOrders] = useState<PurchaseOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -137,9 +140,29 @@ export default function PurchaseOrdersPage() {
             key: "actions",
             header: "Actions",
             render: (_: any, row: PurchaseOrder) => (
-                <Link href={`/purchase-orders/${row.id}`} className="text-blue-600 hover:text-blue-800 font-medium">
-                    View
-                </Link>
+                <div className="flex items-center gap-3">
+                    <Link href={`/purchase-orders/${row.id}`} className="text-blue-600 hover:text-blue-800 font-medium">
+                        View
+                    </Link>
+                    <button
+                        onClick={async () => {
+                            if (!await showConfirm("Are you sure you want to delete this purchase order?", { variant: "danger", title: "Delete Purchase Order" })) return;
+                            try {
+                                const res = await fetch(`/api/purchase-orders/${row.id}`, { method: 'DELETE' });
+                                if (!res.ok) {
+                                    const data = await res.json();
+                                    throw new Error(data.error || 'Failed to delete');
+                                }
+                                fetchPOs();
+                            } catch (e: any) {
+                                await showAlert(e.message, { variant: "danger", title: "Error" });
+                            }
+                        }}
+                        className="text-red-600 hover:text-red-800 font-medium cursor-pointer"
+                    >
+                        Delete
+                    </button>
+                </div>
             )
         }
     ];
@@ -231,7 +254,9 @@ export default function PurchaseOrdersPage() {
             {error && <div className="mb-6"><ErrorDisplay message={error} onRetry={() => fetchPOs()} /></div>}
 
             {loading ? (
-                <div className="text-center py-10">Loading purchase orders...</div>
+                <div className="flex justify-center py-10">
+                    <LoadingSpinner />
+                </div>
             ) : (
                 <div className="min-w-0">
                     <Table data={orders} columns={columns} emptyMessage="No purchase orders found." />

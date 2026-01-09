@@ -7,15 +7,18 @@ import { PlusIcon, FunnelIcon, XMarkIcon, UsersIcon, ListBulletIcon, ArrowTrendi
 import LedgerTable from "@/components/ledger/LedgerTable";
 import LedgerPendingTable from "@/components/ledger/LedgerPendingTable";
 import { Button } from "@/components/ui/Button";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { DashboardLayout } from "@/components/layout";
 import LedgerCustomerSummary from "@/components/ledger/LedgerCustomerSummary";
 import LedgerSupplierSummary from "@/components/ledger/LedgerSupplierSummary";
 import LedgerLoanSummary from "@/components/ledger/LedgerLoanSummary";
 import LedgerUtilitySummary from "@/components/ledger/LedgerUtilitySummary";
+import { useAlert } from "@/contexts/AlertContext";
 
 function LedgerPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { showConfirm } = useAlert();
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
@@ -91,7 +94,7 @@ function LedgerPageContent() {
     };
 
     const handleDelete = async (id: number | string) => {
-        if (!confirm("Delete this entry?")) return;
+        if (!await showConfirm("Delete this entry?", { variant: "danger", title: "Delete Transaction" })) return;
         try {
             const res = await fetch(`/api/ledger/${id}`, { method: "DELETE" });
             if (res.ok) {
@@ -187,7 +190,7 @@ function LedgerPageContent() {
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "customers"
                                 ? "bg-white text-blue-600 shadow-sm"
                                 : "text-gray-500 hover:text-gray-700"
-                                }`}
+                                } cursor-pointer`}
                         >
                             <UsersIcon className="h-4 w-4 mr-1.5" />
                             By Customer
@@ -197,7 +200,7 @@ function LedgerPageContent() {
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "suppliers"
                                 ? "bg-white text-blue-600 shadow-sm"
                                 : "text-gray-500 hover:text-gray-700"
-                                }`}
+                                } cursor-pointer`}
                         >
                             <BuildingStorefrontIcon className="h-4 w-4 mr-1.5" />
                             By Supplier
@@ -207,7 +210,7 @@ function LedgerPageContent() {
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "loans"
                                 ? "bg-white text-blue-600 shadow-sm"
                                 : "text-gray-500 hover:text-gray-700"
-                                }`}
+                                } cursor-pointer`}
                         >
                             <BanknotesIcon className="h-4 w-4 mr-1.5" />
                             Loans
@@ -217,7 +220,7 @@ function LedgerPageContent() {
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "utilities"
                                 ? "bg-white text-blue-600 shadow-sm"
                                 : "text-gray-500 hover:text-gray-700"
-                                }`}
+                                } cursor-pointer`}
                         >
                             <WrenchScrewdriverIcon className="h-4 w-4 mr-1.5" />
                             Utilities
@@ -227,7 +230,7 @@ function LedgerPageContent() {
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "entries"
                                 ? "bg-white text-blue-600 shadow-sm"
                                 : "text-gray-500 hover:text-gray-700"
-                                }`}
+                                } cursor-pointer`}
                         >
                             <ListBulletIcon className="h-4 w-4 mr-1.5" />
                             All Entries
@@ -237,7 +240,7 @@ function LedgerPageContent() {
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "pending"
                                 ? "bg-white text-blue-600 shadow-sm"
                                 : "text-gray-500 hover:text-gray-700"
-                                }`}
+                                } cursor-pointer`}
                         >
                             <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -274,7 +277,7 @@ function LedgerPageContent() {
                         {hasActiveFilters && (
                             <button
                                 onClick={clearFilters}
-                                className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                                className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 cursor-pointer"
                             >
                                 <XMarkIcon className="h-4 w-4" />
                                 Clear all
@@ -487,7 +490,7 @@ function LedgerPageContent() {
                         <div className="p-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <button
                                 onClick={() => router.push("/ledger/new?type=credit")}
-                                className="flex flex-col items-center justify-center p-8 rounded-2xl bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-100 transition-all group"
+                                className="flex flex-col items-center justify-center p-8 rounded-2xl bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-100 transition-all group cursor-pointer"
                             >
                                 <div className="p-4 bg-emerald-100 rounded-full mb-4 group-hover:scale-110 transition-transform">
                                     <ArrowTrendingUpIcon className="h-8 w-8 text-emerald-600" />
@@ -497,7 +500,7 @@ function LedgerPageContent() {
                             </button>
                             <button
                                 onClick={() => router.push("/ledger/new?type=debit")}
-                                className="flex flex-col items-center justify-center p-8 rounded-2xl bg-rose-50 border-2 border-rose-100 hover:border-rose-500 hover:bg-rose-100 transition-all group"
+                                className="flex flex-col items-center justify-center p-8 rounded-2xl bg-rose-50 border-2 border-rose-100 hover:border-rose-500 hover:bg-rose-100 transition-all group cursor-pointer"
                             >
                                 <div className="p-4 bg-rose-100 rounded-full mb-4 group-hover:scale-110 transition-transform">
                                     <ArrowTrendingDownIcon className="h-8 w-8 text-rose-600" />
@@ -509,7 +512,7 @@ function LedgerPageContent() {
                         <div className="px-8 pb-8">
                             <button
                                 onClick={() => setShowTransactionModal(false)}
-                                className="w-full py-4 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all font-bold text-sm uppercase tracking-widest"
+                                className="w-full py-4 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all font-bold text-sm uppercase tracking-widest cursor-pointer"
                             >
                                 Dismiss
                             </button>
@@ -524,7 +527,7 @@ function LedgerPageContent() {
 export default function LedgerPage() {
     return (
         <DashboardLayout>
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<div className="flex justify-center p-8"><LoadingSpinner /></div>}>
                 <LedgerPageContent />
             </Suspense>
         </DashboardLayout>

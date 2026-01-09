@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function ProfilePage() {
     const { data: session, update } = useSession();
@@ -19,7 +20,7 @@ export default function ProfilePage() {
     const [loadingPassword, setLoadingPassword] = useState(false);
 
     if (!session) {
-        return <div className="p-8 text-center">Loading...</div>;
+        return <div className="p-8 flex justify-center"><LoadingSpinner /></div>;
     }
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -121,7 +122,7 @@ export default function ProfilePage() {
                         <button
                             type="submit"
                             disabled={loadingProfile}
-                            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+                            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
                         >
                             {loadingProfile ? 'Updating...' : 'Update Profile'}
                         </button>
@@ -174,7 +175,7 @@ export default function ProfilePage() {
                         <button
                             type="submit"
                             disabled={loadingPassword}
-                            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+                            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
                         >
                             {loadingPassword ? 'Changing...' : 'Change Password'}
                         </button>

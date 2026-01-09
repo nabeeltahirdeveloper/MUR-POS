@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ThermalReceipt from "@/components/ledger/ThermalReceipt";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { DashboardLayout } from "@/components/layout";
 
 // Helper to parse transaction notes (duplicated from LedgerEntryForm for self-containment)
@@ -114,7 +115,7 @@ export default function ReceiptPage() {
 
                 {loading ? (
                     <div className="flex-1 flex items-center justify-center min-h-[50vh]">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                        <LoadingSpinner />
                     </div>
                 ) : error ? (
                     <div className="flex-1 flex items-center justify-center min-h-[50vh] text-red-600">

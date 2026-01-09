@@ -3,6 +3,7 @@
 import React from "react";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
+import { useAlert } from "@/contexts/AlertContext";
 
 type LedgerEntry = {
     id: string | number;
@@ -26,6 +27,7 @@ export default function LedgerPendingTable({
     onDelete,
     loading,
 }: LedgerPendingTableProps) {
+    const { showConfirm } = useAlert();
     const [currency, setCurrency] = React.useState({ symbol: "Rs.", position: "prefix" });
 
     React.useEffect(() => {
@@ -151,8 +153,8 @@ export default function LedgerPendingTable({
         }));
     }, [data]);
 
-    const handleGroupDelete = (ids: (string | number)[]) => {
-        if (confirm(`Delete this entire bill (${ids.length} items)?`)) {
+    const handleGroupDelete = async (ids: (string | number)[]) => {
+        if (await showConfirm(`Delete this entire bill (${ids.length} items)?`, { variant: "danger" })) {
             ids.forEach(id => onDelete(id));
         }
     };

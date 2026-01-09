@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ThermalReceipt, { ReceiptData, ReceiptItem } from "@/components/ledger/ThermalReceipt";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 interface PurchaseOrderItem {
     itemId: string;
@@ -48,7 +49,7 @@ export default function PrintPurchaseOrderPage() {
         document.title = `PO-${po.id}`;
     }, [po]);
 
-    if (loading) return <div className="p-8">Loading...</div>;
+    if (loading) return <div className="p-8 flex justify-center"><LoadingSpinner /></div>;
     if (error) return <div className="p-8 text-red-600">{error}</div>;
     if (!po) return <div className="p-8">Not found</div>;
 

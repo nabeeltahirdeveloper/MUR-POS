@@ -115,7 +115,7 @@ export default function Sidebar({
                                     className={`w-full group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
                                         ? "bg-slate-800 text-white"
                                         : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
-                                        }`}
+                                        } cursor-pointer`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <item.icon className="h-5 w-5 shrink-0" />
@@ -188,7 +188,7 @@ export default function Sidebar({
             <div className="border-t border-slate-800 p-4">
                 <button
                     onClick={() => signOut({ callbackUrl: "/" })}
-                    className="w-full group flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all duration-200"
+                    className="w-full group flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all duration-200 cursor-pointer"
                 >
                     <ArrowRightOnRectangleIcon className="h-5 w-5 shrink-0" />
                     Sign Out
@@ -215,7 +215,7 @@ export default function Sidebar({
                 <div className="absolute top-4 right-4">
                     <button
                         onClick={() => setSidebarOpen(false)}
-                        className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                        className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
                     >
                         <XMarkIcon className="h-6 w-6" />
                     </button>
