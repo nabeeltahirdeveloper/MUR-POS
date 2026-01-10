@@ -101,7 +101,7 @@ export default function Sidebar({
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+            <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto min-h-0 sidebar-scrollbar">
                 {navigation.map((item) => {
                     const active = isActive(item.href);
                     const hasChildren = item.children && item.children.length > 0;
@@ -185,7 +185,7 @@ export default function Sidebar({
 
 
             {/* Sign Out Section */}
-            <div className="border-t border-slate-800 p-4">
+            <div className="border-t border-slate-800 p-4 shrink-0 mt-auto">
                 <button
                     onClick={() => signOut({ callbackUrl: "/" })}
                     className="w-full group flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all duration-200 cursor-pointer"
@@ -220,14 +220,14 @@ export default function Sidebar({
                         <XMarkIcon className="h-6 w-6" />
                     </button>
                 </div>
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full overflow-hidden">
                     <NavContent />
                 </div>
             </div>
 
             {/* Desktop sidebar */}
             <div className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-72 lg:flex-col">
-                <div className="flex flex-col flex-grow bg-slate-900 border-r border-slate-800">
+                <div className="flex flex-col flex-grow bg-slate-900 border-r border-slate-800 overflow-hidden">
                     <NavContent />
                 </div>
             </div>
