@@ -27,13 +27,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Ensure inputs with light backgrounds have dark text in dark mode */
-input,
-select,
-textarea {
-  color: #1a202c;
-  /* text-gray-900 equivalent */
-}
+
 
 /* Custom Scrollbar for Sidebar */
 .sidebar-scrollbar::-webkit-scrollbar {
@@ -45,14 +39,47 @@ textarea {
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #334155;
-  /* slate-700 matches the dark theme sidebar */
+  background-color: var(--color-primary);
+  /* Matching theme primary color */
   border-radius: 20px;
   border: 1px solid transparent;
   background-clip: content-box;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #475569;
-  /* slate-600 */
+  background-color: var(--color-primary-dark);
+}
+
+/* Global Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-primary-dark);
+}
+
+/* Autofill Styles */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #020617 inset !important;
+  /* slate-950 */
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
