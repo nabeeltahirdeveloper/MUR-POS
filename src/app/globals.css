@@ -35,5 +35,24 @@ textarea {
   /* text-gray-900 equivalent */
 }
 
-/* If you want to keep the light text for dark backgrounds, you can use specialized classes */
-/* But most inputs in this app seem to use light backgrounds specifically */
+/* Custom Scrollbar for Sidebar */
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #334155;
+  /* slate-700 matches the dark theme sidebar */
+  border-radius: 20px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #475569;
+  /* slate-600 */
+}
