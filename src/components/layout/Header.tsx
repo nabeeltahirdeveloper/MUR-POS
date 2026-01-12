@@ -144,7 +144,7 @@ export default function Header({
                         </button>
 
                         {panelOpen && (
-                            <div className="absolute right-0 mt-2 w-96 max-w-[90vw] rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+                            <div className="fixed inset-x-4 top-20 z-50 sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:mt-2 sm:w-96 sm:max-w-[90vw] rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden">
                                 <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                                     <div className="text-sm font-semibold text-gray-900">Notifications</div>
                                     <Link
