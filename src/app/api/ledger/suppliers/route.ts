@@ -19,10 +19,11 @@ export async function GET(req: NextRequest) {
         }
 
         // Fetch all relevant data
-        // For suppliers, we primarily look at Ledger Entires marked with "Supplier:"
-        // We currently DO NOT include Debts/Loans in the Supplier view to avoid overlap with Customers view,
-        // as Debts in this system are currently generic "personName" based and usually imply Customer loans.
-        const ledgerEntries = await getAllDocs<FirestoreLedger>('ledger');
+        const [ledgerEntries, debts, payments] = await Promise.all([
+            getAllDocs<FirestoreLedger>('ledger'),
+            getAllDocs<any>('debts'),
+            getAllDocs<any>('debt_payments')
+        ]);
 
         const supplierMap: Record<string, {
             name: string;
@@ -78,6 +79,24 @@ export async function GET(req: NextRequest) {
             if (supplierName) {
                 updateSupplier(supplierName, entry.type, Number(entry.amount), entry.date);
             }
+        });
+
+        // 2. Process Debts
+        debts.forEach(debt => {
+            // Check if this is a supplier debt (associated with a bill)
+            if (debt.note?.includes("Supplier:")) {
+                const type = debt.type === 'loaned_in' ? 'credit' : 'debit';
+                updateSupplier(debt.personName, type, Number(debt.amount), debt.createdAt);
+            }
+        });
+
+        // 3. Process Debt Payments
+        payments.forEach(payment => {
+            const debt = debts.find(d => d.id === payment.debtId);
+            if (!debt || !debt.note?.includes("Supplier:")) return;
+
+            const type = debt.type === 'loaned_in' ? 'debit' : 'credit';
+            updateSupplier(debt.personName, type, Number(payment.amount), payment.date);
         });
 
         // Convert map to array and calculate net balance

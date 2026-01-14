@@ -95,9 +95,31 @@ function LedgerPageContent() {
 
     const handleDelete = async (id: number | string) => {
         if (!await showConfirm("Delete this entry?", { variant: "danger", title: "Delete Transaction" })) return;
+
+        // Try to find the order number from the entry notes
+        const entryToDelete: any = entries.find((e: any) => String(e.id) === String(id));
+        const orderMatch = entryToDelete?.note?.match(/Order #\s*([^\s\n]+)/);
+        const orderNum = orderMatch ? orderMatch[1].trim() : null;
+
         try {
             const res = await fetch(`/api/ledger/${id}`, { method: "DELETE" });
             if (res.ok) {
+                // Delete associated debt if order number exists
+                if (orderNum) {
+                    try {
+                        const debtsRes = await fetch('/api/debts');
+                        if (debtsRes.ok) {
+                            const debts = await debtsRes.json();
+                            const existingDebt = debts.find((d: any) => d.note?.includes(`Order #${orderNum}`));
+                            if (existingDebt) {
+                                await fetch(`/api/debts/${existingDebt.id}`, { method: "DELETE" });
+                            }
+                        }
+                    } catch (debtErr) {
+                        console.error("Failed to delete associated debt:", debtErr);
+                    }
+                }
+
                 // Update local list
                 fetchEntries();
 
