@@ -84,6 +84,9 @@ export async function GET(req: NextRequest) {
 
         // 2. Process Debts
         debts.forEach(debt => {
+            // Skip debts meant for suppliers
+            if (debt.note?.includes("Supplier:")) return;
+
             const type = debt.type === 'loaned_in' ? 'credit' : 'debit';
             updateCustomer(debt.personName, type, Number(debt.amount), debt.createdAt);
         });
@@ -91,7 +94,7 @@ export async function GET(req: NextRequest) {
         // 3. Process Debt Payments
         payments.forEach(payment => {
             const debt = debts.find(d => d.id === payment.debtId);
-            if (!debt) return;
+            if (!debt || debt.note?.includes("Supplier:")) return;
 
             const type = debt.type === 'loaned_in' ? 'debit' : 'credit';
             updateCustomer(debt.personName, type, Number(payment.amount), payment.date);

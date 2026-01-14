@@ -473,9 +473,30 @@ export default function LedgerEntryForm({
 
     const handleDeleteRecentTransaction = async (id: number) => {
         if (!await showConfirm("Delete this transaction?", { variant: "danger" })) return;
+
+        // Try to find the order number from the transaction we're about to delete
+        const txToDelete = recentTransactions.find(tx => tx.id === id);
+        const orderNum = txToDelete?.orderNumber;
+
         try {
             const res = await fetch(`/api/ledger/${id}`, { method: "DELETE" });
             if (res.ok) {
+                // Delete associated debt if order number exists
+                if (orderNum) {
+                    try {
+                        const debtsRes = await fetch('/api/debts');
+                        if (debtsRes.ok) {
+                            const debts = await debtsRes.json();
+                            const existingDebt = debts.find((d: any) => d.note?.includes(`Order #${orderNum}`));
+                            if (existingDebt) {
+                                await fetch(`/api/debts/${existingDebt.id}`, { method: "DELETE" });
+                            }
+                        }
+                    } catch (debtErr) {
+                        console.error("Failed to delete associated debt:", debtErr);
+                    }
+                }
+
                 // Update local state and (implicitly) session storage via existing useEffect
                 setRecentTransactions(prev => prev.filter(tx => tx.id !== id));
             } else {
@@ -631,6 +652,53 @@ export default function LedgerEntryForm({
             });
 
             const results = await Promise.all([...deletePromises, ...savePromises]);
+
+            // --- Sync with Debts ---
+            if (orderNumber && partyName) {
+                try {
+                    const debtsRes = await fetch('/api/debts');
+                    if (debtsRes.ok) {
+                        const debts = await debtsRes.json();
+                        const existingDebt = debts.find((d: any) => d.note?.includes(`Order #${orderNumber}`));
+
+                        const debtType = type === 'credit' ? 'loaned_out' : 'loaned_in';
+                        const debtAmount = remainingAmount || 0;
+
+                        if (debtAmount > 0) {
+                            const debtPayload = {
+                                personName: partyName,
+                                type: debtType,
+                                amount: debtAmount,
+                                note: `${type === 'credit' ? 'Customer' : 'Supplier'}: Bill Order #${orderNumber}`,
+                                status: 'active'
+                            };
+
+                            if (existingDebt) {
+                                await fetch(`/api/debts/${existingDebt.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(debtPayload)
+                                });
+                            } else {
+                                await fetch('/api/debts', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(debtPayload)
+                                });
+                            }
+                        } else if (existingDebt) {
+                            // Close the debt if remaining is 0
+                            await fetch(`/api/debts/${existingDebt.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: 'closed', amount: 0 })
+                            });
+                        }
+                    }
+                } catch (debtErr) {
+                    console.error("Failed to sync debt:", debtErr);
+                }
+            }
 
             // Filter out delete results (usually {success: true}) from bill reconstruction
             // Actually, keep it simple: we only care about saved items for receipt
