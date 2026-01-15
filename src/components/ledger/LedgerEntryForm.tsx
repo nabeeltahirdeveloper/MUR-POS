@@ -388,6 +388,7 @@ export default function LedgerEntryForm({
         // Only apply stock check for Cash-In (type === 'credit') as this represents a Sale (Stock Out)
         // SKIP IF CUSTOMIZE
         if (type === 'credit' && itemType === 'Stock') {
+            if (!selectedItem) return; // Should already be caught, but for TS
             const currentStock = selectedItem.currentStock || 0;
 
             // Calculate quantity already in cart for this specific item (excluding current edit item)
