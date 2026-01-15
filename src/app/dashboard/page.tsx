@@ -14,6 +14,7 @@ import {
     CheckCircleIcon,
     RectangleGroupIcon,
 } from "@heroicons/react/24/outline";
+import PendingCustomOrders from "@/components/dashboard/PendingCustomOrders";
 import LowStockWidget from "@/components/dashboard/LowStockWidget";
 import StockValueWidget from "@/components/dashboard/StockValueWidget";
 import ReportsSection from "@/components/dashboard/ReportsSection";
@@ -264,6 +265,9 @@ function DashboardContent() {
 
                 {/* Secondary Widgets Row */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Pending Custom Orders */}
+                    <PendingCustomOrders />
+
                     {/* Low Stock Items */}
                     <LowStockWidget />
 

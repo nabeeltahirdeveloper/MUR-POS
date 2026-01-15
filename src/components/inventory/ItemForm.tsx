@@ -9,9 +9,11 @@ import CategoryManager from "./CategoryManager";
 interface ItemFormProps {
     initialData?: Item;
     isEditing?: boolean;
+    customSubmitUrl?: string; // Optional custom API endpoint
+    additionalBody?: Record<string, any>; // Optional extra data to send
 }
 
-export function ItemForm({ initialData, isEditing = false }: ItemFormProps) {
+export function ItemForm({ initialData, isEditing = false, customSubmitUrl, additionalBody }: ItemFormProps) {
     const router = useRouter();
     const [categories, setCategories] = useState<Category[]>([]);
     const [units, setUnits] = useState<Unit[]>([]);
@@ -143,7 +145,10 @@ export function ItemForm({ initialData, isEditing = false }: ItemFormProps) {
                 finalSupplierId = newSupplier.id;
             }
 
-            const url = isEditing && initialData ? `/api/items/${initialData.id}` : "/api/items";
+            const url = customSubmitUrl
+                ? customSubmitUrl
+                : (isEditing && initialData ? `/api/items/${initialData.id}` : "/api/items");
+
             const method = isEditing ? "PUT" : "POST";
 
             const res = await fetch(url, {
@@ -152,6 +157,7 @@ export function ItemForm({ initialData, isEditing = false }: ItemFormProps) {
                 body: JSON.stringify({
                     ...formData,
                     supplierId: finalSupplierId,
+                    ...(additionalBody || {})
                 }),
             });
 
