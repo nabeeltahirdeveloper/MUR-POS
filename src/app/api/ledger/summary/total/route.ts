@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
         let totalCredit = 0;
         let totalDebit = 0;
 
+        const processedOrders = new Set<string>();
+
         // Process Ledger entries
         for (const entry of ledgerEntries) {
             // Skip legacy utility entries to avoid double counting with virtual entries
@@ -31,6 +33,59 @@ export async function GET(req: NextRequest) {
                 totalCredit += amount;
             } else if (entry.type === "debit") {
                 totalDebit += amount;
+            }
+
+            // --- Virtual Debit/Credit Logic for Pending Payments ---
+            if (entry.note) {
+                const lines = entry.note.split('\n');
+                let remaining = 0;
+                let orderNumber = "";
+                // We need names for key generation (customer/supplier) to be consistent with other APIs
+                let personName = "";
+
+                lines.forEach(line => {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith("Remaining:")) {
+                        remaining = Number(trimmed.replace("Remaining:", "").trim()) || 0;
+                    } else if (trimmed.startsWith("Order #")) {
+                        orderNumber = trimmed.replace("Order #", "").trim();
+                    } else if (trimmed.includes("Order #")) {
+                        const match = trimmed.match(/Order #(\d+)/);
+                        if (match) orderNumber = match[1];
+                    } else if (trimmed.startsWith("Customer:")) {
+                        personName = trimmed.replace("Customer:", "").trim();
+                    } else if (trimmed.startsWith("Supplier:")) {
+                        personName = trimmed.replace("Supplier:", "").trim();
+                    }
+                });
+
+                if (remaining > 0) {
+                    // Generate key for deduplication (same logic as customer/supplier APIs)
+
+                    // Date Key
+                    const dateKey = (entry.date instanceof Date)
+                        ? entry.date.toISOString()
+                        : (entry.date && typeof entry.date.toDate === 'function')
+                            ? entry.date.toDate().toISOString()
+                            : String(entry.date);
+
+                    const orderKey = orderNumber
+                        ? `${personName}-${orderNumber}`
+                        : `${personName}-${dateKey}`;
+
+                    if (!processedOrders.has(orderKey)) {
+                        if (entry.type === 'credit') {
+                            // Sale with Remaining -> We haven't received this cash yet.
+                            // Treat as Virtual Debit to reduce Net Cash-In.
+                            totalDebit += remaining;
+                        } else if (entry.type === 'debit') {
+                            // Purchase with Remaining -> We haven't paid this cash yet.
+                            // Treat as Virtual Credit to reduce Net Cash-Out.
+                            totalCredit += remaining;
+                        }
+                        processedOrders.add(orderKey);
+                    }
+                }
             }
         }
 
