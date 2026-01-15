@@ -378,7 +378,9 @@ export default function LedgerEntryForm({
     };
 
     const handleAddOrUpdateItem = () => {
-        if (!selectedItem) return;
+        // For Stock items, selectedItem is required.
+        // For Customize items, selectedItem can be null if searchTerm is provided.
+        if (!selectedItem && (itemType !== 'Customize' || !searchTerm.trim())) return;
         if (!quantity || Number(quantity) <= 0) return;
         if (!lineAmount || Number(lineAmount) <= 0) return;
 
@@ -418,9 +420,22 @@ export default function LedgerEntryForm({
             }
         }
 
+        let itemToAdd = selectedItem;
+
+        // Custom Item Logic
+        if (itemType === 'Customize' && !selectedItem && searchTerm.trim().length > 0) {
+            itemToAdd = {
+                id: 'unknown',
+                name: searchTerm.trim(),
+                categoryId: undefined
+            };
+        }
+
+        if (!itemToAdd) return;
+
         const newItem: CartItem = {
             tempId: editingCartId || Date.now().toString(),
-            item: selectedItem,
+            item: itemToAdd,
             quantity: Number(quantity),
             unitPrice: unitPrice,
             amount: Number(lineAmount),
