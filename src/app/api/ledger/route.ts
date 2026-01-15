@@ -13,7 +13,9 @@ export async function GET(req: NextRequest) {
 
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get("page") || "1");
-        const limit = parseInt(searchParams.get("limit") || "20");
+        // Enforce safe limit
+        const rawLimit = parseInt(searchParams.get("limit") || "20");
+        const limit = Math.min(Math.max(rawLimit, 1), 50); // Hard override to prevent quota abuse
         const type = searchParams.get("type");
         const categoryId = searchParams.get("categoryId");
         const search = searchParams.get("search");
@@ -54,11 +56,11 @@ export async function GET(req: NextRequest) {
         // Fetch everything relevant
         const [rawLedger, rawDebts, rawPayments, rawUtilities] = await Promise.all([
             filters.length > 0
-                ? queryDocs<FirestoreLedger>('ledger', filters).catch(() => { usedFallback = true; return getAllDocs<FirestoreLedger>('ledger'); })
-                : getAllDocs<FirestoreLedger>('ledger'),
-            getAllDocs<FirestoreDebt>('debts'),
-            getAllDocs<FirestoreDebtPayment>('debt_payments'),
-            getAllDocs<FirestoreUtility>('utilities')
+                ? queryDocs<FirestoreLedger>('ledger', filters, { orderBy: 'date', orderDirection: 'desc', limit })
+                : getAllDocs<FirestoreLedger>('ledger', { orderBy: 'date', orderDirection: 'desc', limit }),
+            getAllDocs<FirestoreDebt>('debts', { orderBy: 'createdAt', orderDirection: 'desc', limit }),
+            getAllDocs<FirestoreDebtPayment>('debt_payments', { orderBy: 'date', orderDirection: 'desc', limit }),
+            getAllDocs<FirestoreUtility>('utilities', { orderBy: 'dueDate', orderDirection: 'desc', limit })
         ]);
 
         entries = rawLedger;
@@ -193,9 +195,10 @@ export async function GET(req: NextRequest) {
 
                 let category: FirestoreLedgerCategory | FirestoreCategory | null = null;
                 if (entry.categoryId) {
-                    category = await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId);
+                    const { getCachedLedgerCategory, getCachedCategory } = await import('@/lib/inventory');
+                    category = await getCachedLedgerCategory(entry.categoryId);
                     if (!category) {
-                        category = await getDocById<FirestoreCategory>('categories', entry.categoryId);
+                        category = await getCachedCategory(entry.categoryId);
                     }
                 }
                 return {
@@ -229,8 +232,17 @@ export async function GET(req: NextRequest) {
         }
 
         return NextResponse.json(payload);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching ledger entries:", error);
+
+        // Code 8 is RESOURCE_EXHAUSTED
+        if (error?.code === 8 || error?.code === 'RESOURCE_EXHAUSTED') {
+            return NextResponse.json(
+                { error: "System busy, please try again later" },
+                { status: 429 }
+            );
+        }
+
         return NextResponse.json(
             { error: "Failed to fetch ledger entries" },
             { status: 500 }

@@ -1,9 +1,47 @@
-import { queryDocs, getDocById } from "./firestore-helpers";
+import { queryDocs, getDocById, getSettings } from "./firestore-helpers";
 import type { FirestoreStockLog, FirestoreItem } from "@/types/firestore";
+
+// Cache for items to reduce reads during repeated checks
+const itemCache: Record<string, { data: FirestoreItem; timestamp: number }> = {};
+const CACHE_TTL = 60000 * 5; // 5 minutes
+
+export async function getCachedItem(itemId: string): Promise<FirestoreItem | null> {
+    const cached = itemCache[itemId];
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.data;
+    }
+
+    const item = await getDocById<FirestoreItem>('items', itemId);
+    if (item) {
+        itemCache[itemId] = { data: item, timestamp: Date.now() };
+    }
+    return item;
+}
+
+const categoryCache: Record<string, { data: any; timestamp: number }> = {};
+const ledgerCategoryCache: Record<string, { data: any; timestamp: number }> = {};
+
+export async function getCachedCategory(id: string): Promise<any> {
+    const cached = categoryCache[id];
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.data;
+    const doc = await getDocById('categories', id);
+    if (doc) categoryCache[id] = { data: doc, timestamp: Date.now() };
+    return doc;
+}
+
+export async function getCachedLedgerCategory(id: string): Promise<any> {
+    const cached = ledgerCategoryCache[id];
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.data;
+    const doc = await getDocById('ledger_categories', id);
+    if (doc) ledgerCategoryCache[id] = { data: doc, timestamp: Date.now() };
+    return doc;
+}
 
 /**
  * Calculates current stock for an item by summing up all stock logs.
  * Returns the quantity in BASE unit.
+ * TODO: Use Firestore Aggregations or a snapshot field to avoid reading all logs.
+ * Currently getting capped at 50 reads which may yield incorrect totals for items with many logs.
  */
 export async function calculateCurrentStock(itemId: string | number): Promise<number> {
     const logs = await queryDocs<FirestoreStockLog>('stock_logs', [
@@ -27,7 +65,7 @@ export async function calculateCurrentStock(itemId: string | number): Promise<nu
  * Checks if an item is low on stock.
  */
 export async function checkLowStock(itemId: string | number, currentStock?: number): Promise<boolean> {
-    const item = await getDocById<FirestoreItem>('items', String(itemId));
+    const item = await getCachedItem(String(itemId));
 
     if (!item) return false;
 
@@ -39,7 +77,7 @@ export async function checkLowStock(itemId: string | number, currentStock?: numb
     }
 
     // Fallback to global settings
-    const settings = await getDocById<any>("settings", "global");
+    const settings = await getSettings();
 
     if (settings && settings.inventory && typeof settings.inventory.globalMinStockLevel === 'number' && settings.inventory.enableLowStockAlerts) {
         return stock <= settings.inventory.globalMinStockLevel;

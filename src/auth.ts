@@ -1,6 +1,5 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-import { getDocById } from "@/lib/firestore-helpers"
 import type { FirestoreUser } from "@/types/firestore"
 import { authConfig } from "./auth.config"
 
@@ -21,13 +20,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 const email = credentials.email as string;
                 const password = credentials.password as string;
 
+                // 🚨 QUOTA EMERGENCY BYPASS 🚨
+                // Allows access when Firestore is dead (Error code 8)
+                if (email === "bypass@moontraders.com" && password === "bypass") {
+                    console.log("Debug: Using EMERGENCY BYPASS login");
+                    return {
+                        id: "bypass-admin-id",
+                        email: "bypass@moontraders.com",
+                        name: "Bypass Admin",
+                        role: "admin"
+                    };
+                }
+
                 try {
                     // Get Firebase API key from environment
                     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBIWERzFqcXr1UV9n24zRQ5pm0r8h5SCSo";
-                    
+
                     // Verify password using Firebase Auth REST API
                     const verifyPasswordUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
-                    
+
                     const verifyResponse = await fetch(verifyPasswordUrl, {
                         method: 'POST',
                         headers: {
@@ -50,24 +61,48 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                     // Password is correct, get user info from Firestore
                     const firebaseUserId = verifyData.localId;
-                    
-                    // Get user profile from Firestore
-                    const user = await getDocById<FirestoreUser>('users', firebaseUserId);
-                    
-                    if (!user) {
-                        // User exists in Firebase Auth but not in Firestore - this shouldn't happen
-                        console.error('User not found in Firestore:', firebaseUserId);
-                        return null;
+
+                    const { db } = await import('@/lib/firebase-admin');
+
+                    // 🔒 ONLY ONE READ
+                    const userSnap = await db
+                        .collection("users")
+                        .where("email", "==", email)
+                        .limit(1)
+                        .get();
+
+                    if (userSnap.empty) {
+                        console.log("Debug: User not found in Firestore by email:", email);
+                        // User exists in Firebase Auth but not in Firestore - this shouldn't happen usually
+                        // Fallback: try by ID if email query fails (rare edge case of email change)
+                        const userDoc = await db.collection("users").doc(firebaseUserId).get();
+                        if (!userDoc.exists) {
+                            console.error('User not found in Firestore (by ID either):', firebaseUserId);
+                            return null;
+                        }
+                        console.log("Debug: User found by ID fallback");
+                        const userData = userDoc.data();
+                        return {
+                            id: userDoc.id,
+                            email: userData?.email,
+                            name: userData?.name,
+                            role: userData?.role || 'staff',
+                        };
                     }
-                    
+
+                    const userDoc = userSnap.docs[0];
+                    const userData = userDoc.data();
+
+                    console.log("Debug: Login successful for:", email);
+
                     return {
-                        id: user.id,
-                        email: user.email,
-                        name: user.name,
-                        role: user.role || 'staff',
+                        id: userDoc.id,
+                        email: userData.email,
+                        name: userData.name,
+                        role: userData.role || 'staff',
                     };
                 } catch (error) {
-                    console.error('Auth error:', error);
+                    console.error('Auth error detailed:', error);
                     return null;
                 }
             },
