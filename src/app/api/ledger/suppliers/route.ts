@@ -63,6 +63,8 @@ export async function GET(req: NextRequest) {
             }
         };
 
+        const processedOrders = new Set<string>();
+
         // 1. Process Ledger entries
         ledgerEntries.forEach(entry => {
             if (!entry.note) return;
@@ -70,14 +72,42 @@ export async function GET(req: NextRequest) {
             // Extract supplier name from structured note
             const lines = entry.note.split('\n');
             let supplierName = "";
+            let remaining = 0;
+            let orderNumber = "";
+
             lines.forEach(line => {
-                if (line.startsWith("Supplier: ")) {
-                    supplierName = line.replace("Supplier: ", "").trim();
+                const trimmed = line.trim();
+                if (trimmed.startsWith("Supplier:")) {
+                    supplierName = trimmed.replace("Supplier:", "").trim();
+                } else if (trimmed.startsWith("Remaining:")) {
+                    remaining = Number(trimmed.replace("Remaining:", "").trim()) || 0;
+                } else if (trimmed.startsWith("Order #")) {
+                    orderNumber = trimmed.replace("Order #", "").trim();
                 }
             });
 
             if (supplierName) {
                 updateSupplier(supplierName, entry.type, Number(entry.amount), entry.date);
+
+                // For Suppliers, Remaining on a Debit Entry (Purchase/Cash Out) means we owe them money.
+                // This is treated as a 'Credit' (Payable/Loan In).
+                if (remaining > 0 && entry.type === 'debit') {
+                    // Group by Order Number OR Date to handle multi-item bills correctly
+                    const dateKey = (entry.date instanceof Date)
+                        ? entry.date.toISOString()
+                        : (entry.date && typeof entry.date.toDate === 'function')
+                            ? entry.date.toDate().toISOString()
+                            : String(entry.date);
+
+                    const orderKey = orderNumber
+                        ? `${supplierName}-${orderNumber}`
+                        : `${supplierName}-${dateKey}`;
+
+                    if (!processedOrders.has(orderKey)) {
+                        updateSupplier(supplierName, 'credit', remaining, entry.date);
+                        processedOrders.add(orderKey);
+                    }
+                }
             }
         });
 

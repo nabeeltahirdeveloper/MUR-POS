@@ -654,6 +654,11 @@ export default function LedgerEntryForm({
             const results = await Promise.all([...deletePromises, ...savePromises]);
 
             // --- Sync with Debts ---
+            // --- Sync with Debts ---
+            // DISABLED: User requested to separate Pending Payments from Loans.
+            // Remaining balance will now ONLY be tracked via Ledger Note "Remaining: X"
+            // and displayed in Pending Payments view, NOT in Loans view.
+            /*
             if (orderNumber && partyName) {
                 try {
                     const debtsRes = await fetch('/api/debts');
@@ -699,6 +704,7 @@ export default function LedgerEntryForm({
                     console.error("Failed to sync debt:", debtErr);
                 }
             }
+            */
 
             // Filter out delete results (usually {success: true}) from bill reconstruction
             // Actually, keep it simple: we only care about saved items for receipt

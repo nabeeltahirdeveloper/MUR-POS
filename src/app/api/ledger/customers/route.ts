@@ -14,6 +14,8 @@ export async function GET(req: NextRequest) {
         const fromDate = searchParams.get("from") ? new Date(searchParams.get("from")!) : null;
         const toDate = searchParams.get("to") ? new Date(searchParams.get("to")!) : null;
 
+        console.log(`[DEBUG] Customer Balance Calc: Range ${fromDate} - ${toDate}`);
+
         if (toDate) {
             // Set to end of day
             toDate.setHours(23, 59, 59, 999);
@@ -64,6 +66,8 @@ export async function GET(req: NextRequest) {
             }
         };
 
+        const processedOrders = new Set<string>();
+
         // 1. Process Ledger entries
         ledgerEntries.forEach(entry => {
             if (!entry.note) return;
@@ -71,14 +75,57 @@ export async function GET(req: NextRequest) {
             // Extract customer name from structured note
             const lines = entry.note.split('\n');
             let customerName = "";
+            let remaining = 0;
+            let orderNumber = "";
+
             lines.forEach(line => {
-                if (line.startsWith("Customer: ")) {
-                    customerName = line.replace("Customer: ", "").trim();
+                const trimmed = line.trim();
+                if (trimmed.startsWith("Customer:")) {
+                    customerName = trimmed.replace("Customer:", "").trim();
+                } else if (trimmed.startsWith("Remaining:")) {
+                    // Flexible parsing: handles "Remaining: 300" and "Remaining:300"
+                    remaining = Number(trimmed.replace("Remaining:", "").trim()) || 0;
+                } else if (trimmed.startsWith("Order #")) {
+                    orderNumber = trimmed.replace("Order #", "").trim();
+                } else if (trimmed.includes("Order #")) {
+                    // Fallback if Order # is somewhere else or formatted differently
+                    const match = trimmed.match(/Order #(\d+)/);
+                    if (match) orderNumber = match[1];
                 }
             });
 
             if (customerName) {
+                // Always add the item amount (Sales)
                 updateCustomer(customerName, entry.type, Number(entry.amount), entry.date);
+
+                // Apply Virtual Debit for Remaining Balance
+                // Logic: Balance = Total Sales (Credit) - Remaining (Debit) = Cash Received
+                // Constraint: Only apply ONCE per Order to avoid double counting if bill has multiple items.
+                if (remaining > 0 && entry.type === 'credit') {
+                    // Use a unique key for the order logic. 
+                    // If orderNumber is present, use it.
+                    // If NOT present, use the Entry Date (which is identical for all items in a single batch transaction).
+
+                    // IMPORTANT: Use entry.date (which effectively comes from Firestore timestamp) as key.
+                    // Firestore timestamps might need conversion to string for consistent key.
+                    // entry.date is likely a Date object or Timestamp object from Firestore helpers.
+
+                    const dateKey = (entry.date instanceof Date)
+                        ? entry.date.toISOString()
+                        : (entry.date && typeof entry.date.toDate === 'function')
+                            ? entry.date.toDate().toISOString()
+                            : String(entry.date);
+
+                    const orderKey = orderNumber
+                        ? `${customerName}-${orderNumber}`
+                        : `${customerName}-${dateKey}`;
+
+                    if (!processedOrders.has(orderKey)) {
+                        console.log(`[DEBUG] Applying Virtual Debit: Name=${customerName}, Debit=${remaining}, Key=${orderKey}`);
+                        updateCustomer(customerName, 'debit', remaining, entry.date);
+                        processedOrders.add(orderKey);
+                    }
+                }
             }
         });
 

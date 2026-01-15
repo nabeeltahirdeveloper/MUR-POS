@@ -232,11 +232,45 @@ export default function LedgerPendingTable({
                     </Button>
                     <Button
                         size="sm"
-                        variant="secondary"
-                        onClick={() => onEdit(row.id)} // Edits just the first item for now, or we need a batch edit page
-                        title="Edit First Item (Batch Edit WIP)"
+                        variant="primary"
+                        className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                        onClick={async () => {
+                            if (await showConfirm("Mark this bill as fully paid? This will update the status and net balance.", { variant: "info", title: "Settle Payment" })) {
+                                try {
+                                    // Update all items in the group to remove "Remaining" from note
+                                    await Promise.all(row.ids.map(async (id: string | number) => {
+                                        const res = await fetch(`/api/ledger/${id}`);
+                                        if (res.ok) {
+                                            const data = await res.json();
+                                            // Remove Remaining line, keep Advance for history?
+                                            // Or remove both? Let's remove Remaining only to clear "Pending" status.
+                                            const newNote = (data.note || "")
+                                                .split('\n')
+                                                .filter((line: string) => !line.startsWith("Remaining: "))
+                                                .join('\n');
+
+                                            await fetch(`/api/ledger/${id}`, {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ ...data, note: newNote })
+                                            });
+                                        }
+                                    }));
+                                    // Refresh by reloading or callback? 
+                                    // Since we don't have a refresh callback in props easily, we might rely on parent re-render or reload.
+                                    // But onEdit/onDelete triggers parent update? onDelete does.
+                                    // Let's reuse onDelete to trigger refresh? No, that deletes it.
+                                    // Ideally we need onUpdate callback.
+                                    // For now, simple window reload or forcing update.
+                                    window.location.reload();
+                                } catch (e) {
+                                    console.error("Failed to mark paid", e);
+                                }
+                            }
+                        }}
+                        title="Mark as Fully Paid"
                     >
-                        Edit
+                        Mark Paid
                     </Button>
                     <Button
                         size="sm"
