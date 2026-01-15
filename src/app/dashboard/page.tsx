@@ -44,11 +44,11 @@ function DashboardContent() {
                 }
 
                 const today = new Date().toISOString().split("T")[0];
-                const resDaily = await fetch(`/api/ledger/summary/daily?date=${today}`);
-                if (resDaily.ok) setDailySummary(await resDaily.json());
+                // const resDaily = await fetch(`/api/ledger/summary/daily?date=${today}`);
+                // if (resDaily.ok) setDailySummary(await resDaily.json());
 
-                const resTotal = await fetch('/api/ledger/summary/total');
-                if (resTotal.ok) setTotalSummary(await resTotal.json());
+                // const resTotal = await fetch('/api/ledger/summary/total');
+                // if (resTotal.ok) setTotalSummary(await resTotal.json());
 
                 const resUtils = await fetch('/api/utilities');
                 if (resUtils.ok) {
@@ -79,51 +79,51 @@ function DashboardContent() {
                     }
                 }
 
-                const resLedger = await fetch('/api/ledger?search=Remaining:&limit=100');
-                if (resLedger.ok) {
-                    const data = await resLedger.json();
-                    if (data.data && Array.isArray(data.data)) {
-                        const pending = data.data.filter((e: any) => {
-                            const match = e.note?.match(/Remaining: (\d+)/);
-                            if (match) {
-                                return Number(match[1]) > 0;
-                            }
-                            return false;
-                        }).map((e: any) => {
-                            const remaining = Number(e.note?.match(/Remaining: (\d+)/)[1]);
-                            // Extract customer name
-                            let person = "Unknown";
-                            const customerMatch = e.note?.match(/Customer: (.*?)(?:\n|$)/);
-                            const supplierMatch = e.note?.match(/Supplier: (.*?)(?:\n|$)/);
+                // const resLedger = await fetch('/api/ledger?search=Remaining:&limit=100');
+                // if (resLedger.ok) {
+                //     const data = await resLedger.json();
+                //     if (data.data && Array.isArray(data.data)) {
+                //         const pending = data.data.filter((e: any) => {
+                //             const match = e.note?.match(/Remaining: (\d+)/);
+                //             if (match) {
+                //                 return Number(match[1]) > 0;
+                //             }
+                //             return false;
+                //         }).map((e: any) => {
+                //             const remaining = Number(e.note?.match(/Remaining: (\d+)/)[1]);
+                //             // Extract customer name
+                //             let person = "Unknown";
+                //             const customerMatch = e.note?.match(/Customer: (.*?)(?:\n|$)/);
+                //             const supplierMatch = e.note?.match(/Supplier: (.*?)(?:\n|$)/);
 
-                            if (customerMatch) person = customerMatch[1].trim();
-                            else if (supplierMatch) person = supplierMatch[1].trim();
+                //             if (customerMatch) person = customerMatch[1].trim();
+                //             else if (supplierMatch) person = supplierMatch[1].trim();
 
-                            return { ...e, remaining, personName: person };
-                        });
-                        // Deduplicate by Order # or Customer+Date
-                        const uniqueBills: any[] = [];
-                        const seenKeys = new Set();
+                //             return { ...e, remaining, personName: person };
+                //         });
+                //         // Deduplicate by Order # or Customer+Date
+                //         const uniqueBills: any[] = [];
+                //         const seenKeys = new Set();
 
-                        pending.forEach((e: any) => {
-                            let orderNum = "-";
-                            const orderMatch = e.note?.match(/Order #\s*([^\n]+)/);
-                            if (orderMatch) orderNum = orderMatch[1].trim();
+                //         pending.forEach((e: any) => {
+                //             let orderNum = "-";
+                //             const orderMatch = e.note?.match(/Order #\s*([^\n]+)/);
+                //             if (orderMatch) orderNum = orderMatch[1].trim();
 
-                            const key = orderNum !== "-"
-                                ? `ORD-${orderNum}`
-                                : `DATE-${e.date.split('T')[0]}-CUS-${e.personName}`;
+                //             const key = orderNum !== "-"
+                //                 ? `ORD-${orderNum}`
+                //                 : `DATE-${e.date.split('T')[0]}-CUS-${e.personName}`;
 
-                            if (!seenKeys.has(key)) {
-                                seenKeys.add(key);
-                                uniqueBills.push(e);
-                            }
-                        });
+                //             if (!seenKeys.has(key)) {
+                //                 seenKeys.add(key);
+                //                 uniqueBills.push(e);
+                //             }
+                //         });
 
 
-                        setPendingLedger(uniqueBills.slice(0, 5));
-                    }
-                }
+                //         setPendingLedger(uniqueBills.slice(0, 5));
+                //     }
+                // }
             } catch (err) {
                 console.error(err);
             }

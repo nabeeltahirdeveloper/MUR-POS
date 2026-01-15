@@ -1,5 +1,5 @@
 import { db, Timestamp } from "@/lib/firestore";
-import { objectToFirestore, timestampToDate } from "@/lib/firestore-helpers";
+import { objectToFirestore, timestampToDate, safeLimit } from "@/lib/firestore-helpers";
 import { getDocById } from "@/lib/firestore-helpers";
 import { calculateCurrentStock } from "@/lib/inventory";
 import type { FirestoreItem, FirestoreUtility, FirestoreDebt } from "@/types/firestore";
@@ -306,7 +306,7 @@ export async function listReminders(options: {
   cursor?: string | null;
 }): Promise<{ reminders: ReminderDoc[]; nextCursor: string | null }> {
   const status = options.status ?? "all";
-  const limit = Math.min(Math.max(options.limit ?? 20, 1), 100);
+  const limit = safeLimit(options.limit);
   const cursor = options.cursor ?? null;
 
   // Prefer server-side query, but fall back to in-memory filtering if Firestore requires an index.
@@ -333,17 +333,8 @@ export async function listReminders(options: {
     const nextCursor = reminders.length === limit ? reminders[reminders.length - 1].id : null;
     return { reminders, nextCursor };
   } catch (err) {
-    console.error("listReminders query failed, falling back to getAll:", err);
-    const snap = await db.collection(REMINDERS_COLLECTION).get();
-    let reminders = snap.docs.map((d) => docToReminder(d.id, d.data() || {}));
-    reminders = reminders.filter((r) => r.resolvedAt === null);
-    if (status === "triggered") reminders = reminders.filter((r) => r.triggered);
-    if (status === "pending") reminders = reminders.filter((r) => !r.triggered);
-    reminders.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-
-    const sliced = reminders.slice(0, limit);
-    const nextCursor = sliced.length === limit ? sliced[sliced.length - 1].id : null;
-    return { reminders: sliced, nextCursor };
+    console.error("listReminders query failed:", err);
+    throw new Error("Service temporarily unavailable");
   }
 }
 

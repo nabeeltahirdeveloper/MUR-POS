@@ -3,12 +3,33 @@ import type { firestore } from 'firebase-admin';
 
 /**
  * Convert Firestore Timestamp to JavaScript Date
- */
+    */
 export function timestampToDate(timestamp: firestore.Timestamp | Date | null | undefined): Date | null {
     if (!timestamp) return null;
     if (timestamp instanceof Date) return timestamp;
     if (timestamp instanceof Timestamp) return timestamp.toDate();
     return null;
+}
+
+export const SAFE_LIMIT = 50;
+
+export function safeLimit(limit?: number | null): number {
+    return Math.min(Math.max(Number(limit) || 20, 1), SAFE_LIMIT);
+}
+
+let settingsCache: any = null;
+let lastSettingsFetch = 0;
+
+export async function getSettings() {
+    if (settingsCache && Date.now() - lastSettingsFetch < 60000) {
+        return settingsCache;
+    }
+
+    const doc = await db.collection("settings").doc("main").get();
+    settingsCache = doc.data();
+    lastSettingsFetch = Date.now();
+
+    return settingsCache;
 }
 
 /**
@@ -114,12 +135,18 @@ export async function getDocById<T extends Record<string, any>>(
  */
 export async function getAllDocs<T extends Record<string, any>>(
     collection: string,
-    options?: { orderBy?: string; orderDirection?: 'asc' | 'desc' }
+    options?: { orderBy?: string; orderDirection?: 'asc' | 'desc'; limit?: number }
 ): Promise<(T & { id: string })[]> {
     let query: firestore.Query = db.collection(collection);
 
     if (options?.orderBy) {
         query = query.orderBy(options.orderBy, options.orderDirection || 'asc');
+    }
+
+    if (options?.limit) {
+        query = query.limit(safeLimit(options.limit));
+    } else {
+        query = query.limit(SAFE_LIMIT);
     }
 
     const snapshot = await query.get();
@@ -183,7 +210,9 @@ export async function queryDocs<T extends Record<string, any>>(
     }
 
     if (options?.limit) {
-        query = query.limit(options.limit);
+        query = query.limit(safeLimit(options.limit));
+    } else {
+        query = query.limit(SAFE_LIMIT);
     }
 
     const snapshot = await query.get();
