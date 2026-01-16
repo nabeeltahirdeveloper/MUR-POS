@@ -1,0 +1,60 @@
+import { NextRequest, NextResponse } from "next/server";
+import { updateDoc, deleteDoc, getDocById } from "@/lib/firestore-helpers";
+import type { FirestoreExpense } from "@/types/firestore";
+
+export const runtime = "nodejs";
+
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const { id } = await params;
+    try {
+        const body = await request.json();
+        const { name, amount, dueDate, category, status } = body;
+
+        const updateData: Partial<FirestoreExpense> = {};
+        if (name !== undefined) updateData.name = name;
+        if (amount !== undefined) updateData.amount = Number(amount);
+        if (dueDate !== undefined) updateData.dueDate = new Date(dueDate);
+        if (category !== undefined) updateData.category = category;
+        if (status !== undefined) updateData.status = status;
+
+        // Check if this is a payment (status changing to paid)
+        const existingExpense = await getDocById<FirestoreExpense>('other_expenses', id);
+        const isPayment = existingExpense && existingExpense.status === 'unpaid' && status === 'paid';
+
+        // Capture paidAt date when marking as paid
+        if (isPayment) {
+            updateData.paidAt = new Date();
+        }
+
+        await updateDoc('other_expenses', id, updateData);
+
+        const updated = await getDocById<FirestoreExpense>('other_expenses', id);
+        return NextResponse.json(updated);
+    } catch (error) {
+        console.error("Error updating other expense:", error);
+        return NextResponse.json(
+            { error: "Failed to update other expense" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const { id } = await params;
+    try {
+        await deleteDoc('other_expenses', id);
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting other expense:", error);
+        return NextResponse.json(
+            { error: "Failed to delete other expense" },
+            { status: 500 }
+        );
+    }
+}

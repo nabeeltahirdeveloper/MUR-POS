@@ -26,6 +26,7 @@ function DashboardContent() {
     const [dailySummary, setDailySummary] = useState<any>(null);
     const [totalSummary, setTotalSummary] = useState<any>(null);
     const [upcomingUtilities, setUpcomingUtilities] = useState<any[]>([]);
+    const [upcomingExpenses, setUpcomingExpenses] = useState<any[]>([]);
     const [debtSummary, setDebtSummary] = useState<any[]>([]);
     const [pendingLedger, setPendingLedger] = useState<any[]>([]);
     const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -67,6 +68,20 @@ function DashboardContent() {
                             })
                             .slice(0, 5);
                         setUpcomingUtilities(upcoming);
+                    }
+                }
+
+                const resExpenses = await fetch('/api/other-expenses');
+                if (resExpenses.ok) {
+                    const data = await resExpenses.json();
+                    if (Array.isArray(data)) {
+                        const now = new Date();
+                        now.setHours(0, 0, 0, 0);
+                        const upcoming = data
+                            .filter((e: any) => e.status === 'unpaid')
+                            .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+                            .slice(0, 5);
+                        setUpcomingExpenses(upcoming);
                     }
                 }
 
@@ -216,7 +231,7 @@ function DashboardContent() {
                 </div>
 
                 {/* Quick Actions Component */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <Link
                         href="/items"
                         className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 transition-all group"
@@ -226,8 +241,8 @@ function DashboardContent() {
                                 <CubeIcon className="h-6 w-6 text-primary" />
                             </div>
                             <div>
-                                <h2 className="text-base font-bold text-gray-900 leading-tight">Manage Inventory</h2>
-                                <p className="text-xs text-gray-500">Track stock levels and prices</p>
+                                <h2 className="text-base font-bold text-gray-900 leading-tight">Inventory</h2>
+                                <p className="text-xs text-gray-500">Track stock & prices</p>
                             </div>
                         </div>
                     </Link>
@@ -242,7 +257,7 @@ function DashboardContent() {
                             </div>
                             <div>
                                 <h2 className="text-base font-bold text-slate-900 leading-tight">Create Bill</h2>
-                                <p className="text-xs text-slate-900/70">Record new sales or expenses</p>
+                                <p className="text-xs text-slate-900/70">Sales or expenses</p>
                             </div>
                         </div>
                     </button>
@@ -256,27 +271,41 @@ function DashboardContent() {
                                 <BoltIcon className="h-6 w-6 text-primary" />
                             </div>
                             <div>
-                                <h2 className="text-base font-bold text-gray-900 leading-tight">Utility Bills</h2>
-                                <p className="text-xs text-gray-500">Monitor upcoming payments</p>
+                                <h2 className="text-base font-bold text-gray-900 leading-tight">Utilities</h2>
+                                <p className="text-xs text-gray-500">Upcoming payments</p>
+                            </div>
+                        </div>
+                    </Link>
+
+                    <Link
+                        href="/other-expenses"
+                        className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 transition-all group"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                <BanknotesIcon className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                                <h2 className="text-base font-bold text-gray-900 leading-tight">Expenses</h2>
+                                <p className="text-xs text-gray-500">Manage other costs</p>
                             </div>
                         </div>
                     </Link>
                 </div>
 
                 {/* Secondary Widgets Row */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Pending Custom Orders */}
-                    <PendingCustomOrders />
-
-                    {/* Low Stock Items */}
-                    <LowStockWidget />
+                    <div className="lg:col-span-1">
+                        <PendingCustomOrders />
+                    </div>
 
                     {/* Pending Utilities Widget */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div className="flex items-center gap-2">
                                 <BoltIcon className="h-5 w-5 text-primary" />
-                                <h3 className="font-bold text-gray-900">Pending Utilities</h3>
+                                <h3 className="font-bold text-gray-900">Utilities</h3>
                             </div>
                             <Link href="/utilities" className="text-xs font-bold text-primary hover:underline">View All</Link>
                         </div>
@@ -313,6 +342,48 @@ function DashboardContent() {
                         </div>
                     </div>
 
+                    {/* Pending Expenses Widget */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <div className="flex items-center gap-2">
+                                <BanknotesIcon className="h-5 w-5 text-primary" />
+                                <h3 className="font-bold text-gray-900">Expenses</h3>
+                            </div>
+                            <Link href="/other-expenses" className="text-xs font-bold text-primary hover:underline">View All</Link>
+                        </div>
+                        <div className="flex-1">
+                            {upcomingExpenses.length > 0 ? (
+                                <div className="divide-y divide-gray-100">
+                                    {upcomingExpenses.map((expense) => {
+                                        const dueDate = new Date(expense.dueDate);
+                                        const isOverdue = dueDate < new Date();
+                                        return (
+                                            <div key={expense.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/80 transition-colors">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-gray-900">{expense.name}</span>
+                                                    <span className={`text-[10px] font-bold ${isOverdue ? "text-red-500" : "text-gray-400"}`}>
+                                                        Due: {dueDate.toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-mono font-bold text-gray-900">{formatCurr(expense.amount)}</p>
+                                                    <p className="text-[9px] uppercase tracking-wider font-black text-gray-300">{expense.category || "General"}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
+                                    <div className="p-2 bg-green-50 rounded-full mb-2">
+                                        <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                                    </div>
+                                    <p className="text-sm font-bold text-gray-500">No Pending Expenses</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Pending Payments (Ledger Remaining) Widget */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-yellow-50/50">
@@ -320,7 +391,7 @@ function DashboardContent() {
                                 <div className="p-1.5 bg-yellow-100 rounded-lg">
                                     <svg className="w-4 h-4 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 </div>
-                                <h3 className="font-bold text-gray-900">Pending Payments</h3>
+                                <h3 className="font-bold text-gray-900">Payments</h3>
                             </div>
                             <Link href="/ledger?view=pending" className="text-xs font-bold text-yellow-700 hover:underline">View All</Link>
                         </div>
@@ -338,7 +409,7 @@ function DashboardContent() {
                                             <div className="text-right">
                                                 <p className="font-mono font-bold text-red-600">{formatCurr(entry.remaining)}</p>
                                                 <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block mt-1 ${entry.type === 'credit' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                                                    {entry.type === 'credit' ? 'Receivable' : 'Payable'}
+                                                    {entry.type === 'credit' ? 'Receive' : 'Pay'}
                                                 </span>
                                             </div>
                                         </div>
@@ -349,11 +420,18 @@ function DashboardContent() {
                                     <div className="p-3 bg-yellow-50 rounded-full mb-3">
                                         <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     </div>
-                                    <p className="text-sm font-bold text-gray-500 mb-1">No Pending Payments</p>
-                                    <p className="text-xs text-gray-400">All transactions are settled.</p>
+                                    <p className="text-sm font-bold text-gray-500 mb-1">No Payments</p>
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+
+                {/* Third Row */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Low Stock Items */}
+                    <div className="lg:col-span-1">
+                        <LowStockWidget />
                     </div>
 
                     {/* Pending Debts Widget */}
