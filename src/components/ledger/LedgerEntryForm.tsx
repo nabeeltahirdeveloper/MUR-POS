@@ -22,8 +22,8 @@ type Item = {
     currentStock?: number;
     categoryId?: string;
     category?: { name: string };
-    baseUnit?: { name: string; symbol?: string };
-    saleUnit?: { name: string; symbol?: string };
+    baseUnit?: { name: string; symbol?: string; id?: string };
+    saleUnit?: { name: string; symbol?: string; id?: string };
 };
 
 type Party = {
@@ -162,6 +162,15 @@ export default function LedgerEntryForm({
     const [error, setError] = useState("");
     const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [units, setUnits] = useState<{ id: string, name: string, symbol?: string }[]>([]);
+
+    // Fetch Units
+    useEffect(() => {
+        fetch('/api/units')
+            .then(res => res.json())
+            .then(data => setUnits(data))
+            .catch(err => console.error("Failed to fetch units", err));
+    }, []);
 
 
     // --- Initialize from existing data (Edit Mode) ---
@@ -1077,12 +1086,41 @@ export default function LedgerEntryForm({
                                         </div>
                                     )}
 
-                                    {selectedItem && (selectedItem.baseUnit || selectedItem.saleUnit) && (
-                                        <div className="absolute top-full left-0 mt-1 flex gap-2 z-10 pointer-events-none">
+                                    {selectedItem && (
+                                        <div className="absolute top-full left-0 mt-1 flex gap-2 z-20">
                                             {selectedItem.saleUnit && (
-                                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded shadow-sm">
-                                                    Sale: {selectedItem.saleUnit.name}
-                                                </span>
+                                                <div className="flex items-center gap-1">
+                                                    <select
+                                                        value={selectedItem.saleUnit.id || (
+                                                            // Fallback: try to find ID by name if ID missing, or just rely on name match if we must?
+                                                            units.find(u => u.name === selectedItem.saleUnit?.name)?.id || ""
+                                                        )}
+                                                        onChange={(e) => {
+                                                            const newUnitId = e.target.value;
+                                                            const newUnit = units.find(u => u.id === newUnitId);
+                                                            if (newUnit) {
+                                                                setSelectedItem({
+                                                                    ...selectedItem,
+                                                                    saleUnit: {
+                                                                        name: newUnit.name,
+                                                                        symbol: newUnit.symbol,
+                                                                        id: newUnit.id // Ensure we keep ID if possible
+                                                                    } as any // Cast to satisfy type if needed, or update Item Type
+                                                                });
+                                                            }
+                                                        }}
+                                                        className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-1 py-0.5 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                                                    >
+                                                        {/* Ensure current option exists even if not in list yet? Usually it should be. */}
+                                                        {units.map(u => (
+                                                            <option key={u.id} value={u.id}>
+                                                                Sale: {u.symbol || u.name}
+                                                            </option>
+                                                        ))}
+                                                        {/* Fallback if list empty or unit not found? */}
+                                                        {(!units.length) && <option>Sale: {selectedItem.saleUnit.name}</option>}
+                                                    </select>
+                                                </div>
                                             )}
                                             {selectedItem.baseUnit && (
                                                 <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded shadow-sm">
