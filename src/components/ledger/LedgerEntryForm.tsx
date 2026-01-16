@@ -667,73 +667,15 @@ export default function LedgerEntryForm({
                 });
             });
 
-            const results = await Promise.all([...deletePromises, ...savePromises]);
+            await Promise.all(deletePromises);
+            const saveResults = await Promise.all(savePromises);
 
-            // --- Sync with Debts ---
-            // --- Sync with Debts ---
-            // DISABLED: User requested to separate Pending Payments from Loans.
-            // Remaining balance will now ONLY be tracked via Ledger Note "Remaining: X"
-            // and displayed in Pending Payments view, NOT in Loans view.
-            /*
-            if (orderNumber && partyName) {
-                try {
-                    const debtsRes = await fetch('/api/debts');
-                    if (debtsRes.ok) {
-                        const debts = await debtsRes.json();
-                        const existingDebt = debts.find((d: any) => d.note?.includes(`Order #${orderNumber}`));
-
-                        const debtType = type === 'credit' ? 'loaned_out' : 'loaned_in';
-                        const debtAmount = remainingAmount || 0;
-
-                        if (debtAmount > 0) {
-                            const debtPayload = {
-                                personName: partyName,
-                                type: debtType,
-                                amount: debtAmount,
-                                note: `${type === 'credit' ? 'Customer' : 'Supplier'}: Bill Order #${orderNumber}`,
-                                status: 'active'
-                            };
-
-                            if (existingDebt) {
-                                await fetch(`/api/debts/${existingDebt.id}`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(debtPayload)
-                                });
-                            } else {
-                                await fetch('/api/debts', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(debtPayload)
-                                });
-                            }
-                        } else if (existingDebt) {
-                            // Close the debt if remaining is 0
-                            await fetch(`/api/debts/${existingDebt.id}`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ status: 'closed', amount: 0 })
-                            });
-                        }
-                    }
-                } catch (debtErr) {
-                    console.error("Failed to sync debt:", debtErr);
-                }
-            }
-            */
-
-            // Filter out delete results (usually {success: true}) from bill reconstruction
-            // Actually, keep it simple: we only care about saved items for receipt
-            // The results array will contain responses for deletes and saves.
-            // We need to isolate the saved items to show receipt.
-
-            // Re-fetch or use results that are from saves?
-            // Results are mixed.
-            // Let's rely on itemsToSave as the source of truth for the receipt.
+            // Use saveResults for the receipt data as they contain the verified IDs
+            const firstSaved = saveResults[0];
 
             const billData = {
-                id: results[0]?.id || `batch - ${Date.now()} `,
-                allIds: currentLedgerIds.join(','), // simplified
+                id: firstSaved?.id || `batch-${Date.now()}`,
+                allIds: saveResults.map((r: any) => r.id).join(','),
                 items: itemsToSave.map(item => ({
                     ...parseTransactionNote(""), // defaults
                     itemName: item.item.name,
@@ -746,27 +688,81 @@ export default function LedgerEntryForm({
                 date: dateTime.toISOString(),
                 partyName: partyName || "Walk-in",
                 orderNumber: orderNumber,
-                type: type // credit/debit
+                type: type, // credit/debit
+                advance: advanceAmount ? Number(advanceAmount) : 0,
             };
 
-            // Update Recent list
-            setRecentTransactions(prev => [billData, ...prev]);
+            // Update Recent list (Check if exists first)
+            setRecentTransactions(prev => {
+                const existingIndex = prev.findIndex(tx =>
+                    (orderNumber && tx.orderNumber === orderNumber) ||
+                    (!orderNumber && tx.id === billData.id) // Fallback for single entries without order #
+                );
 
-            // Clear Form
-            setCartItems([]);
-            setOrderNumber("");
-            setPartyName("");
-            setPartyPhone("");
-            setPartyAddress("");
-            setIsNewParty(false);
-            setSelectedItem(null);
-            setSearchTerm("");
-            setQuantity("1");
-            setUnitPrice(0);
-            setLineAmount("");
-            setAdvanceAmount("");
-            setRemainingAmount(0);
-            setOriginalBatchIds([]);
+                if (existingIndex >= 0) {
+                    const updated = [...prev];
+                    updated[existingIndex] = billData;
+                    return updated;
+                } else {
+                    return [billData, ...prev];
+                }
+            });
+
+            // Clear Form ONLY if NEW transaction
+            if (!isEdit) {
+                setCartItems([]);
+                setOrderNumber("");
+                setPartyName("");
+                setPartyPhone("");
+                setPartyAddress("");
+                setIsNewParty(false);
+                setSelectedItem(null);
+                setSearchTerm("");
+                setQuantity("1");
+                setUnitPrice(0);
+                setLineAmount("");
+                // setAdvanceAmount(""); // User wants Advance to persist for the whole bill
+                setRemainingAmount(0);
+                setOriginalBatchIds([]);
+
+                // Fetch Next Order Number
+                fetch('/api/ledger/next-order')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.nextOrderNumber) {
+                            setOrderNumber(data.nextOrderNumber.toString());
+                        }
+                    })
+                    .catch(err => console.error("Failed to fetch next order number", err));
+            } else {
+                // If Editing, maybe verify the changes persisted visually or show success
+                // The 'recentTransactions' update handles the list. 
+                // The form stays populated with the edited data so user can see it.
+                // We might want to clear "originalBatchIds" or update them?
+                // Actually, if they save again, it's another update.
+                // We need to make sure 'originalBatchIds' matches the current state
+                // But 'saveResults' has the new IDs.
+
+                // Update 'originalBatchIds' to match the currently saved set so subsequent saves work correctly
+                // Otherwise deleting items next time might delete wrong things or fail
+                const newIds = saveResults.map((r: any) => r.id);
+                setOriginalBatchIds(newIds);
+
+                // Also update cart items ledgerIds to avoid "new" classification on re-save
+                setCartItems(prev => prev.map((item, index) => {
+                    // Match by index from saveResults if possible? 
+                    // itemsToSave order should be preserved in saveResults usually.
+                    // But simpler: just trust the list is sync.
+                    const saved = saveResults[index]; // Assuming 1:1 mapping order
+                    return {
+                        ...item,
+                        ledgerId: saved ? saved.id : item.ledgerId
+                    };
+                }));
+
+                // Optionally scroll to top or show success message
+                showAlert("Transaction Updated Successfully!", { variant: "success" });
+            }
 
             // Note: We stay on the page to show the receipt, so no router.back() here unless New Transaction is clicked.
             setLoading(false);
@@ -824,6 +820,18 @@ export default function LedgerEntryForm({
                             <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">Moon Traders • Ledger System</p>
                         </div>
                     </div>
+                    {isEdit && (
+                        <button
+                            type="button"
+                            onClick={() => router.push(`/ledger/new?type=${type}`)}
+                            className="ml-auto flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-emerald-400 hover:text-emerald-300 rounded-xl border border-emerald-500/30 font-bold uppercase text-xs tracking-wider transition-all"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                            </svg>
+                            New Bill
+                        </button>
+                    )}
 
                     {/* Row 1: Order Number */}
                     <div className="flex items-center gap-4 bg-slate-800/50 p-2 rounded-xl border border-white/5">
@@ -1051,13 +1059,40 @@ export default function LedgerEntryForm({
                                     </select>
                                 </div>
 
-                                {/* Qty */}
+                                {/* Rate (Unit Price) - Visible for Customize or when needed */}
+                                {(itemType === 'Customize') && (
+                                    <div className="w-full md:w-32">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Rate</label>
+                                        <input
+                                            type="number"
+                                            value={unitPrice || ""}
+                                            onChange={(e) => {
+                                                const val = Number(e.target.value);
+                                                setUnitPrice(val);
+                                                // Auto-calculate Total Amount
+                                                const qty = Number(quantity) || 0;
+                                                setLineAmount((val * qty).toString());
+                                            }}
+                                            placeholder="0"
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Qty - Update handler to recalculate amount */}
                                 <div className="w-full md:w-32">
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
                                     <input
                                         type="number"
                                         value={quantity}
-                                        onChange={(e) => setQuantity(e.target.value)}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setQuantity(val);
+                                            // Auto-calculate Total Amount if unit price exists
+                                            if (unitPrice) {
+                                                setLineAmount((unitPrice * (Number(val) || 0)).toString());
+                                            }
+                                        }}
                                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
                                     />
                                 </div>
@@ -1103,34 +1138,7 @@ export default function LedgerEntryForm({
                                     </div>
                                 </div>
 
-                                {/* Advance */}
-                                <div className="w-full md:w-32">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Advance</label>
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rs.</span>
-                                        <input
-                                            type="number"
-                                            value={advanceAmount}
-                                            onChange={(e) => setAdvanceAmount(e.target.value)}
-                                            className="w-full pl-8 pr-3 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none transition-all shadow-sm font-bold text-gray-800"
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                </div>
 
-                                {/* Remaining */}
-                                <div className="w-full md:w-32">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Remaining</label>
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rs.</span>
-                                        <input
-                                            type="number"
-                                            value={remainingAmount}
-                                            readOnly
-                                            className="w-full pl-8 pr-3 py-3 bg-gray-100 border border-transparent rounded-xl font-bold text-red-500 cursor-not-allowed"
-                                        />
-                                    </div>
-                                </div>
 
                                 {/* Action Buttons */}
                                 <div className="w-full md:w-auto md:shrink-0 flex items-end justify-end">
@@ -1206,7 +1214,37 @@ export default function LedgerEntryForm({
 
 
                         {/* Bottom Right SAVE OPTIONS */}
-                        <div className="flex justify-end pt-4 gap-3 mt-auto">
+                        <div className="flex justify-end pt-4 gap-3 mt-auto items-end flex-wrap">
+
+                            {/* Advance Input */}
+                            <div className="w-full sm:w-auto">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Advance</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rs.</span>
+                                    <input
+                                        type="number"
+                                        value={advanceAmount}
+                                        onChange={(e) => setAdvanceAmount(e.target.value)}
+                                        className="w-full sm:w-32 pl-8 pr-3 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none transition-all shadow-sm font-bold text-gray-800"
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Remaining Display */}
+                            <div className="w-full sm:w-auto">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Remaining</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rs.</span>
+                                    <input
+                                        type="number"
+                                        value={remainingAmount}
+                                        readOnly
+                                        className="w-full sm:w-32 pl-8 pr-3 py-3.5 bg-gray-100 border border-transparent rounded-xl font-bold text-red-500 cursor-not-allowed"
+                                    />
+                                </div>
+                            </div>
+
                             {/* Optional: Print or other options */}
                             {/* <button type="button" className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors">draft</button> */}
 
@@ -1221,116 +1259,133 @@ export default function LedgerEntryForm({
                         </div>
                     </form>
                 </div>
-            </div>
+            </div >
 
             {/* Recent Transactions (Detailed Table) */}
-            {recentTransactions.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col print:hidden mt-4 mb-12">
-                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                        <h3 className="text-lg font-bold text-gray-800">Recent Transactions</h3>
-                        <span className="text-xs font-medium text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200">Session History</span>
-                    </div>
+            {
+                recentTransactions.length > 0 && (
+                    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col print:hidden mt-4 mb-12">
+                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-gray-800">Recent Transactions</h3>
+                            <span className="text-xs font-medium text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200">Session History</span>
+                        </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100 uppercase text-xs tracking-wider">
-                                <tr>
-                                    <th className="px-6 py-3">#</th>
-                                    <th className="px-6 py-3">{type === 'credit' ? 'Customer' : 'Supplier'}</th>
-                                    <th className="px-6 py-3">Date & Time</th>
-                                    <th className="px-6 py-3">Item</th>
-                                    <th className="px-6 py-3 text-center">Price</th>
-                                    <th className="px-6 py-3 text-center">Qty</th>
-                                    <th className="px-6 py-3 text-center">Amount</th>
-                                    <th className="px-6 py-3 text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {recentTransactions.map((bill, i) => {
-                                    return (
-                                        <tr key={bill.id || i} className="hover:bg-primary/5 transition-colors group">
-                                            <td className="px-6 py-4 font-bold text-gray-500">
-                                                {bill.orderNumber || "---"}
-                                            </td>
-                                            <td className="px-6 py-4 font-semibold text-gray-700">
-                                                {bill.partyName}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                                                <div>{new Date(bill.date).toLocaleDateString()}</div>
-                                                <div className="text-xs text-gray-400">{new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-900 font-medium">
-                                                {bill.items.length > 1 ? (
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="text-primary font-bold">{bill.items.length} Items</span>
-                                                        <span className="text-xs text-gray-500 truncate max-w-[200px]">
-                                                            {bill.items.map((it: any) => it.itemName).join(", ")}
-                                                        </span>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100 uppercase text-xs tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-3">#</th>
+                                        <th className="px-6 py-3">{type === 'credit' ? 'Customer' : 'Supplier'}</th>
+                                        <th className="px-6 py-3">Date & Time</th>
+                                        <th className="px-6 py-3">Item</th>
+                                        <th className="px-6 py-3 text-center">Price</th>
+                                        <th className="px-6 py-3 text-center">Qty</th>
+                                        <th className="px-6 py-3 text-center">Amount</th>
+                                        <th className="px-6 py-3 text-center">Advance</th>
+                                        <th className="px-6 py-3 text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {recentTransactions.map((bill, i) => {
+                                        return (
+                                            <tr key={bill.id || i} className="hover:bg-primary/5 transition-colors group">
+                                                <td className="px-6 py-4 font-bold text-gray-500">
+                                                    {bill.orderNumber || "---"}
+                                                </td>
+                                                <td className="px-6 py-4 font-semibold text-gray-700">
+                                                    {bill.partyName}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                                                    <div>{new Date(bill.date).toLocaleDateString()}</div>
+                                                    <div className="text-xs text-gray-400">{new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-gray-900 font-medium">
+                                                    {bill.items.length > 1 ? (
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span className="text-primary font-bold">{bill.items.length} Items</span>
+                                                            <span className="text-xs text-gray-500 truncate max-w-[200px]">
+                                                                {bill.items.map((it: any) => it.itemName).join(", ")}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        bill.items[0]?.itemName || "N/A"
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-center text-gray-600 font-medium">
+                                                    {bill.items.length > 1 ? (
+                                                        <span className="text-xs text-gray-400">---</span>
+                                                    ) : (
+                                                        `Rs. ${bill.items[0]?.unitPrice || 0}`
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-center text-gray-600 font-bold">
+                                                    {bill.items.reduce((acc: number, it: any) => acc + (it.quantity || 0), 0)}
+                                                </td>
+                                                <td className={`px-6 py-4 text-center font-bold text-lg ${bill.type === 'credit' ? 'text-emerald-600' : 'text-red-600'} `}>
+                                                    Rs. {Number(bill.total).toLocaleString()}
+                                                </td>
+                                                <td className="px-6 py-4 text-center font-bold text-gray-500">
+                                                    {bill.advance ? `Rs. ${Number(bill.advance).toLocaleString()}` : '-'}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button
+                                                            onClick={() => router.push(`/ledger/${bill.id}/edit`)}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary hover:text-white text-primary rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+                                                            title="Edit Transaction"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (bill.allIds) window.open(`/ledger/receipt/batch?ids=${bill.allIds}`, '_blank');
+                                                                else if (bill.id) window.open(`/ledger/receipt/${bill.id}`, '_blank');
+                                                            }}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-800 hover:text-white text-gray-700 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+                                                            title="Print Bill"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                                                        </button>
                                                     </div>
-                                                ) : (
-                                                    bill.items[0]?.itemName || "N/A"
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-center text-gray-600 font-medium">
-                                                {bill.items.length > 1 ? (
-                                                    <span className="text-xs text-gray-400">---</span>
-                                                ) : (
-                                                    `Rs. ${bill.items[0]?.unitPrice || 0}`
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-center text-gray-600 font-bold">
-                                                {bill.items.reduce((acc: number, it: any) => acc + (it.quantity || 0), 0)}
-                                            </td>
-                                            <td className={`px-6 py-4 text-center font-bold text-lg ${bill.type === 'credit' ? 'text-emerald-600' : 'text-red-600'} `}>
-                                                Rs. {Number(bill.total).toLocaleString()}
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            if (bill.allIds) window.open(`/ledger/receipt/batch?ids=${bill.allIds}`, '_blank');
-                                                            else if (bill.id) window.open(`/ledger/receipt/${bill.id}`, '_blank');
-                                                        }}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-800 hover:text-white text-gray-700 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
-                                                        title="Print Bill"
-                                                    >
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            )}
-            {stockErrorModal.open && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-red-100">
-                        <div className="p-6 text-center">
-                            <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-50 mb-4 ring-8 ring-red-50/50">
-                                <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                            </div>
-                            <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">Stock Unavailable</h3>
-                            <p className="text-gray-500 mb-8 font-medium leading-relaxed">{stockErrorModal.message}</p>
-                            <div className="flex justify-center w-full">
-                                <button
-                                    type="button"
-                                    onClick={() => setStockErrorModal({ open: false, message: "" })}
-                                    className="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg shadow-red-500/30 transform hover:-translate-y-0.5 cursor-pointer"
-                                >
-                                    Dismiss
-                                </button>
+                )
+            }
+            {
+                stockErrorModal.open && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 border border-red-100">
+                            <div className="p-6 text-center">
+                                <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-50 mb-4 ring-8 ring-red-50/50">
+                                    <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">Stock Unavailable</h3>
+                                <p className="text-gray-500 mb-8 font-medium leading-relaxed">{stockErrorModal.message}</p>
+                                <div className="flex justify-center w-full">
+                                    <button
+                                        type="button"
+                                        onClick={() => setStockErrorModal({ open: false, message: "" })}
+                                        className="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg shadow-red-500/30 transform hover:-translate-y-0.5 cursor-pointer"
+                                    >
+                                        Dismiss
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
