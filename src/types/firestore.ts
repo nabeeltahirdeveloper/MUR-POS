@@ -107,9 +107,6 @@ export interface FirestorePurchaseOrderItem {
     pricePerUnit: number;
 }
 
-createdAt: Date | any;
-}
-
 export interface FirestoreExpense {
     id: string;
     name: string;
@@ -186,4 +183,3 @@ export interface FirestoreSettings {
     };
     updatedAt: Date | any;
 }
-
