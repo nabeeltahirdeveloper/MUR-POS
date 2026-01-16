@@ -370,7 +370,7 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
                             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                             rows={4}
                             placeholder="Add a detailed description..."
-                            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md transition-shadow duration-200 p-3"
+                            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md transition-shadow duration-200 p-3 text-gray-900"
                         />
                     </div>
                     <p className="mt-2 text-sm text-gray-500">
