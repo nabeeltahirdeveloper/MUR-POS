@@ -107,6 +107,20 @@ export interface FirestorePurchaseOrderItem {
     pricePerUnit: number;
 }
 
+createdAt: Date | any;
+}
+
+export interface FirestoreExpense {
+    id: string;
+    name: string;
+    amount: number;
+    dueDate: Date | any;
+    paidAt?: Date | any;
+    category?: string | null;
+    status: 'paid' | 'unpaid';
+    createdAt: Date | any;
+}
+
 export interface FirestoreUtility {
     id: string;
     name: string;

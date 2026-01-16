@@ -23,6 +23,7 @@ import {
     BellAlertIcon,
     BanknotesIcon,
     Cog6ToothIcon,
+    CurrencyDollarIcon,
 } from "@heroicons/react/24/outline";
 
 const navigation = [
@@ -45,6 +46,7 @@ const navigation = [
     },
     { name: "Reminders", href: "/reminders", icon: BellAlertIcon },
     { name: "Utilities", href: "/utilities", icon: BoltIcon },
+    { name: "Other Expenses", href: "/other-expenses", icon: CurrencyDollarIcon },
     { name: "Loan-In & Loan-Out", href: "/debts", icon: BanknotesIcon },
     { name: "Settings", href: "/settings", icon: Cog6ToothIcon },
 ];

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById, getAllDocs } from "@/lib/firestore-helpers";
-import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility } from "@/types/firestore";
+import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility, FirestoreExpense } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -180,6 +180,32 @@ export async function GET(req: NextRequest) {
                 note: `[Bill] ${util.name} - ${util.category || 'General'}`,
                 date: uDate, // Use the resolved date
                 category: { name: 'Utility' }
+            });
+        });
+
+        // 4. Process Other Expenses (Paid)
+        const rawOtherExpenses = await getAllDocs<FirestoreExpense>('other_expenses', { orderBy: 'dueDate', orderDirection: 'desc', limit });
+
+        rawOtherExpenses.forEach(expense => {
+            if (expense.status !== 'paid') return;
+
+            let eDate = expense.dueDate instanceof Date ? expense.dueDate : (expense.dueDate?.toDate ? expense.dueDate.toDate() : new Date(expense.dueDate));
+
+            if (expense.paidAt) {
+                eDate = expense.paidAt instanceof Date ? expense.paidAt : (expense.paidAt?.toDate ? expense.paidAt.toDate() : new Date(expense.paidAt));
+            }
+
+            if (dateFrom && eDate < dateFrom) return;
+            if (dateTo && eDate > dateTo) return;
+            if (type && type !== 'debit') return;
+
+            virtualEntries.push({
+                id: `exp_${expense.id}`,
+                type: 'debit',
+                amount: expense.amount,
+                note: `[Expense] ${expense.name} - ${expense.category || 'General'}`,
+                date: eDate,
+                category: { name: 'Other Expense' }
             });
         });
 
