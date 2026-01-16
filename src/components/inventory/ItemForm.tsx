@@ -5,6 +5,7 @@ import { Button } from "../ui/Button";
 import { useRouter } from "next/navigation";
 import { Category, Unit, Item } from "@/types/inventory";
 import CategoryManager from "./CategoryManager";
+import UnitManager from "./UnitManager";
 
 interface ItemFormProps {
     initialData?: Item;
@@ -108,6 +109,7 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
     }, []);
 
     const [showCategoryManager, setShowCategoryManager] = useState(false);
+    const [showUnitManager, setShowUnitManager] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -407,7 +409,16 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Base Unit</label>
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="block text-sm font-medium text-gray-700">Base Unit</label>
+                            <button
+                                type="button"
+                                onClick={() => setShowUnitManager(true)}
+                                className="text-xs text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
+                            >
+                                + Manage Units
+                            </button>
+                        </div>
                         <select
                             name="baseUnitId"
                             value={formData.baseUnitId}
@@ -425,7 +436,16 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Sale Unit</label>
+                        <div className="flex justify-between items-center mb-1 lg:mt-0 mt-6"> {/* Removed top margin as flex row handles spacing better, or keep consistent */}
+                            <label className="block text-sm font-medium text-gray-700">Sale Unit</label>
+                            <button
+                                type="button"
+                                onClick={() => setShowUnitManager(true)}
+                                className="text-xs text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
+                            >
+                                + Manage Units
+                            </button>
+                        </div>
                         <select
                             name="saleUnitId"
                             value={formData.saleUnitId}
@@ -513,6 +533,17 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
                     <div className="w-full max-w-md">
                         <CategoryManager
                             onClose={() => setShowCategoryManager(false)}
+                            onChange={() => fetchData()}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {showUnitManager && (
+                <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-4">
+                    <div className="w-full max-w-md">
+                        <UnitManager
+                            onClose={() => setShowUnitManager(false)}
                             onChange={() => fetchData()}
                         />
                     </div>

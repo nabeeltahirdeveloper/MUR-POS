@@ -22,6 +22,8 @@ type Item = {
     currentStock?: number;
     categoryId?: string;
     category?: { name: string };
+    baseUnit?: { name: string; symbol?: string };
+    saleUnit?: { name: string; symbol?: string };
 };
 
 type Party = {
@@ -68,14 +70,27 @@ const parseTransactionNote = (note: string) => {
         else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
         else if (line.startsWith("Item: ")) {
             // Item: [Type] Name (Qty: X @ Y) - Handle optional space after ]
-            const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (\d+)\s*@\s*(.*)\)/);
+            // New Format: Item: [Type] Name (Qty: X Unit @ Y)
+            const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (\d+)\s*(.*?)\s*@\s*(.*)\)/);
             if (match) {
                 itemType = match[1] || "Stock";
                 itemName = match[2];
                 quantity = Number(match[3]);
-                unitPrice = Number(match[4]);
+                // match[4] is Unit, match[5] is Price
+                // We don't strictly need to parse Unit for reconstruction unless we want to validate it.
+                // But the RegEx needs to handle it.
+                unitPrice = Number(match[5]);
             } else {
-                itemName = line.replace("Item: ", "").trim();
+                // Try old format fallback
+                const oldMatch = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (\d+)\s*@\s*(.*)\)/);
+                if (oldMatch) {
+                    itemType = oldMatch[1] || "Stock";
+                    itemName = oldMatch[2];
+                    quantity = Number(oldMatch[3]);
+                    unitPrice = Number(oldMatch[4]);
+                } else {
+                    itemName = line.replace("Item: ", "").trim();
+                }
             }
         }
     });
@@ -187,6 +202,10 @@ export default function LedgerEntryForm({
                                         name: p.itemName,
                                         firstSalePrice: p.unitPrice,
                                         categoryId: e.categoryId,
+                                        // Units not easily reconstructible from string properly without fetch, 
+                                        // but for Cart display it might be OK or we re-fetch if needed.
+                                        // Basically we rely on 'item' being fetched via search for new items.
+                                        // For existing items in cart, we might lack unit info unless we fetch it.
                                     },
                                     quantity: p.quantity,
                                     unitPrice: p.unitPrice,
@@ -626,9 +645,19 @@ export default function LedgerEntryForm({
                 if (partyAddress) parts.push(`Address: ${partyAddress} `);
                 parts.push(`Payment: ${paymentType} `);
 
-                // Item Note: [Stock/Customize] Item Name (Qty...)
+
+                // Item Note: [Stock/Customize] Item Name (Qty: X [Unit] @ Y)
                 const typePrefix = cartItem.note ? `[${cartItem.note}] ` : "";
-                parts.push(`Item: ${typePrefix}${cartItem.item.name} (Qty: ${cartItem.quantity} @${cartItem.unitPrice})`);
+
+                // Determine Unit String
+                let unitString = "";
+                if (cartItem.item.saleUnit) {
+                    unitString = cartItem.item.saleUnit.symbol || cartItem.item.saleUnit.name;
+                } else if (cartItem.item.baseUnit) {
+                    unitString = cartItem.item.baseUnit.symbol || cartItem.item.baseUnit.name;
+                }
+
+                parts.push(`Item: ${typePrefix}${cartItem.item.name} (Qty: ${cartItem.quantity} ${unitString} @${cartItem.unitPrice})`);
 
                 // Add Advance & Remaining to ALL items in the batch so they are searchable/filterable
                 if (advanceAmount !== "") parts.push(`Advance: ${advanceAmount} `);
@@ -1045,6 +1074,21 @@ export default function LedgerEntryForm({
                                                         </li>
                                                     ))}</ul>
                                                 ) : <div className="p-4 text-center text-sm text-gray-500">No items found</div>}
+                                        </div>
+                                    )}
+
+                                    {selectedItem && (selectedItem.baseUnit || selectedItem.saleUnit) && (
+                                        <div className="absolute top-full left-0 mt-1 flex gap-2 z-10 pointer-events-none">
+                                            {selectedItem.saleUnit && (
+                                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded shadow-sm">
+                                                    Sale: {selectedItem.saleUnit.name}
+                                                </span>
+                                            )}
+                                            {selectedItem.baseUnit && (
+                                                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded shadow-sm">
+                                                    Base: {selectedItem.baseUnit.name}
+                                                </span>
+                                            )}
                                         </div>
                                     )}
                                 </div>
