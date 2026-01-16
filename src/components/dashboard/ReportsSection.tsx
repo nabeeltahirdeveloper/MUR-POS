@@ -54,22 +54,58 @@ export default function ReportsSection() {
                 setEntries(data);
 
                 // Calculate summary
-                const credit = data.reduce((acc: number, curr: any) => curr.type === 'credit' ? acc + curr.amount : acc, 0);
-                const debit = data.reduce((acc: number, curr: any) => curr.type === 'debit' ? acc + curr.amount : acc, 0);
-                setSummary({ credit, debit, net: credit - debit });
+                let credit = 0;
+                let debit = 0;
+                const processedOrders = new Set<string>();
 
                 // Calculate category breakdown
                 const breakdownMap: Record<string, {
                     name: string, credit: number, debit: number
                 }> = {};
+
                 data.forEach((entry: any) => {
+                    let entryCredit = entry.type === 'credit' ? entry.amount : 0;
+                    let entryDebit = entry.type === 'debit' ? entry.amount : 0;
+
+                    // Parse Remaining Amount
+                    let remaining = 0;
+                    if (entry.note) {
+                        const match = entry.note.match(/Remaining: (\d+)/);
+                        if (match) remaining = Number(match[1]);
+                    }
+
+                    // Apply Virtual Adjustment for Pending Amounts
+                    if (remaining > 0) {
+                        // Generate key for deduplication (simple version for client-side)
+                        const orderMatch = entry.note?.match(/Order #(\d+)/);
+                        const orderKey = orderMatch ? `ORD-${orderMatch[1]}` : `DATE-${entry.date}-AMT-${entry.amount}`;
+
+                        // Only apply if we haven't processed this remaining amount (fairly naive dedup for now)
+                        if (!processedOrders.has(orderKey)) {
+                            processedOrders.add(orderKey);
+                            if (entry.type === 'credit') {
+                                // Sale with Pending: Treat as Virtual Debit to reduce Net
+                                entryDebit += remaining;
+                            } else {
+                                // Purchase with Pending: Treat as Virtual Credit to reduce Net Cost
+                                entryCredit += remaining;
+                            }
+                        }
+                    }
+
+                    credit += entryCredit;
+                    debit += entryDebit;
+
+                    // Category Breakdown
                     const catName = entry.category?.name || "Uncategorized";
                     if (!breakdownMap[catName]) {
                         breakdownMap[catName] = { name: catName, credit: 0, debit: 0 };
                     }
-                    if (entry.type === 'credit') breakdownMap[catName].credit += entry.amount;
-                    else breakdownMap[catName].debit += entry.amount;
+                    breakdownMap[catName].credit += entryCredit;
+                    breakdownMap[catName].debit += entryDebit;
                 });
+
+                setSummary({ credit, debit, net: credit - debit });
                 setCategoryBreakdown(Object.values(breakdownMap).sort((a, b) => (b.credit - b.debit) - (a.credit - a.debit)));
             }
         } catch (e) {

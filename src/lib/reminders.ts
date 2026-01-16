@@ -311,27 +311,56 @@ export async function listReminders(options: {
 
   // Prefer server-side query, but fall back to in-memory filtering if Firestore requires an index.
   try {
-    let q: FirebaseFirestore.Query = db
-      .collection(REMINDERS_COLLECTION)
-      .orderBy("updatedAt", "desc");
+    // Helper to build query
+    const buildQuery = (baseQuery: FirebaseFirestore.Query, withSort: boolean) => {
+      let query = baseQuery;
+      if (withSort) {
+        query = query.orderBy("updatedAt", "desc");
+      }
 
-    if (status === "triggered") {
-      q = q.where("triggered", "==", true).where("resolvedAt", "==", null);
-    } else if (status === "pending") {
-      q = q.where("triggered", "==", false).where("resolvedAt", "==", null);
-    } else {
-      q = q.where("resolvedAt", "==", null);
-    }
+      if (status === "triggered") {
+        query = query.where("triggered", "==", true).where("resolvedAt", "==", null);
+      } else if (status === "pending") {
+        query = query.where("triggered", "==", false).where("resolvedAt", "==", null);
+      } else {
+        query = query.where("resolvedAt", "==", null);
+      }
+      return query;
+    };
+
+    let qWithSort = buildQuery(db.collection(REMINDERS_COLLECTION), true);
 
     if (cursor) {
       const cursorSnap = await db.collection(REMINDERS_COLLECTION).doc(cursor).get();
-      if (cursorSnap.exists) q = q.startAfter(cursorSnap);
+      if (cursorSnap.exists) qWithSort = qWithSort.startAfter(cursorSnap);
     }
 
-    const snap = await q.limit(limit).get();
-    const reminders = snap.docs.map((d) => docToReminder(d.id, d.data() || {}));
-    const nextCursor = reminders.length === limit ? reminders[reminders.length - 1].id : null;
-    return { reminders, nextCursor };
+    try {
+      const snap = await qWithSort.limit(limit).get();
+      const reminders = snap.docs.map((d) => docToReminder(d.id, d.data() || {}));
+      const nextCursor = reminders.length === limit ? reminders[reminders.length - 1].id : null;
+      return { reminders, nextCursor };
+    } catch (err: any) {
+      // Fallback: If index is missing (code 9), try without sort
+      if (err.code === 9 || err.message?.includes("requires an index")) {
+        console.warn("listReminders: Falling back to in-memory sort due to missing index.");
+        const qNoSort = buildQuery(db.collection(REMINDERS_COLLECTION), false);
+        // Fetch up to limit * 2 to give buffer
+        const snap = await qNoSort.limit(limit * 2).get();
+        let reminders = snap.docs.map((d) => docToReminder(d.id, d.data() || {}));
+
+        // In-memory sort
+        reminders.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+        if (reminders.length > limit) {
+          reminders = reminders.slice(0, limit);
+        }
+
+        const nextCursor = reminders.length > 0 ? reminders[reminders.length - 1].id : null;
+        return { reminders, nextCursor };
+      }
+      throw err;
+    }
   } catch (err) {
     console.error("listReminders query failed:", err);
     throw new Error("Service temporarily unavailable");
