@@ -70,33 +70,71 @@ export default function ReceiptPage() {
     useEffect(() => {
         if (!id) return;
 
-        fetch(`/api/ledger/${id}`)
+        fetch(`/api/ledger/${id}`, { cache: 'no-store' })
             .then(res => {
                 if (!res.ok) throw new Error("Failed to fetch transaction");
                 return res.json();
             })
-            .then(entry => {
-                const { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining } = parseTransactionNote(entry.note || "");
+            .then(async (entry) => {
+                const initialParsed = parseTransactionNote(entry.note || "");
+                let receiptItems: any[] = [];
+                let totalAmount = Number(entry.amount);
 
-                // Construct data for ThermalReceipt
-                const item = {
-                    name: itemName,
-                    itemType: itemType,
-                    quantity: quantity,
-                    unitPrice: unitPrice || (entry.amount / quantity) || 0,
-                    amount: Number(entry.amount)
-                };
+                if (initialParsed.orderNumber) {
+                    try {
+                        // Fetch all entries for this order
+                        const res = await fetch(`/api/ledger?search=Order #${initialParsed.orderNumber}&limit=100`);
+                        if (res.ok) {
+                            const result = await res.json();
+                            const siblings = (result.data || []).filter((e: any) => {
+                                const p = parseTransactionNote(e.note || "");
+                                return p.orderNumber === initialParsed.orderNumber;
+                            });
+
+                            if (siblings.length > 0) {
+                                receiptItems = siblings.map((e: any) => {
+                                    const p = parseTransactionNote(e.note || "");
+                                    return {
+                                        name: p.itemName,
+                                        itemType: p.itemType,
+                                        quantity: p.quantity,
+                                        unitPrice: p.unitPrice || (Number(e.amount) / p.quantity) || 0,
+                                        amount: Number(e.amount)
+                                    };
+                                });
+                                totalAmount = siblings.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Failed to fetch sibling items for receipt", e);
+                    }
+                }
+
+                // Fallback to single item if fetch failed or logic didn't return siblings
+                if (receiptItems.length === 0) {
+                    receiptItems.push({
+                        name: initialParsed.itemName,
+                        itemType: initialParsed.itemType,
+                        quantity: initialParsed.quantity,
+                        unitPrice: initialParsed.unitPrice || (entry.amount / initialParsed.quantity) || 0,
+                        amount: Number(entry.amount)
+                    });
+                }
+
+                // Recalculate remaining to ensure mathematical consistency
+                const advance = initialParsed.advance || 0;
+                const remaining = totalAmount - advance;
 
                 setData({
                     title: "PAYMENT RECEIPT",
                     id: entry.id,
                     date: entry.date,
-                    status: paymentType, // Use payment type as status (Online/Cash)
-                    customerName: partyName,
-                    customerPhone: customerPhone,
-                    customerAddress: customerAddress,
-                    items: [item],
-                    total: Number(entry.amount),
+                    status: initialParsed.paymentType, // Use payment type as status (Online/Cash)
+                    customerName: initialParsed.partyName,
+                    customerPhone: initialParsed.customerPhone,
+                    customerAddress: initialParsed.customerAddress,
+                    items: receiptItems,
+                    total: totalAmount,
                     advance: advance,
                     remaining: remaining,
                     notes: entry.note

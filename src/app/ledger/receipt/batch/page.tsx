@@ -67,7 +67,7 @@ function BatchReceiptContent() {
         const fetchAll = async () => {
             try {
                 const results = await Promise.all(
-                    ids.map(id => fetch(`/api/ledger/${id}`).then(res => {
+                    ids.map(id => fetch(`/api/ledger/${id}`, { cache: 'no-store' }).then(res => {
                         if (!res.ok) throw new Error(`Failed to fetch ${id}`);
                         return res.json();
                     }))
@@ -92,6 +92,9 @@ function BatchReceiptContent() {
                 });
 
                 const total = combinedItems.reduce((acc, it) => acc + it.amount, 0);
+                const advance = meta.advance || 0;
+                // Recalculate remaining to ensure it matches the items displayed
+                const remaining = total - advance;
 
                 setData({
                     title: "BILL RECEIPT",
@@ -103,8 +106,8 @@ function BatchReceiptContent() {
                     customerAddress: meta.customerAddress,
                     items: combinedItems,
                     total: total,
-                    advance: meta.advance,
-                    remaining: meta.remaining,
+                    advance: advance,
+                    remaining: remaining,
                     notes: `Batch of ${results.length} items`
                 });
             } catch (err: any) {
