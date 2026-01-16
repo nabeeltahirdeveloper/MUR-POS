@@ -5,12 +5,12 @@ import type { FirestoreUnit } from "@/types/firestore";
 
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const body = await req.json();
         const { name, symbol } = body;
-        const { id } = params;
+        const { id } = await params;
 
         if (!name || typeof name !== "string" || !name.trim()) {
             return NextResponse.json(
@@ -64,10 +64,10 @@ export async function PUT(
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         // Check if unit exists
         const currentUnit = await getDocById<FirestoreUnit>('units', id);

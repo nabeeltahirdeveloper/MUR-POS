@@ -468,7 +468,7 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
                         <label className="block text-sm font-medium text-gray-700">Sale Price</label>
                         <input
                             type="number"
-                            step="0.01"
+                            step="any"
                             name="firstSalePrice"
                             value={String(formData.firstSalePrice)}
                             onChange={handleChange}
@@ -480,7 +480,7 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
                         <label className="block text-sm font-medium text-gray-700">Purchase Price</label>
                         <input
                             type="number"
-                            step="0.01"
+                            step="any"
                             name="secondPurchasePrice"
                             value={String(formData.secondPurchasePrice)}
                             onChange={handleChange}

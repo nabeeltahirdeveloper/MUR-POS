@@ -60,8 +60,8 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
 
     const fmt = (n: number) =>
         new Intl.NumberFormat("en-PK", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(Number(n || 0));
 
     const priceDisplay = (val: number) => {
@@ -244,28 +244,26 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
 
                     {/* Items Table */}
                     <div className="border-t-2 border-gray-800 pt-2">
-                        <div className="grid grid-cols-[1fr_4ch_8ch_9ch] gap-2 text-sm font-bold text-gray-900">
+                        <div className="grid grid-cols-[1fr_3rem_4.5rem_4.5rem] gap-1 text-sm font-bold text-gray-900">
                             <div>ITEM</div>
-                            <div className="text-right">QTY</div>
-                            <div className="text-right">PRICE</div>
-                            <div className="text-right">AMT</div>
+                            <div className="text-right pr-1">QTY</div>
+                            <div className="text-right pr-1">PRICE</div>
+                            <div className="text-right pr-1">AMT</div>
                         </div>
                         <div className="mt-1 border-t-2 border-gray-600" />
                         <div className="mt-2 space-y-1 text-base font-semibold text-gray-900">
                             {data.items.map((it, idx) => (
-                                <div key={idx} className="grid grid-cols-[1fr_4ch_8ch_9ch] gap-2">
-                                    <div className="break-words relative">
-                                        <span className="align-middle">{it.name}</span>
-                                        {it.itemType === "Customize" && (
-                                            <span className="inline-block ml-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">C</span>
-                                        )}
-                                        {it.itemType === "Stock" && (
-                                            <span className="inline-block ml-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">S</span>
-                                        )}
+                                <div key={idx} className="grid grid-cols-[1fr_3rem_4.5rem_4.5rem] gap-1">
+                                    <div className="break-words relative leading-tight">
+                                        <span className="align-middle">
+                                            {it.name}
+                                            {it.itemType?.toLowerCase().includes('stock') ? ' [S]' :
+                                                it.itemType?.toLowerCase().includes('custom') ? ' [C]' : ''}
+                                        </span>
                                     </div>
-                                    <div className="text-right">{it.quantity}</div>
-                                    <div className="text-right">{fmt(it.unitPrice)}</div>
-                                    <div className="text-right">{fmt(it.amount)}</div>
+                                    <div className="text-right pr-1">{it.quantity}</div>
+                                    <div className="text-right pr-1">{fmt(it.unitPrice)}</div>
+                                    <div className="text-right pr-1">{fmt(it.amount)}</div>
                                 </div>
                             ))}
                         </div>

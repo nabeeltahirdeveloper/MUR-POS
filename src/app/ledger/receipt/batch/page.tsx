@@ -33,14 +33,19 @@ const parseTransactionNote = (note: string) => {
         else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
         else if (line.startsWith("Item: ")) {
             // Robust Regex matching updated LedgerEntryForm
-            const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (\d+)\s*@\s*(.*)\)/);
+            // Matches: [Type] Name (Qty: 1 unit @ Price)
+            const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (.*?)\s*@\s*(.*)\)/);
             if (match) {
                 itemType = match[1] || "Stock";
                 itemName = match[2].trim();
-                quantity = Number(match[3]);
+                // If quantity has units (e.g. "1 m"), parseFloat will take "1"
+                quantity = parseFloat(match[3]) || 1;
                 unitPrice = Number(match[4]);
             } else {
                 itemName = line.replace("Item: ", "").trim();
+                // Fallback cleanup if regex fails but format is similar
+                itemName = itemName.replace(/^\[.*?\]\s*/, ""); // Remove [Stock] etc
+                itemName = itemName.replace(/\(Qty:.*\)$/, ""); // Remove (Qty: ...) tail
             }
         }
     });
