@@ -108,7 +108,8 @@ function BatchReceiptContent() {
                     total: total,
                     advance: advance,
                     remaining: remaining,
-                    notes: `Batch of ${results.length} items`
+                    notes: `Batch of ${results.length} items`,
+                    orderNumber: first.orderNumber || meta.orderNumber,
                 });
             } catch (err: any) {
                 setError(err.message);

@@ -137,7 +137,8 @@ export default function ReceiptPage() {
                     total: totalAmount,
                     advance: advance,
                     remaining: remaining,
-                    notes: entry.note
+                    notes: entry.note,
+                    orderNumber: entry.orderNumber || initialParsed.orderNumber,
                 });
             })
             .catch(err => setError(err.message))

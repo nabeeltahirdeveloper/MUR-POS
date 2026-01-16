@@ -70,6 +70,7 @@ export interface FirestoreLedger {
     amount: number;
     categoryId?: string | null;
     note?: string | null;
+    orderNumber?: number | null;
     date: Date | any;
     createdAt: Date | any;
 }

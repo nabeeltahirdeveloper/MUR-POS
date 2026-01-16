@@ -17,7 +17,8 @@ export async function GET(req: NextRequest) {
 
         const entries = await getAllDocs<FirestoreLedger>('ledger', {
             orderBy: 'createdAt',
-            orderDirection: 'desc'
+            orderDirection: 'desc',
+            limit: 50
         });
 
         let nextOrderNumber = 1;

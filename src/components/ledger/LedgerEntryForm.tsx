@@ -643,6 +643,7 @@ export default function LedgerEntryForm({
                     itemId: cartItem.item.id !== 'unknown' ? cartItem.item.id : undefined,
                     quantity: cartItem.quantity,
                     note: finalNote,
+                    orderNumber: orderNumber ? Number(orderNumber) : null,
                     date: dateTime.toISOString(),
                 };
 
@@ -661,6 +662,10 @@ export default function LedgerEntryForm({
                 }).then(async res => {
                     if (!res.ok) {
                         const d = await res.json();
+                        // Special handling for Order Number Conflict
+                        if (res.status === 409 && d.error.includes("Order #")) {
+                            throw new Error(d.error);
+                        }
                         throw new Error(d.error || "Failed");
                     }
                     return res.json();

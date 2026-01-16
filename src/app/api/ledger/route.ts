@@ -53,6 +53,17 @@ export async function GET(req: NextRequest) {
         let entries: (any)[] = [];
         let usedFallback = false;
 
+        // Logic to support direct Order Number search
+        let specificOrderEntries: FirestoreLedger[] = [];
+        if (search && /^\d+$/.test(search)) {
+            try {
+                const orderNum = parseInt(search, 10);
+                specificOrderEntries = await queryDocs<FirestoreLedger>('ledger', [{ field: 'orderNumber', operator: '==', value: orderNum }]);
+            } catch (e) {
+                console.error("Failed to fetch specific order", e);
+            }
+        }
+
         // Fetch everything relevant
         const [rawLedger, rawDebts, rawPayments, rawUtilities] = await Promise.all([
             filters.length > 0
@@ -63,7 +74,11 @@ export async function GET(req: NextRequest) {
             getAllDocs<FirestoreUtility>('utilities', { orderBy: 'dueDate', orderDirection: 'desc', limit })
         ]);
 
-        entries = rawLedger;
+        // Combine specific order search results with general results
+        // Use a Map to deduplicate by ID
+        const combinedLedger = new Map();
+        [...rawLedger, ...specificOrderEntries].forEach(item => combinedLedger.set(item.id, item));
+        entries = Array.from(combinedLedger.values());
 
         // Apply fallback filtering if needed for ledger
         if (usedFallback && filters.length > 0) {
@@ -180,6 +195,7 @@ export async function GET(req: NextRequest) {
             const searchLower = search.toLowerCase();
             entries = entries.filter(entry =>
                 entry.note?.toLowerCase().includes(searchLower) ||
+                (entry.orderNumber && String(entry.orderNumber).includes(searchLower)) ||
                 entry.category?.name?.toLowerCase().includes(searchLower)
             );
         }
@@ -293,12 +309,33 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // Extract Order Number from Note if present
+        let orderNumber = null;
+        if (note) {
+            const match = note.match(/Order #(\d+)/);
+            if (match) {
+                orderNumber = parseInt(match[1], 10);
+            }
+        }
+
+        // Uniqueness Check for Order Number
+        if (orderNumber) {
+            const existingEntries = await queryDocs<FirestoreLedger>('ledger', [{ field: 'orderNumber', operator: '==', value: orderNumber }]);
+            if (existingEntries.length > 0) {
+                return NextResponse.json(
+                    { error: `Order #${orderNumber} already exists. Please start a new transaction.` },
+                    { status: 409 }
+                );
+            }
+        }
+
         const { createDoc } = await import('@/lib/firestore-helpers');
         const entryData: Omit<FirestoreLedger, 'id'> = {
             type: type as 'debit' | 'credit',
             amount: Number(amount),
             categoryId: categoryId || null,
             note: note || null,
+            orderNumber: orderNumber || null,
             date: date ? new Date(date) : new Date(),
             createdAt: new Date(),
         };
