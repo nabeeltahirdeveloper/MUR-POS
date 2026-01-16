@@ -34,7 +34,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                 try {
                     // Get Firebase API key from environment
-                    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBIWERzFqcXr1UV9n24zRQ5pm0r8h5SCSo";
+                    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyCj77-aRSmM-m34vqwZ1r5rFkEYkmu6Vb4";
 
                     // Verify password using Firebase Auth REST API
                     const verifyPasswordUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;

@@ -6,12 +6,12 @@ import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBIWERzFqcXr1UV9n24zRQ5pm0r8h5SCSo",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "moon-traders-d4172.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "moon-traders-d4172",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "moon-traders-d4172.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "707893084986",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:707893084986:web:684bb6e176fa81bf2a4603"
+  apiKey: "AIzaSyCj77-aRSmM-m34vqwZ1r5rFkEYkmu6Vb4",
+  authDomain: "moon-traders-2.firebaseapp.com",
+  projectId: "moon-traders-2",
+  storageBucket: "moon-traders-2.firebasestorage.app",
+  messagingSenderId: "955347658272",
+  appId: "1:955347658272:web:98898f0cef1cf6f104fe45"
 };
 
 // Initialize Firebase
@@ -26,7 +26,7 @@ if (typeof window !== 'undefined') {
   } else {
     app = getApps()[0];
   }
-  
+
   auth = getAuth(app);
   db = getFirestore(app);
 }
