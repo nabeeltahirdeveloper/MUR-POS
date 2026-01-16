@@ -26,6 +26,7 @@ export type ReceiptData = {
     remaining?: number;
     notes?: string;
     terms?: string;
+    orderNumber?: string | number;
 };
 
 type ThermalReceiptProps = {
@@ -197,6 +198,12 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                             />
 
                             <div className="mt-2 w-full text-base font-semibold text-gray-900">
+                                {data.orderNumber && (
+                                    <div className="flex justify-between mb-1">
+                                        <span className="font-bold">Order #:</span>
+                                        <span className="font-semibold">{data.orderNumber}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between mb-1">
                                     <span className="font-bold">Date:</span>
                                     <span className="font-semibold">{new Date(data.date).toLocaleDateString()}</span>
@@ -248,13 +255,13 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                             {data.items.map((it, idx) => (
                                 <div key={idx} className="grid grid-cols-[1fr_4ch_8ch_9ch] gap-2">
                                     <div className="break-words relative">
+                                        <span className="align-middle">{it.name}</span>
                                         {it.itemType === "Customize" && (
-                                            <span className="inline-block mr-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">C</span>
+                                            <span className="inline-block ml-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">C</span>
                                         )}
                                         {it.itemType === "Stock" && (
-                                            <span className="inline-block mr-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">S</span>
+                                            <span className="inline-block ml-1 px-1.5 rounded-sm border border-black bg-white text-black text-[10px] font-bold leading-none py-[2px] align-middle">S</span>
                                         )}
-                                        <span className="align-middle">{it.name}</span>
                                     </div>
                                     <div className="text-right">{it.quantity}</div>
                                     <div className="text-right">{fmt(it.unitPrice)}</div>
@@ -266,8 +273,14 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
 
                     {/* Totals */}
                     <div className="mt-3 border-t-2 border-gray-800 pt-2 text-base">
+                        <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
+                            <span>TOTAL</span>
+                            <span>{currency.code} {fmt(data.total)}</span>
+                        </div>
+
                         {(data.advance !== undefined || data.remaining !== undefined) && (
                             <>
+                                <div className="border-t border-dashed border-gray-400 mt-1 pt-1 mb-1"></div>
                                 <div className="flex justify-between font-semibold text-sm text-gray-800 mt-1">
                                     <span>Advance</span>
                                     <span>{currency.code} {fmt(data.advance || 0)}</span>
@@ -276,14 +289,8 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                                     <span>Remaining</span>
                                     <span>{currency.code} {fmt(data.remaining || (data.total - (data.advance || 0)))}</span>
                                 </div>
-                                <div className="border-t border-dashed border-gray-400 mt-1 pt-1"></div>
                             </>
                         )}
-
-                        <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
-                            <span>TOTAL</span>
-                            <span>{currency.code} {fmt(data.total)}</span>
-                        </div>
                     </div>
 
                     {/* Footer */}
