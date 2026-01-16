@@ -17,3 +17,50 @@ export async function GET() {
         );
     }
 }
+
+export async function POST(req: Request) {
+    try {
+        const body = await req.json();
+        const { name, symbol } = body;
+
+        if (!name || typeof name !== "string" || !name.trim()) {
+            return NextResponse.json(
+                { error: "Unit name is required" },
+                { status: 400 }
+            );
+        }
+
+        const trimmedName = name.trim();
+        const trimmedSymbol = symbol ? symbol.trim() : "";
+
+        // Check for duplicate
+        const existing = await import('@/lib/firestore-helpers').then(m => m.queryDocs<FirestoreUnit>('units', [
+            { field: 'name', operator: '==', value: trimmedName }
+        ]));
+
+        if (existing.length > 0) {
+            return NextResponse.json(
+                { error: "Unit already exists" },
+                { status: 409 }
+            );
+        }
+
+        const createDoc = await import('@/lib/firestore-helpers').then(m => m.createDoc);
+        const unitId = await createDoc<Omit<FirestoreUnit, 'id'>>('units', {
+            name: trimmedName,
+            symbol: trimmedSymbol,
+            createdAt: new Date()
+        });
+
+        const getDocById = await import('@/lib/firestore-helpers').then(m => m.getDocById);
+        const unit = await getDocById<FirestoreUnit>('units', unitId);
+
+        return NextResponse.json(unit, { status: 201 });
+    } catch (error) {
+        console.error("Error creating unit:", error);
+        return NextResponse.json(
+            { error: "Failed to create unit" },
+            { status: 500 }
+        );
+    }
+}
