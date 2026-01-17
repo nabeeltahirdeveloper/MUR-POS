@@ -82,8 +82,8 @@ export default function LedgerTable({
             }
             else if (line.startsWith("Item: ")) {
                 isStructured = true;
-                // Updated Regex: More flexible spacing, handles decimals in Qty, handles no space after @
-                const match = line.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+)\s*@\s*([^)]*)\)/);
+                // Updated Regex: Handles units (e.g. 2 pcs) between Qty and @
+                const match = line.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+).*?@\s*([^)]*)\)/);
                 if (match) {
                     itemType = match[1] || null; // Capture Type
                     itemName = match[2].trim();

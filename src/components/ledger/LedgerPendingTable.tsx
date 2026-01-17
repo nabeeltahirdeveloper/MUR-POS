@@ -74,8 +74,8 @@ export default function LedgerPendingTable({
                 title = line.replace("Supplier: ", "").trim();
             }
             else if (line.startsWith("Item: ")) {
-                // Regex to handle "Item: [Type] Name (Qty: X @ Y)" or "Item: Name (Qty: ...)"
-                const match = line.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+)\s*@\s*([^)]*)\)/);
+                // Updated Regex handles units
+                const match = line.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+).*?@\s*([^)]*)\)/);
                 if (match) {
                     // match[2] is name (Group 2)
                     // match[1] is Type (Group 1)
@@ -244,15 +244,18 @@ export default function LedgerPendingTable({
                                             const data = await res.json();
                                             // Remove Remaining line, keep Advance for history?
                                             // Or remove both? Let's remove Remaining only to clear "Pending" status.
+                                            // Remove BOTH "Remaining: " AND "Advance: " lines to ensure receipt shows fully paid (Standard Invoice)
+                                            // The user reported "same receipt shown", meaning it still showed as pending/advance.
+                                            // Removing these lines makes parseTransactionNote return undefined for advance/remaining.
                                             const newNote = (data.note || "")
                                                 .split('\n')
-                                                .filter((line: string) => !line.startsWith("Remaining: "))
+                                                .filter((line: string) => !line.startsWith("Remaining: ") && !line.startsWith("Advance: "))
                                                 .join('\n');
 
                                             await fetch(`/api/ledger/${id}`, {
                                                 method: 'PUT',
                                                 headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ ...data, note: newNote })
+                                                body: JSON.stringify({ ...data, note: newNote, markPaid: true })
                                             });
                                         }
                                     }));

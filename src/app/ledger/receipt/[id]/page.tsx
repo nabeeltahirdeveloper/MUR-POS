@@ -32,8 +32,8 @@ const parseTransactionNote = (note: string) => {
         else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
         else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
         else if (line.startsWith("Item: ")) {
-            // Robust Regex matching LedgerTable logic
-            const match = line.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+)\s*@\s*([^)]*)\)/);
+            // Robust Regex matching LedgerTable logic (updated for units)
+            const match = line.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+).*?@\s*([^)]*)\)/);
             if (match) {
                 // match[1] is Type (Group 1)
                 // match[2] is Name (Group 2)
@@ -121,9 +121,15 @@ export default function ReceiptPage() {
                     });
                 }
 
-                // Recalculate remaining to ensure mathematical consistency
-                const advance = initialParsed.advance || 0;
-                const remaining = totalAmount - advance;
+                // Use parsed values directly. If undefined, they won't show up on receipt.
+                const advance = initialParsed.advance;
+                // Only calculate remaining if we have an explicit advance, or if remaining is set.
+                // If both are undefined, we assume standard receipt (fully paid)
+                let remaining: number | undefined = initialParsed.remaining;
+
+                if (advance !== undefined && remaining === undefined) {
+                    remaining = totalAmount - advance;
+                }
 
                 setData({
                     title: "PAYMENT RECEIPT",
