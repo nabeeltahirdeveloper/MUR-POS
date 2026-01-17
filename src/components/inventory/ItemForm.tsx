@@ -436,7 +436,7 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
                     </div>
 
                     <div>
-                        <div className="flex justify-between items-center mb-1 lg:mt-0 mt-6"> {/* Removed top margin as flex row handles spacing better, or keep consistent */}
+                        <div className="flex justify-between items-center mb-1 lg:mt-0 "> {/* Removed top margin as flex row handles spacing better, or keep consistent */}
                             <label className="block text-sm font-medium text-gray-700">Sale Unit</label>
                             <button
                                 type="button"

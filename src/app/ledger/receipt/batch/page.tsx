@@ -32,7 +32,7 @@ const parseTransactionNote = (note: string) => {
         else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
         else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
         else if (line.startsWith("Item: ")) {
-            // Robust Regex matching updated LedgerEntryForm
+            // Robust Regex matching LedgerTable logic (updated for units)
             // Matches: [Type] Name (Qty: 1 unit @ Price)
             const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (.*?)\s*@\s*(.*)\)/);
             if (match) {
@@ -91,15 +91,19 @@ function BatchReceiptContent() {
                         name: parsed.itemName,
                         itemType: parsed.itemType,
                         quantity: parsed.quantity,
-                        unitPrice: parsed.unitPrice || (entry.amount / parsed.quantity) || 0,
+                        unitPrice: parsed.unitPrice || Number(entry.amount) / parsed.quantity || 0,
                         amount: Number(entry.amount)
                     };
                 });
 
                 const total = combinedItems.reduce((acc, it) => acc + it.amount, 0);
-                const advance = meta.advance || 0;
+                const advance = meta.advance; // undefined if not present
                 // Recalculate remaining to ensure it matches the items displayed
-                const remaining = total - advance;
+                let remaining: number | undefined = meta.remaining;
+
+                if (advance !== undefined && remaining === undefined) {
+                    remaining = total - advance;
+                }
 
                 setData({
                     title: "Order RECEIPT",

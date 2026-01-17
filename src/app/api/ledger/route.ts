@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById, getAllDocs } from "@/lib/firestore-helpers";
-import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility, FirestoreExpense } from "@/types/firestore";
+import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility, FirestoreExpense, FirestoreItem } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -356,10 +356,29 @@ export async function POST(req: NextRequest) {
         }
 
         const { createDoc } = await import('@/lib/firestore-helpers');
+
+        // --- Stock Update Logic Preparation ---
+        // Fetch item details to determine conversion factor and units
+        const { itemId, quantity } = body;
+        let conversionFactor = 1;
+
+        if (itemId) {
+            try {
+                const itemDoc = await getDocById<FirestoreItem>('items', itemId);
+                if (itemDoc && itemDoc.conversionFactor) {
+                    conversionFactor = itemDoc.conversionFactor;
+                }
+            } catch (e) {
+                console.warn("Could not fetch item for conversion factor", e);
+            }
+        }
+
         const entryData: Omit<FirestoreLedger, 'id'> = {
             type: type as 'debit' | 'credit',
             amount: Number(amount),
             categoryId: categoryId || null,
+            itemId: itemId || null,
+            quantity: quantity ? Number(quantity) : null,
             note: note || null,
             orderNumber: orderNumber || null,
             date: date ? new Date(date) : new Date(),
@@ -368,9 +387,6 @@ export async function POST(req: NextRequest) {
 
         const entryId = await createDoc<Omit<FirestoreLedger, 'id'>>('ledger', entryData);
 
-        // --- Stock Update Logic ---
-        const { itemId, quantity } = body;
-
         if (itemId && quantity && Number(quantity) > 0) {
             try {
                 // Determine stock flow direction
@@ -378,16 +394,25 @@ export async function POST(req: NextRequest) {
                 // Debit (Cash-Out) = Purchase = Stock IN
                 const stockType = type === 'credit' ? 'out' : 'in';
 
+                // Calculate quantity in Base Unit
+                // If it's a Sale (credit), usually quantity is in Sale Unit.
+                // We assume the frontend sends quantity in the selected unit.
+                // Ideally, we should know which unit was used.
+                // Assuming 'quantity' is in Sale Unit if conversionFactor > 1? 
+                // Or we apply conversionFactor if it exists?
+                // Standard logic: input quantity * conversionFactor = base quantity
+                const contentQty = Number(quantity) * conversionFactor;
+
                 const stockLogData: any = {
                     itemId: String(itemId),
                     type: stockType,
-                    quantityBaseUnit: Number(quantity), // Assuming 1-to-1 for now, or use item conversion factor if needed
+                    quantityBaseUnit: contentQty,
                     description: `Auto-generated from Ledger ${type} entry #${entryId}`,
                     createdAt: new Date(),
                 };
 
                 await createDoc('stock_logs', stockLogData);
-                console.log(`Updated stock for item ${itemId}: ${stockType} ${quantity}`);
+                console.log(`Updated stock for item ${itemId}: ${stockType} ${contentQty} (Base)`);
             } catch (stockError) {
                 console.error("Failed to update stock log:", stockError);
                 // We don't fail the whole request if stock update fails, but we log it.
