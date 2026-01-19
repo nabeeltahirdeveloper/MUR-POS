@@ -468,10 +468,11 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
                         <label className="block text-sm font-medium text-gray-700">Sale Price</label>
                         <input
                             type="number"
-                            step="any"
+                            step="1"
                             name="firstSalePrice"
                             value={String(formData.firstSalePrice)}
                             onChange={handleChange}
+                            onWheel={(e) => e.currentTarget.blur()}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border text-gray-900"
                         />
                     </div>
@@ -480,10 +481,11 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
                         <label className="block text-sm font-medium text-gray-700">Purchase Price</label>
                         <input
                             type="number"
-                            step="any"
+                            step="1"
                             name="secondPurchasePrice"
                             value={String(formData.secondPurchasePrice)}
                             onChange={handleChange}
+                            onWheel={(e) => e.currentTarget.blur()}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border text-gray-900"
                         />
                     </div>
@@ -494,10 +496,11 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
                     <p className="text-xs text-gray-500">1 Sale Unit = X Base Units</p>
                     <input
                         type="number"
-                        step="any"
+                        step="1"
                         name="conversionFactor"
                         value={String(formData.conversionFactor)}
                         onChange={handleChange}
+                        onWheel={(e) => e.currentTarget.blur()}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border text-gray-900"
                     />
                 </div>
@@ -506,10 +509,11 @@ export function ItemForm({ initialData, isEditing = false, customSubmitUrl, addi
                     <label className="block text-sm font-medium text-gray-700">Minimum Stock Level (Base Unit)</label>
                     <input
                         type="number"
-                        step="any"
+                        step="1"
                         name="minStockLevel"
                         value={String(formData.minStockLevel)}
                         onChange={handleChange}
+                        onWheel={(e) => e.currentTarget.blur()}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border text-gray-900"
                     />
                 </div>
