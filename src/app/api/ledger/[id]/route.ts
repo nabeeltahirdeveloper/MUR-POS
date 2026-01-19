@@ -104,15 +104,29 @@ export async function PUT(
             // Check if we need to deduct stock (Late Deduction)
             // 1. Check if stock log already exists
             try {
+                // Check for ANY stock operation related to this ledger entry
+                // This includes the standard "Auto-generated" one AND the "Retroactive deduction" one
+                // created by the receive-custom flow.
                 const logs = await queryDocs<any>('stock_logs', [
-                    { field: 'description', operator: '==', value: `Auto-generated from Ledger ${type || 'credit'} entry #${id}` }
+                    { field: 'description', operator: '>=', value: `Auto-generated from Ledger ${type || 'credit'} entry #${id}` },
+                    { field: 'description', operator: '<=', value: `Auto-generated from Ledger ${type || 'credit'} entry #${id}\uf8ff` }
+                    // Note: Firestore doesn't support logical OR in simple queries easily without multiple queries.
+                    // So we might need to do a second check if the first returns empty.
                 ]);
 
-                // Also check for 'debit' if type wasn't passed but it's a credit sale usually.
-                // Actually we should match the ledger type.
-                // Let's rely on the ledger entry itself if type is missing in body.
+                let alreadyDeducted = logs.length > 0;
 
-                if (logs.length === 0) {
+                if (!alreadyDeducted) {
+                    // Check for "Retroactive deduction" pattern
+                    const retroactiveLogs = await queryDocs<any>('stock_logs', [
+                        { field: 'description', operator: '==', value: `Retroactive deduction for Ledger #${id}` }
+                    ]);
+                    if (retroactiveLogs.length > 0) {
+                        alreadyDeducted = true;
+                    }
+                }
+
+                if (!alreadyDeducted) {
                     // No stock log found. Proceed to deduct.
                     const currentEntry = await getDoc<FirestoreLedger>('ledger', id);
                     if (currentEntry) {
