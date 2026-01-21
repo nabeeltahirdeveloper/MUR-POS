@@ -66,21 +66,6 @@ export async function POST(req: NextRequest) {
                         description: `Initial Stock from Custom Receive (Ledger #${ledgerId})`,
                         createdAt: new Date(),
                     });
-
-                    // 4. Create Stock Log for the "Out" (The Sale)
-                    // Deduct stock to account for the sale that initiated this
-                    await createDoc('stock_logs', {
-                        itemId: newItemId,
-                        type: 'out',
-                        quantityBaseUnit: Number(initialQuantity),
-                        description: `Retroactive deduction for Ledger #${ledgerId}`,
-                        createdAt: new Date(),
-                    });
-
-                    // Update item current stock to 0 (since it came in and went out)
-                    await updateDoc('items', newItemId, {
-                        currentStock: 0
-                    });
                 }
             }
         }
