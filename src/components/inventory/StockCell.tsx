@@ -76,14 +76,14 @@ export function StockCell({ item, onUpdate }: StockCellProps) {
                 <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="text-green-600 hover:text-green-900 p-1"
+                    className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-1.5 rounded cursor-pointer"
                 >
                     <CheckIcon className="h-5 w-5" />
                 </button>
                 <button
                     onClick={handleCancel}
                     disabled={loading}
-                    className="text-red-600 hover:text-red-900 p-1"
+                    className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1.5 rounded cursor-pointer"
                 >
                     <XMarkIcon className="h-5 w-5" />
                 </button>
@@ -104,7 +104,7 @@ export function StockCell({ item, onUpdate }: StockCellProps) {
                     setValue(String(item.currentStock));
                     setIsEditing(true);
                 }}
-                className="text-gray-400 hover:text-blue-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="text-gray-500 hover:text-blue-600 bg-gray-100 hover:bg-gray-200 p-1.5 rounded cursor-pointer transition-colors"
                 title="Edit Stock"
             >
                 <PencilIcon className="h-4 w-4" />
