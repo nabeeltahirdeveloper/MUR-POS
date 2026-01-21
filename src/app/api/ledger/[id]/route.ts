@@ -49,9 +49,28 @@ export async function PUT(
 
         const { id } = await params;
         const body = await req.json();
-        const { type, amount, categoryId, note, date } = body;
+        const { type, amount, categoryId, note, date, status, markPaid, itemId, quantity } = body;
+
+        const currentEntry = await getDocById<FirestoreLedger>('ledger', id);
+        if (!currentEntry) {
+            return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+        }
+
+        // Status Check: If Closed, prevent editing unless re-opening
+        if (currentEntry.status === 'closed' && status !== 'open') {
+            if (type || amount !== undefined || categoryId !== undefined || note !== undefined || date || markPaid || itemId || quantity) {
+                return NextResponse.json(
+                    { error: "Transaction is closed. Re-open to edit." },
+                    { status: 403 }
+                );
+            }
+        }
 
         const updateData: Partial<FirestoreLedger> = {};
+
+        if (status && (status === 'open' || status === 'closed')) {
+            updateData.status = status;
+        }
 
         if (type) {
             if (type !== "debit" && type !== "credit") {
@@ -95,11 +114,75 @@ export async function PUT(
         if (note !== undefined) updateData.note = note || null;
         if (date) updateData.date = new Date(date);
 
+        if (itemId !== undefined) updateData.itemId = itemId || null;
+        if (quantity !== undefined) updateData.quantity = quantity ? Number(quantity) : null;
+
         const { updateDoc, createDoc, queryDocs, getDocById: getDoc } = await import('@/lib/firestore-helpers');
+
+        // --- Stock Reconciliation (On Edit) ---
+        // If Item, Quantity, or Type has changed, we must adjust stock
+        const isItemChanged = itemId !== undefined && itemId !== currentEntry.itemId;
+        const isQtyChanged = quantity !== undefined && Number(quantity) !== (currentEntry.quantity || 0); // Handle null qty
+        const isTypeChanged = type && type !== currentEntry.type;
+
+        if (isItemChanged || isQtyChanged || isTypeChanged) {
+            console.log(`[Ledger Update] Stock change detected for #${id}`);
+
+            // 1. Revert Old Stock Effect
+            // Find all logs related to this entry
+            const logs = await queryDocs<any>('stock_logs', [
+                { field: 'description', operator: '>=', value: `Auto-generated from Ledger` }, // Broad search then filter
+            ]);
+            // Filter strictly in JS due to Firestore limitation on 'starting with' + other filters sometimes
+            // actually we can use the ID check
+            const relevantLogs = logs.filter(l => l.description.includes(`#${id}`));
+
+            for (const log of relevantLogs) {
+                // Determine reversion type (if log was 'in', we 'out')
+                const revertType = log.type === 'in' ? 'out' : 'in';
+                await createDoc('stock_logs', {
+                    itemId: log.itemId,
+                    type: revertType,
+                    quantityBaseUnit: log.quantityBaseUnit,
+                    description: `Reversion of ${log.type} for Updated Ledger #${id}`,
+                    createdAt: new Date()
+                });
+            }
+
+            // 2. Apply New Stock Effect
+            // Use NEW values or fallback to CURRENT values
+            const newItemId = itemId !== undefined ? itemId : currentEntry.itemId;
+            const newQuantity = quantity !== undefined ? Number(quantity) : currentEntry.quantity;
+            const newType = type || currentEntry.type;
+
+            if (newItemId) {
+                try {
+                    // Check if item exists and get conversion factor
+                    // getDoc is aliased to getDocById from import
+                    const itemDoc = await getDoc<FirestoreItem>('items', newItemId);
+
+                    if (itemDoc) {
+                        const conversionFactor = itemDoc.conversionFactor || 1;
+                        const qtyBase = (newQuantity || 1) * conversionFactor;
+                        const stockType = newType === 'credit' ? 'out' : 'in';
+
+                        await createDoc('stock_logs', {
+                            itemId: newItemId,
+                            type: stockType,
+                            quantityBaseUnit: qtyBase,
+                            description: `Auto-generated from Ledger ${newType} entry #${id} (Updated)`,
+                            createdAt: new Date()
+                        });
+                    }
+                } catch (err) {
+                    console.error("Failed to apply new stock for updated ledger", err);
+                }
+            }
+        }
+
         await updateDoc<Partial<FirestoreLedger>>('ledger', id, updateData);
 
         // --- Mark Paid / Stock Logic ---
-        const { markPaid } = body;
         if (markPaid) {
             // Check if we need to deduct stock (Late Deduction)
             // 1. Check if stock log already exists

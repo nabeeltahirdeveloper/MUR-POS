@@ -10,13 +10,27 @@ interface TableProps<T> {
     data: T[];
     columns: Column<T>[];
     emptyMessage?: string;
+    renderSubComponent?: (row: T) => React.ReactNode;
 }
 
 export function Table<T extends Record<string, any> = Record<string, unknown>>({
     data,
     columns,
     emptyMessage = 'No data available',
+    renderSubComponent,
 }: TableProps<T>) {
+    const [expandedRows, setExpandedRows] = React.useState<Set<number>>(new Set());
+
+    const toggleRow = (index: number) => {
+        const newExpanded = new Set(expandedRows);
+        if (newExpanded.has(index)) {
+            newExpanded.delete(index);
+        } else {
+            newExpanded.add(index);
+        }
+        setExpandedRows(newExpanded);
+    };
+
     if (data.length === 0) {
         return (
             <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
@@ -55,21 +69,33 @@ export function Table<T extends Record<string, any> = Record<string, unknown>>({
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                     {data.map((row, rowIndex) => (
-                        <tr key={rowIndex} className="hover:bg-gray-50 transition-colors">
-                            {columns.map((column) => {
-                                const value = getValue(row, String(column.key));
-                                return (
-                                    <td
-                                        key={String(column.key)}
-                                        className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap"
-                                    >
-                                        {column.render
-                                            ? column.render(value as T[keyof T], row, rowIndex)
-                                            : formatValue(value)}
+                        <React.Fragment key={rowIndex}>
+                            <tr
+                                onClick={() => renderSubComponent && toggleRow(rowIndex)}
+                                className={`transition-colors ${renderSubComponent ? 'cursor-pointer hover:bg-gray-50' : 'hover:bg-gray-50'}`}
+                            >
+                                {columns.map((column) => {
+                                    const value = getValue(row, String(column.key));
+                                    return (
+                                        <td
+                                            key={String(column.key)}
+                                            className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap"
+                                        >
+                                            {column.render
+                                                ? column.render(value as T[keyof T], row, rowIndex)
+                                                : formatValue(value)}
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                            {renderSubComponent && expandedRows.has(rowIndex) && (
+                                <tr>
+                                    <td colSpan={columns.length} className="px-4 py-3 bg-gray-50 border-t border-gray-100 shadow-inner">
+                                        {renderSubComponent(row)}
                                     </td>
-                                );
-                            })}
-                        </tr>
+                                </tr>
+                            )}
+                        </React.Fragment>
                     ))}
                 </tbody>
             </table>

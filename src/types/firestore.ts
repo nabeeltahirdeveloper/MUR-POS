@@ -73,6 +73,7 @@ export interface FirestoreLedger {
     quantity?: number | null;
     note?: string | null;
     orderNumber?: number | null;
+    status?: 'open' | 'closed';
     date: Date | any;
     createdAt: Date | any;
 }
