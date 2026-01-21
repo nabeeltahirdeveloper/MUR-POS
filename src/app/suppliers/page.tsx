@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAlert } from "@/contexts/AlertContext";
+import { SupplierLedgerList } from "@/components/ledger/SupplierLedgerList";
 
 interface Supplier {
     id: string;
@@ -235,7 +236,12 @@ export default function SuppliersPage() {
                     </div>
                 ) : (
                     <>
-                        <Table data={suppliers} columns={columns} emptyMessage="No suppliers found." />
+                        <Table
+                            data={suppliers}
+                            columns={columns}
+                            emptyMessage="No suppliers found."
+                            renderSubComponent={(row) => <SupplierLedgerList supplierName={row.name} />}
+                        />
                         <div className="flex justify-end gap-2 mt-4">
                             <Button
                                 variant="secondary"

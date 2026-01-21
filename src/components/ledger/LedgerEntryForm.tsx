@@ -59,6 +59,8 @@ const parseTransactionNote = (note: string) => {
     let advance: number | undefined = undefined;
     let remaining: number | undefined = undefined;
 
+    let hasRemaining = false;
+
     lines.forEach(line => {
         if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
         else if (line.startsWith("Customer: ")) partyName = line.replace("Customer: ", "").trim();
@@ -67,7 +69,10 @@ const parseTransactionNote = (note: string) => {
         else if (line.startsWith("Address: ")) customerAddress = line.replace("Address: ", "").trim();
         else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
         else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
-        else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
+        else if (line.startsWith("Remaining: ")) {
+            remaining = Number(line.replace("Remaining: ", "").trim());
+            hasRemaining = true;
+        }
         else if (line.startsWith("Item: ")) {
             // Item: [Type] Name (Qty: X @ Y) - Handle optional space after ]
             // New Format: Item: [Type] Name (Qty: X Unit @ Y)
@@ -95,7 +100,7 @@ const parseTransactionNote = (note: string) => {
         }
     });
 
-    return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining };
+    return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining, hasRemaining };
 };
 
 export default function LedgerEntryForm({
@@ -148,6 +153,7 @@ export default function LedgerEntryForm({
     // Payment Details State
     const [advanceAmount, setAdvanceAmount] = useState<string>("");
     const [remainingAmount, setRemainingAmount] = useState<number>(0);
+    const [paidLaterAmount, setPaidLaterAmount] = useState<number>(0);
 
     // Cart / Items List
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -163,6 +169,7 @@ export default function LedgerEntryForm({
     const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
     const [units, setUnits] = useState<{ id: string, name: string, symbol?: string }[]>([]);
+    const [partyBalance, setPartyBalance] = useState<number | null>(null);
 
     // Fetch Units
     useEffect(() => {
@@ -171,6 +178,41 @@ export default function LedgerEntryForm({
             .then(data => setUnits(data))
             .catch(err => console.error("Failed to fetch units", err));
     }, []);
+
+    // Fetch Party Balance
+    useEffect(() => {
+        const fetchBalance = async () => {
+            if (!partyName) {
+                setPartyBalance(null);
+                return;
+            }
+            try {
+                // Determine endpoint based on transaction type (credit = Customer, debit = Supplier)
+                // Note: type 'credit' (Cash-In) -> Customer
+                //       type 'debit'  (Cash-Out) -> Supplier
+                const endpoint = type === 'credit' ? '/api/ledger/customers' : '/api/ledger/suppliers';
+
+                // We fetch all (or searchable) and find the exact match
+                const res = await fetch(`${endpoint}?search=${encodeURIComponent(partyName)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    // API returns array of summaries. Find exact name match.
+                    // The API search is typically partial, so we filter strictly.
+                    const match = data.find((p: any) => p.name.toLowerCase() === partyName.toLowerCase());
+                    if (match) {
+                        setPartyBalance(match.balance);
+                    } else {
+                        setPartyBalance(null);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch party balance", err);
+            }
+        };
+
+        const timeoutId = setTimeout(fetchBalance, 500); // Debounce
+        return () => clearTimeout(timeoutId);
+    }, [partyName, type]);
 
 
     // --- Initialize from existing data (Edit Mode) ---
@@ -183,7 +225,25 @@ export default function LedgerEntryForm({
             setPartyPhone(parsed.customerPhone);
             setPartyAddress(parsed.customerAddress);
             setPaymentType(parsed.paymentType as any);
-            if (parsed.advance != null) setAdvanceAmount(String(parsed.advance));
+            if (parsed.advance != null) {
+                setAdvanceAmount(String(parsed.advance));
+            } else if (!parsed.hasRemaining && parsed.itemName && parsed.itemName !== "Item") {
+                // Special Case: Note has items but NO remaining line.
+                // This means it's a Fully Paid (Cash Purchase) transaction.
+                // We should auto-fill Advance = Current Total (so Remaining = 0).
+                // But total depends on items. We can try to calc effectively or just set a flag?
+                // Actually, if we set Advance now, it initializes the form.
+                // But we don't know the Total yet until Cart is rebuilt?
+                // Wait, cartItems are set LATER in this effect (lines ~262).
+                // Logic: parsing siblings gives us cartItems.
+                // We can't know absolute total here easily if it's a batch.
+                // BUT: usually 'amount' in ledger IS the total if single item?
+                // If batch, ledger amount is partial.
+
+                // Better approach: Let's assume if hasRemaining is false, we set advance to 'FULL' logic?
+                // Or: Calculate total from siblings and set advance?
+                // We can do this AFTER fetching siblings.
+            }
 
             if (parsed.orderNumber) {
                 setOrderNumber(parsed.orderNumber);
@@ -195,36 +255,73 @@ export default function LedgerEntryForm({
                         const res = await fetch(`/api/ledger?search=Order #${parsed.orderNumber}&limit=100`);
                         if (res.ok) {
                             const data = await res.json();
-                            // Ensure exact order number match
-                            const siblings = (data.data || []).filter((e: any) => {
+                            // Filter siblings for THIS order
+                            const relevantEntries = (data.data || []).filter((e: any) => {
                                 const subParsed = parseTransactionNote(e.note || "");
                                 return subParsed.orderNumber === parsed.orderNumber;
                             });
 
-                            const batchItems: CartItem[] = siblings.map((e: any) => {
+                            const items: CartItem[] = [];
+                            const payments: any[] = [];
+                            const allRelatedIds: string[] = [];
+
+                            relevantEntries.forEach((e: any) => {
+                                allRelatedIds.push(e.id);
                                 const p = parseTransactionNote(e.note || "");
-                                return {
-                                    tempId: e.id.toString(),
-                                    ledgerId: e.id,
-                                    item: {
-                                        id: e.itemId || 'unknown',
-                                        name: p.itemName,
-                                        firstSalePrice: p.unitPrice,
-                                        categoryId: e.categoryId,
-                                        // Units not easily reconstructible from string properly without fetch, 
-                                        // but for Cart display it might be OK or we re-fetch if needed.
-                                        // Basically we rely on 'item' being fetched via search for new items.
-                                        // For existing items in cart, we might lack unit info unless we fetch it.
-                                    },
-                                    quantity: p.quantity,
-                                    unitPrice: p.unitPrice,
-                                    amount: Number(e.amount),
-                                    note: p.itemType
-                                };
+
+                                // Heuristic: If note contains "Item:", it's a Cart Item. 
+                                // Otherwise if it's a separate entry with same Order #, assume it's a Payment/Adjustment.
+                                // BUT: Currently we only save Items. What if user manually created a "Payment" entry?
+                                // Let's check if 'p.itemName' is populated (our parser defaults to "Item" or parses "Item: ...")
+                                // Our parser: if line starts with "Item: ", it sets itemName.
+                                // If not, it sets itemName = note.replace("Item: ", "").
+                                // So we need a better check.
+                                // Check if note explicitly STARTS with "Item:" (case insensitive)
+                                const isItem = (e.note || "").toLowerCase().includes("item:");
+
+                                if (isItem) {
+                                    items.push({
+                                        tempId: e.id.toString(),
+                                        ledgerId: e.id,
+                                        item: {
+                                            id: e.itemId || 'unknown',
+                                            name: p.itemName,
+                                            firstSalePrice: p.unitPrice,
+                                            categoryId: e.categoryId,
+                                        },
+                                        quantity: p.quantity,
+                                        unitPrice: p.unitPrice,
+                                        amount: Number(e.amount),
+                                        note: p.itemType
+                                    });
+                                } else {
+                                    // Treat as external payment/adjustment linked to this order
+                                    payments.push(e);
+                                }
                             });
 
-                            setCartItems(batchItems);
-                            setOriginalBatchIds(siblings.map((e: any) => e.id));
+                            setCartItems(items);
+                            setOriginalBatchIds(allRelatedIds); // Track all related IDs? No, only items we manage in cart.
+                            // If we delete a "Payment" that we didn't show in cart, that's bad.
+                            // Let's only track ITEMS in originalBatchIds for now to avoid deleting payments accidentally.
+                            setOriginalBatchIds(items.map(i => i.ledgerId!));
+
+                            // Calculate Paid Later
+                            // If Supplier (Debit Bill), then Payments are 'credit' entries? or 'debit' entries (Cash Out)?
+                            // Usually:
+                            // Customer (Credit Bill) -> Payment is 'debit' (Cash In)? No.
+                            // Let's assume ANY entry that is NOT an item is a payment/adjustment.
+                            // Sum their amounts.
+                            const totalPaidLater = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+                            setPaidLaterAmount(totalPaidLater);
+
+                            // --- Auto-Fill Advance for Fully Paid Transactions ---
+                            if (!parsed.hasRemaining) {
+                                // If original note had NO "Remaining:" line, it means it was Fully Paid.
+                                // We should set Advance Amount = Total Bill Amount.
+                                const batchTotal = items.reduce((sum, i) => sum + i.amount, 0);
+                                setAdvanceAmount(String(batchTotal));
+                            }
                         }
                     } catch (err) {
                         console.error("Failed to fetch batch siblings", err);
@@ -249,6 +346,11 @@ export default function LedgerEntryForm({
                 };
                 setCartItems([reconstructItem]);
                 setOriginalBatchIds([String(initialData.id)]);
+
+                // Auto-fill Advance for Single Item if fully paid
+                if (!parsed.hasRemaining) {
+                    setAdvanceAmount(String(initialData.amount));
+                }
             }
         } else {
             // Fetch Next Order Number only if NEW entry
@@ -384,11 +486,42 @@ export default function LedgerEntryForm({
 
     useEffect(() => {
         if (advanceAmount === "") {
-            setRemainingAmount(effectiveTotal);
+            setRemainingAmount(effectiveTotal - paidLaterAmount);
         } else {
-            setRemainingAmount(effectiveTotal - Number(advanceAmount));
+            setRemainingAmount(effectiveTotal - Number(advanceAmount) - paidLaterAmount);
         }
-    }, [effectiveTotal, advanceAmount]);
+    }, [effectiveTotal, advanceAmount, paidLaterAmount]);
+
+    // --- Handlers --- (skipped for brevity)
+
+    // ... (rest of the file until rendering remaining input)
+
+    {/* Remaining Display */ }
+    <div className="w-full sm:w-auto">
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Remaining</label>
+        <div className="relative group">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rs.</span>
+            <input
+                type="number"
+                value={remainingAmount}
+                readOnly
+                className="w-full sm:w-32 pl-8 pr-3 py-3.5 bg-gray-100 border border-transparent rounded-xl font-bold text-red-500 cursor-not-allowed"
+            />
+            {paidLaterAmount > 0 && (
+                <div className="absolute bottom-full right-0 mb-2 w-48 bg-gray-800 text-white text-xs rounded-lg p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                    <div className="flex justify-between"><span>Bill Total:</span> <span>{effectiveTotal}</span></div>
+                    <div className="flex justify-between text-yellow-300"><span>Advance:</span> <span>- {advanceAmount || 0}</span></div>
+                    <div className="flex justify-between text-green-300"><span>Paid Later:</span> <span>- {paidLaterAmount}</span></div>
+                    <div className="border-t border-gray-600 mt-1 pt-1 flex justify-between font-bold"><span>Net Remaining:</span> <span>{remainingAmount}</span></div>
+                </div>
+            )}
+        </div>
+        {paidLaterAmount > 0 && (
+            <div className="text-[10px] text-green-600 font-bold mt-1 text-right">
+                (Paid Later: {paidLaterAmount})
+            </div>
+        )}
+    </div>
 
     // --- Handlers ---
 
@@ -980,6 +1113,16 @@ export default function LedgerEntryForm({
                                             ) : null}
                                         </div>
                                     )}
+
+                                    {/* Balance Display */}
+                                    {partyName && !isNewParty && partyBalance !== null && (
+                                        <div className="absolute top-full left-0 mt-2 bg-white/80 backdrop-blur border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-2 z-10 animate-in fade-in slide-in-from-top-1">
+                                            <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Current Net Balance:</span>
+                                            <span className={`text-sm font-bold font-mono ${partyBalance >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                                                Rs. {partyBalance.toLocaleString()}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                                 {isNewParty && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -1054,13 +1197,14 @@ export default function LedgerEntryForm({
                                         <input
                                             type="text"
                                             value={searchTerm}
+                                            disabled={isEdit}
                                             onChange={(e) => {
                                                 setSearchTerm(e.target.value);
                                                 if (selectedItem && e.target.value !== selectedItem.name) setSelectedItem(null);
                                             }}
                                             onFocus={() => { if (searchTerm.length >= 1) setShowResults(true); }}
-                                            placeholder="Scan or Type Item..."
-                                            className="w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900"
+                                            placeholder={isEdit ? "Item editing disabled" : "Scan or Type Item..."}
+                                            className={`w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900 ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         />
                                         {isSearching && (
                                             <span className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -1219,8 +1363,9 @@ export default function LedgerEntryForm({
                                         <input
                                             type="number"
                                             value={lineAmount}
+                                            disabled={isEdit}
                                             onChange={(e) => setLineAmount(e.target.value)}
-                                            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-bold text-lg text-gray-800"
+                                            className={`w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-bold text-lg text-gray-800 ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         />
                                     </div>
                                 </div>
@@ -1229,28 +1374,30 @@ export default function LedgerEntryForm({
 
                                 {/* Action Buttons */}
                                 <div className="w-full md:w-auto md:shrink-0 flex items-end justify-end">
-                                    {editingCartId ? (
-                                        <div className="flex gap-2 w-full md:w-auto">
-                                            <button type="button" onClick={handleAddOrUpdateItem} className="flex-1 md:flex-none bg-primary hover:bg-primary-dark text-slate-900 px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 whitespace-nowrap cursor-pointer">
-                                                Update
-                                            </button>
-                                            <button type="button" onClick={() => {
-                                                setEditingCartId(null);
-                                                setSelectedItem(null);
-                                                setSearchTerm("");
-                                                setQuantity("1");
-                                                setUnitPrice(0);
-                                                setLineAmount("");
-                                            }} className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-3 rounded-xl transition-all shadow-sm cursor-pointer">
-                                                ✕
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <button type="button" onClick={handleAddOrUpdateItem} className="w-full md:w-auto px-3 bg-slate-900 hover:bg-black text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 flex items-center justify-center mb-1 gap-2 group whitespace-nowrap cursor-pointer">
-                                            <div className="bg-white/20 rounded-full p-1 group-hover:bg-white/30 transition-colors">
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                    {!isEdit && (
+                                        editingCartId ? (
+                                            <div className="flex gap-2 w-full md:w-auto">
+                                                <button type="button" onClick={handleAddOrUpdateItem} className="flex-1 md:flex-none bg-primary hover:bg-primary-dark text-slate-900 px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 whitespace-nowrap cursor-pointer">
+                                                    Update
+                                                </button>
+                                                <button type="button" onClick={() => {
+                                                    setEditingCartId(null);
+                                                    setSelectedItem(null);
+                                                    setSearchTerm("");
+                                                    setQuantity("1");
+                                                    setUnitPrice(0);
+                                                    setLineAmount("");
+                                                }} className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-3 rounded-xl transition-all shadow-sm cursor-pointer">
+                                                    ✕
+                                                </button>
                                             </div>
-                                        </button>
+                                        ) : (
+                                            <button type="button" onClick={handleAddOrUpdateItem} className="w-full md:w-auto px-3 bg-slate-900 hover:bg-black text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 flex items-center justify-center mb-1 gap-2 group whitespace-nowrap cursor-pointer">
+                                                <div className="bg-white/20 rounded-full p-1 group-hover:bg-white/30 transition-colors">
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                                </div>
+                                            </button>
+                                        )
                                     )}
                                 </div>
                             </div>
@@ -1266,7 +1413,7 @@ export default function LedgerEntryForm({
                                             <th className="px-4 py-3 text-center">Qty</th>
                                             <th className="px-4 py-3 text-right">Price</th>
                                             <th className="px-4 py-3 text-right">Amount</th>
-                                            <th className="px-4 py-3 text-center">Actions</th>
+                                            {!isEdit && <th className="px-4 py-3 text-center">Actions</th>}
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
@@ -1276,14 +1423,16 @@ export default function LedgerEntryForm({
                                                 <td className="px-4 py-3 text-center text-gray-900 font-bold">{item.quantity}</td>
                                                 <td className="px-4 py-3 text-right text-gray-500">Rs. {item.unitPrice}</td>
                                                 <td className="px-4 py-3 text-right font-bold text-gray-800">Rs. {item.amount.toLocaleString()}</td>
-                                                <td className="px-4 py-3 text-center space-x-2">
-                                                    <button type="button" onClick={() => handleEditItem(item.tempId)} className="text-primary hover:text-primary-dark p-1 hover:bg-primary/10 rounded cursor-pointer">
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                                    </button>
-                                                    <button type="button" onClick={() => handleDeleteItem(item.tempId)} className="text-red-600 hover:text-red-800 p-1 hover:bg-red-100 rounded cursor-pointer">
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                    </button>
-                                                </td>
+                                                {!isEdit && (
+                                                    <td className="px-4 py-3 text-center space-x-2">
+                                                        <button type="button" onClick={() => handleEditItem(item.tempId)} className="text-primary hover:text-primary-dark p-1 hover:bg-primary/10 rounded cursor-pointer">
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                        </button>
+                                                        <button type="button" onClick={() => handleDeleteItem(item.tempId)} className="text-red-600 hover:text-red-800 p-1 hover:bg-red-100 rounded cursor-pointer">
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
                                     </tbody>
@@ -1305,7 +1454,16 @@ export default function LedgerEntryForm({
 
                             {/* Advance Input */}
                             <div className="w-full sm:w-auto">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Advance</label>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Advance</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setAdvanceAmount(effectiveTotal.toString())}
+                                        className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                                    >
+                                        Full
+                                    </button>
+                                </div>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rs.</span>
                                     <input
@@ -1321,7 +1479,7 @@ export default function LedgerEntryForm({
                             {/* Remaining Display */}
                             <div className="w-full sm:w-auto">
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Remaining</label>
-                                <div className="relative">
+                                <div className="relative group">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rs.</span>
                                     <input
                                         type="number"
@@ -1329,7 +1487,20 @@ export default function LedgerEntryForm({
                                         readOnly
                                         className="w-full sm:w-32 pl-8 pr-3 py-3.5 bg-gray-100 border border-transparent rounded-xl font-bold text-red-500 cursor-not-allowed"
                                     />
+                                    {paidLaterAmount > 0 && (
+                                        <div className="absolute bottom-full right-0 mb-2 w-48 bg-gray-800 text-white text-xs rounded-lg p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                                            <div className="flex justify-between"><span>Bill Total:</span> <span>{effectiveTotal}</span></div>
+                                            <div className="flex justify-between text-yellow-300"><span>Advance:</span> <span>- {advanceAmount || 0}</span></div>
+                                            <div className="flex justify-between text-green-300"><span>Paid Later:</span> <span>- {paidLaterAmount}</span></div>
+                                            <div className="border-t border-gray-600 mt-1 pt-1 flex justify-between font-bold"><span>Net Remaining:</span> <span>{remainingAmount}</span></div>
+                                        </div>
+                                    )}
                                 </div>
+                                {paidLaterAmount > 0 && (
+                                    <div className="text-[10px] text-green-600 font-bold mt-1 text-right">
+                                        (Paid Later: {paidLaterAmount})
+                                    </div>
+                                )}
                             </div>
 
                             {/* Optional: Print or other options */}

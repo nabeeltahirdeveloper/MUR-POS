@@ -381,6 +381,7 @@ export async function POST(req: NextRequest) {
             quantity: quantity ? Number(quantity) : null,
             note: note || null,
             orderNumber: orderNumber || null,
+            status: 'open',
             date: date ? new Date(date) : new Date(),
             createdAt: new Date(),
         };
