@@ -3,13 +3,15 @@ import { Table } from "../ui/Table";
 import { Item } from "@/types/inventory";
 import Link from "next/link";
 import { Button } from "../ui/Button";
+import { StockCell } from "./StockCell";
 
 interface ItemTableProps {
     items: Item[];
     onDelete?: (id: string) => void;
+    onUpdate?: () => void;
 }
 
-export function ItemTable({ items, onDelete }: ItemTableProps) {
+export function ItemTable({ items, onDelete, onUpdate }: ItemTableProps) {
     return (
         <Table<Item>
             data={items}
@@ -74,14 +76,10 @@ export function ItemTable({ items, onDelete }: ItemTableProps) {
                     key: "currentStock",
                     header: "Stock",
                     render: (value, row) => (
-                        <div className="flex items-center space-x-2">
-                            <span>{String(row.currentStock)} {row.baseUnit?.symbol || row.baseUnit?.name}</span>
-                            {row.isLowStock && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                    Low Stock
-                                </span>
-                            )}
-                        </div>
+                        <StockCell
+                            item={row}
+                            onUpdate={onUpdate || (() => window.location.reload())}
+                        />
                     ),
                 },
                 {

@@ -81,7 +81,7 @@ export default function ItemsPage() {
                     <ErrorDisplay message={error} onRetry={fetchItems} />
                 ) : (
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                        <ItemTable items={items} onDelete={handleDelete} />
+                        <ItemTable items={items} onDelete={handleDelete} onUpdate={fetchItems} />
                     </div>
                 )}
             </div>
