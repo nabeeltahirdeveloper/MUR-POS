@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAlert } from "@/contexts/AlertContext";
-import { SupplierLedgerList } from "@/components/ledger/SupplierLedgerList";
+import { SupplierTransactionDropdown } from "@/components/ledger/SupplierTransactionDropdown";
 
 interface Supplier {
     id: string;
@@ -240,7 +240,7 @@ export default function SuppliersPage() {
                             data={suppliers}
                             columns={columns}
                             emptyMessage="No suppliers found."
-                            renderSubComponent={(row) => <SupplierLedgerList supplierName={row.name} />}
+                            renderSubComponent={(row) => <SupplierTransactionDropdown supplierName={row.name} />}
                         />
                         <div className="flex justify-end gap-2 mt-4">
                             <Button
