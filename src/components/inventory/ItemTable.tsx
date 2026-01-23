@@ -83,19 +83,6 @@ export function ItemTable({ items, onDelete, onUpdate }: ItemTableProps) {
                     ),
                 },
                 {
-                    key: "saleUnit.name",
-                    header: "Sale Unit",
-                    render: (value, row) => {
-                        if (!row.saleUnit) return <span>—</span>;
-                        return (
-                            <span>
-                                {row.saleUnit.name}
-                                {row.saleUnit.symbol && ` (${row.saleUnit.symbol})`}
-                            </span>
-                        );
-                    },
-                },
-                {
                     key: "actions",
                     header: "Actions",
                     render: (_, row) => (
