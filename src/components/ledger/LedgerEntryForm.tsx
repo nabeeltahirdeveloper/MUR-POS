@@ -144,6 +144,11 @@ export default function LedgerEntryForm({
     const [isNewParty, setIsNewParty] = useState(false);
     const partySearchRef = useRef<HTMLDivElement>(null);
 
+    // Supplier Transaction History
+    const [supplierHistory, setSupplierHistory] = useState<any[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const [selectedSupplierForHistory, setSelectedSupplierForHistory] = useState<string | null>(null);
+
     // Current Line Item State
     const [quantity, setQuantity] = useState<string>("1");
     const [unitPrice, setUnitPrice] = useState<number>(0);
@@ -429,6 +434,34 @@ export default function LedgerEntryForm({
         return () => clearTimeout(delayDebounceFn);
     }, [partyName, showPartyResults, type]);
 
+    // Fetch Supplier Transaction History - only when a supplier is selected
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            // Only fetch history for suppliers (debit/cash-out transactions) when a supplier is selected
+            if (type === 'debit' && selectedSupplierForHistory && !isNewParty) {
+                setLoadingHistory(true);
+                try {
+                    const res = await fetch(`/api/ledger/supplier-history?supplierName=${encodeURIComponent(selectedSupplierForHistory)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setSupplierHistory(data.transactions || []);
+                    } else {
+                        setSupplierHistory([]);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch supplier history", err);
+                    setSupplierHistory([]);
+                } finally {
+                    setLoadingHistory(false);
+                }
+            } else {
+                setSupplierHistory([]);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [selectedSupplierForHistory, type, isNewParty]);
+
     // --- Price Logic ---
     useEffect(() => {
         if (selectedItem && !editingCartId) { // Only update price automatically if not editing (or we can discuss edit logic)
@@ -535,7 +568,12 @@ export default function LedgerEntryForm({
         setPartyName(party.name);
         setPartyPhone(party.phone || "");
         setPartyAddress(party.address || "");
-        setShowPartyResults(false);
+        // Trigger history fetch for suppliers
+        if (type === 'debit') {
+            setSelectedSupplierForHistory(party.name);
+        }
+        // Keep dropdown open to show transaction history
+        // setShowPartyResults(false); // Commented out to keep dropdown open
     };
 
     const handleAddOrUpdateItem = () => {
@@ -1048,6 +1086,8 @@ export default function LedgerEntryForm({
                                         value={partyName}
                                         onChange={(e) => {
                                             setPartyName(e.target.value);
+                                            // Clear selected supplier when user starts typing again
+                                            setSelectedSupplierForHistory(null);
                                             if (!isNewParty) setShowPartyResults(true);
                                         }}
                                         onFocus={() => { if (partyName.length >= 1 && !isNewParty) setShowPartyResults(true); }}
@@ -1079,23 +1119,101 @@ export default function LedgerEntryForm({
                                     )}
                                     {/* Party Dropdown Results */}
                                     {showPartyResults && (
-                                        <div className="absolute z-40 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto ring-1 ring-black/5">
+                                        <div className="absolute z-40 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 max-h-96 overflow-y-auto ring-1 ring-black/5">
                                             {isSearchingParty ? (
                                                 <div className="p-4 text-center text-sm text-gray-500">Searching...</div>
                                             ) : partySearchResults.length > 0 ? (
-                                                <ul>
-                                                    {partySearchResults.map((party) => (
-                                                        <li
-                                                            key={party.id}
-                                                            onClick={() => handleSelectParty(party)}
-                                                            className="px-4 py-3 hover:bg-primary/10 cursor-pointer text-sm flex justify-between items-center group transition-colors border-b border-gray-50 last:border-0"
-                                                        >
-                                                            <span className="font-medium text-gray-700 group-hover:text-primary">
-                                                                {party.name}
-                                                            </span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
+                                                <>
+                                                    <ul>
+                                                        {partySearchResults.map((party) => (
+                                                            <li
+                                                                key={party.id}
+                                                                onClick={() => handleSelectParty(party)}
+                                                                className="px-4 py-3 hover:bg-primary/10 cursor-pointer text-sm flex justify-between items-center group transition-colors border-b border-gray-50 last:border-0"
+                                                            >
+                                                                <span className="font-medium text-gray-700 group-hover:text-primary">
+                                                                    {party.name}
+                                                                </span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+
+                                                    {/* Transaction History Section - Only for Suppliers and only when selected */}
+                                                    {type === 'debit' && selectedSupplierForHistory && (
+                                                        <div className="border-t border-gray-200">
+                                                            <div className="px-4 py-2 bg-gray-50 sticky top-0">
+                                                                <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                                                    Recent Transactions
+                                                                </h4>
+                                                            </div>
+                                                            {loadingHistory ? (
+                                                                <div className="p-4 text-center text-sm text-gray-500">
+                                                                    <svg className="animate-spin h-5 w-5 text-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                    </svg>
+                                                                </div>
+                                                            ) : supplierHistory.length > 0 ? (
+                                                                <div className="max-h-64 overflow-y-auto">
+                                                                    {supplierHistory.slice(0, 10).map((transaction, idx) => {
+                                                                        const txDate = new Date(transaction.date);
+                                                                        const isPaid = transaction.remaining === 0 || transaction.remaining === undefined;
+
+                                                                        return (
+                                                                            <div
+                                                                                key={transaction.id || idx}
+                                                                                className="px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-0 text-xs"
+                                                                            >
+                                                                                <div className="flex justify-between items-start mb-1">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <span className="text-gray-500 font-mono">
+                                                                                            {txDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                                                        </span>
+                                                                                        {transaction.orderNumber && transaction.orderNumber !== '-' && (
+                                                                                            <span className="text-gray-400 font-mono text-[10px]">
+                                                                                                #{transaction.orderNumber}
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <span className="font-bold text-red-600 font-mono">
+                                                                                        Rs. {Number(transaction.amount).toLocaleString()}
+                                                                                    </span>
+                                                                                </div>
+                                                                                {transaction.itemName && (
+                                                                                    <div className="text-gray-600 truncate mb-1">
+                                                                                        {transaction.itemName}
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${isPaid
+                                                                                        ? 'bg-green-100 text-green-700'
+                                                                                        : 'bg-yellow-100 text-yellow-700'
+                                                                                        }`}>
+                                                                                        {isPaid ? 'Paid' : 'Pending'}
+                                                                                    </span>
+                                                                                    {!isPaid && transaction.remaining !== undefined && (
+                                                                                        <span className="text-[10px] text-gray-500 font-mono">
+                                                                                            Remaining: Rs. {Number(transaction.remaining).toLocaleString()}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                    {supplierHistory.length > 10 && (
+                                                                        <div className="px-4 py-2 text-center text-[10px] text-gray-400 bg-gray-50">
+                                                                            Showing 10 of {supplierHistory.length} transactions
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="p-4 text-center text-xs text-gray-400">
+                                                                    No transaction history found
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </>
                                             ) : partyName.length > 0 && !isNewParty ? (
                                                 <div className="p-4 text-center text-sm text-gray-500 flex flex-col gap-2">
                                                     <span>No {type === 'credit' ? 'customers' : 'suppliers'} found</span>
