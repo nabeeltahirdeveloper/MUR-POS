@@ -572,8 +572,8 @@ export default function LedgerEntryForm({
         if (type === 'debit') {
             setSelectedSupplierForHistory(party.name);
         }
-        // Keep dropdown open to show transaction history
-        // setShowPartyResults(false); // Commented out to keep dropdown open
+        // Close dropdown now that history is shown in table below
+        setShowPartyResults(false);
     };
 
     const handleAddOrUpdateItem = () => {
@@ -1138,81 +1138,6 @@ export default function LedgerEntryForm({
                                                         ))}
                                                     </ul>
 
-                                                    {/* Transaction History Section - Only for Suppliers and only when selected */}
-                                                    {type === 'debit' && selectedSupplierForHistory && (
-                                                        <div className="border-t border-gray-200">
-                                                            <div className="px-4 py-2 bg-gray-50 sticky top-0">
-                                                                <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                                                    Recent Transactions
-                                                                </h4>
-                                                            </div>
-                                                            {loadingHistory ? (
-                                                                <div className="p-4 text-center text-sm text-gray-500">
-                                                                    <svg className="animate-spin h-5 w-5 text-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                                    </svg>
-                                                                </div>
-                                                            ) : supplierHistory.length > 0 ? (
-                                                                <div className="max-h-64 overflow-y-auto">
-                                                                    {supplierHistory.slice(0, 10).map((transaction, idx) => {
-                                                                        const txDate = new Date(transaction.date);
-                                                                        const isPaid = transaction.remaining === 0 || transaction.remaining === undefined;
-
-                                                                        return (
-                                                                            <div
-                                                                                key={transaction.id || idx}
-                                                                                className="px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-0 text-xs"
-                                                                            >
-                                                                                <div className="flex justify-between items-start mb-1">
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <span className="text-gray-500 font-mono">
-                                                                                            {txDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                                                        </span>
-                                                                                        {transaction.orderNumber && transaction.orderNumber !== '-' && (
-                                                                                            <span className="text-gray-400 font-mono text-[10px]">
-                                                                                                #{transaction.orderNumber}
-                                                                                            </span>
-                                                                                        )}
-                                                                                    </div>
-                                                                                    <span className="font-bold text-red-600 font-mono">
-                                                                                        Rs. {Number(transaction.amount).toLocaleString()}
-                                                                                    </span>
-                                                                                </div>
-                                                                                {transaction.itemName && (
-                                                                                    <div className="text-gray-600 truncate mb-1">
-                                                                                        {transaction.itemName}
-                                                                                    </div>
-                                                                                )}
-                                                                                <div className="flex justify-between items-center">
-                                                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${isPaid
-                                                                                        ? 'bg-green-100 text-green-700'
-                                                                                        : 'bg-yellow-100 text-yellow-700'
-                                                                                        }`}>
-                                                                                        {isPaid ? 'Paid' : 'Pending'}
-                                                                                    </span>
-                                                                                    {!isPaid && transaction.remaining !== undefined && (
-                                                                                        <span className="text-[10px] text-gray-500 font-mono">
-                                                                                            Remaining: Rs. {Number(transaction.remaining).toLocaleString()}
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                    {supplierHistory.length > 10 && (
-                                                                        <div className="px-4 py-2 text-center text-[10px] text-gray-400 bg-gray-50">
-                                                                            Showing 10 of {supplierHistory.length} transactions
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="p-4 text-center text-xs text-gray-400">
-                                                                    No transaction history found
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
                                                 </>
                                             ) : partyName.length > 0 && !isNewParty ? (
                                                 <div className="p-4 text-center text-sm text-gray-500 flex flex-col gap-2">
@@ -1565,7 +1490,83 @@ export default function LedgerEntryForm({
                             </div>
                         )}
 
+                        {/* Supplier Transaction History Table */}
+                        {type === 'debit' && selectedSupplierForHistory && supplierHistory.length > 0 && (
+                            <div className="mt-6">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+                                        Transaction History - {selectedSupplierForHistory}
+                                    </h3>
+                                    <span className="text-xs text-gray-500">
+                                        Showing {supplierHistory.length} transaction{supplierHistory.length !== 1 ? 's' : ''}
+                                    </span>
+                                </div>
+                                <div className="border border-gray-100 rounded-xl overflow-hidden overflow-x-auto max-h-96">
+                                    <table className="w-full text-sm text-left min-w-[600px]">
+                                        <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100 sticky top-0">
+                                            <tr>
+                                                <th className="px-4 py-3">Date</th>
+                                                <th className="px-4 py-3">#</th>
+                                                <th className="px-4 py-3">Items</th>
+                                                <th className="px-4 py-3 text-right">Amount</th>
+                                                <th className="px-4 py-3 text-center">Status</th>
+                                                <th className="px-4 py-3 text-right">Remaining</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {supplierHistory.map((transaction, idx) => {
+                                                const txDate = new Date(transaction.date);
+                                                const isPaid = transaction.remaining === 0 || transaction.remaining === undefined;
 
+                                                return (
+                                                    <tr key={transaction.id || idx} className="hover:bg-primary/5 transition-colors">
+                                                        <td className="px-4 py-3 text-gray-700 font-medium">
+                                                            {txDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-gray-600 font-mono text-xs">
+                                                            {transaction.orderNumber && transaction.orderNumber !== '-' ? transaction.orderNumber : '-'}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-gray-600 text-xs">
+                                                            {transaction.itemName || '-'}
+                                                            {transaction.itemCount > 1 && (
+                                                                <span className="ml-1 text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                                                                    {transaction.itemCount} items
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-bold text-red-600">
+                                                            Rs. {Number(transaction.amount).toLocaleString()}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${isPaid
+                                                                ? 'bg-green-100 text-green-700'
+                                                                : 'bg-yellow-100 text-yellow-700'
+                                                                }`}>
+                                                                {isPaid ? 'Paid' : 'Pending'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right text-gray-600 font-mono text-xs">
+                                                            {!isPaid && transaction.remaining !== undefined
+                                                                ? `Rs. ${Number(transaction.remaining).toLocaleString()}`
+                                                                : '-'
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {loadingHistory && (
+                                    <div className="text-center py-4 text-sm text-gray-500">
+                                        <svg className="animate-spin h-5 w-5 text-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Bottom Right SAVE OPTIONS */}
                         <div className="flex justify-end pt-4 gap-3 mt-auto items-end flex-wrap">
