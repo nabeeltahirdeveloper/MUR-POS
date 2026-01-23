@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Item } from "@/types/inventory";
 import {
-    PencilIcon,
+    PlusIcon,
+    MinusIcon,
     CheckIcon,
-    XMarkIcon
+    XMarkIcon,
+    PencilIcon
 } from "@heroicons/react/24/outline";
-import { Button } from "@/components/ui/Button";
 
 interface StockCellProps {
     item: Item;
@@ -14,26 +15,26 @@ interface StockCellProps {
 
 export function StockCell({ item, onUpdate }: StockCellProps) {
     const [isEditing, setIsEditing] = useState(false);
-    const [value, setValue] = useState(String(item.currentStock));
+    const [isSelecting, setIsSelecting] = useState(false);
+    const [adjType, setAdjType] = useState<"add" | "remove">("add");
+    const [quantity, setQuantity] = useState("0");
     const [loading, setLoading] = useState(false);
 
     const handleSave = async () => {
-        const newStock = parseFloat(value);
-        const currentStock = item.currentStock || 0;
-        const diff = newStock - currentStock;
+        const qty = parseFloat(quantity);
 
-        if (diff === 0) {
-            setIsEditing(false);
+        if (isNaN(qty) || qty <= 0) {
+            alert("Please enter a valid quantity greater than 0");
             return;
         }
 
         setLoading(true);
         try {
-            const endpoint = diff > 0 ? "/api/stock/add" : "/api/stock/remove";
+            const endpoint = adjType === "add" ? "/api/stock/add" : "/api/stock/remove";
             const payload = {
                 itemId: item.id,
-                quantity: Math.abs(diff),
-                description: "Manual adjustment from table",
+                quantity: qty,
+                description: `Manual ${adjType} from table`,
             };
 
             const res = await fetch(endpoint, {
@@ -49,66 +50,114 @@ export function StockCell({ item, onUpdate }: StockCellProps) {
 
             onUpdate();
             setIsEditing(false);
-        } catch (error) {
+            setIsSelecting(false);
+            setQuantity("0");
+        } catch (error: any) {
             console.error("Failed to update stock:", error);
-            alert("Failed to update stock");
+            alert(error.message || "Failed to update stock");
         } finally {
             setLoading(false);
         }
     };
 
     const handleCancel = () => {
-        setValue(String(item.currentStock));
         setIsEditing(false);
+        setIsSelecting(false);
+        setQuantity("0");
     };
 
-    if (isEditing) {
-        return (
-            <div className="flex items-center space-x-2">
-                <input
-                    type="number"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    className="w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-1 border"
-                    autoFocus
-                    step="any"
-                />
-                <button
-                    onClick={handleSave}
-                    disabled={loading}
-                    className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-1.5 rounded cursor-pointer"
-                >
-                    <CheckIcon className="h-5 w-5" />
-                </button>
-                <button
-                    onClick={handleCancel}
-                    disabled={loading}
-                    className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1.5 rounded cursor-pointer"
-                >
-                    <XMarkIcon className="h-5 w-5" />
-                </button>
-            </div>
-        );
-    }
+    const unitLabel = item.baseUnit?.symbol || item.baseUnit?.name || "";
 
     return (
-        <div className="flex items-center space-x-2">
-            <span>{String(item.currentStock)} {item.baseUnit?.symbol || item.baseUnit?.name}</span>
-            {item.isLowStock && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                    Low
-                </span>
+        <div className="flex items-center min-w-[150px]">
+            {isEditing ? (
+                <div className={`flex items-center space-x-1 p-0.5 rounded border shadow-sm ${adjType === 'add' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                    <div className="flex items-center bg-white border border-gray-200 rounded focus-within:ring-1 focus-within:ring-blue-500 overflow-hidden h-7">
+                        <input
+                            type="number"
+                            value={quantity}
+                            onChange={(e) => setQuantity(e.target.value)}
+                            className="w-12 text-xs p-1 outline-none font-bold text-gray-900"
+                            autoFocus
+                            placeholder="0"
+                            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                        />
+                        {unitLabel && (
+                            <span className="text-[10px] text-gray-400 font-bold px-1.5 border-l border-gray-100 bg-gray-50 h-full flex items-center">
+                                {unitLabel}
+                            </span>
+                        )}
+                    </div>
+                    <button
+                        onClick={handleSave}
+                        disabled={loading}
+                        className={`${adjType === 'add' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-white rounded transition-colors h-7 w-7 flex items-center justify-center`}
+                    >
+                        {loading ? <div className="h-3 w-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : <CheckIcon className="h-4 w-4 stroke-[3px]" />}
+                    </button>
+                    <button
+                        onClick={handleCancel}
+                        disabled={loading}
+                        className="text-gray-400 hover:text-gray-600 h-7 w-7 flex items-center justify-center"
+                    >
+                        <XMarkIcon className="h-4 w-4" />
+                    </button>
+                </div>
+            ) : isSelecting ? (
+                <div className="flex items-center space-x-1.5 bg-white p-1 rounded-md border border-gray-200 shadow-sm transition-all duration-200 animate-in fade-in zoom-in-95">
+                    <button
+                        onClick={() => {
+                            setAdjType("add");
+                            setIsEditing(true);
+                        }}
+                        className="flex items-center justify-center bg-green-50 text-green-600 hover:bg-green-600 hover:text-white h-7 w-7 rounded border border-green-200 transition-all font-bold"
+                        title="Add Stock"
+                    >
+                        <PlusIcon className="h-4 w-4 stroke-[3px]" />
+                    </button>
+                    <button
+                        onClick={() => {
+                            setAdjType("remove");
+                            setIsEditing(true);
+                        }}
+                        className="flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-600 hover:text-white h-7 w-7 rounded border border-red-200 transition-all font-bold"
+                        title="Remove Stock"
+                    >
+                        <MinusIcon className="h-4 w-4 stroke-[3px]" />
+                    </button>
+                    <div className="w-px h-4 bg-gray-200 mx-0.5" />
+                    <button
+                        onClick={() => setIsSelecting(false)}
+                        className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100"
+                        title="Cancel"
+                    >
+                        <XMarkIcon className="h-4 w-4" />
+                    </button>
+                </div>
+            ) : (
+                <div className="flex items-center space-x-3 group min-h-[1.75rem]">
+                    <div className="flex items-baseline space-x-1">
+                        <span className="font-bold text-gray-900 text-sm">{String(item.currentStock)}</span>
+                        {unitLabel && (
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{unitLabel}</span>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={() => setIsSelecting(true)}
+                        className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-1 rounded-md transition-all transform hover:scale-110"
+                        title="Adjust Stock"
+                    >
+                        <PencilIcon className="h-4 w-4" />
+                    </button>
+
+                    {item.isLowStock && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black bg-red-50 text-red-600 border border-red-200 uppercase tracking-tighter">
+                            LOW
+                        </span>
+                    )}
+                </div>
             )}
-            <button
-                onClick={() => {
-                    setValue(String(item.currentStock));
-                    setIsEditing(true);
-                }}
-                className="text-gray-500 hover:text-blue-600 bg-gray-100 hover:bg-gray-200 p-1.5 rounded cursor-pointer transition-colors"
-                title="Edit Stock"
-            >
-                <PencilIcon className="h-4 w-4" />
-            </button>
         </div>
     );
 }
