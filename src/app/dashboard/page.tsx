@@ -94,51 +94,40 @@ function DashboardContent() {
                     }
                 }
 
-                const resLedger = await fetch('/api/ledger?search=Remaining:&limit=100');
-                if (resLedger.ok) {
-                    const data = await resLedger.json();
-                    if (data.data && Array.isArray(data.data)) {
-                        const pending = data.data.filter((e: any) => {
-                            const match = e.note?.match(/Remaining: (\d+)/);
-                            if (match) {
-                                return Number(match[1]) > 0;
-                            }
-                            return false;
-                        }).map((e: any) => {
-                            const remaining = Number(e.note?.match(/Remaining: (\d+)/)[1]);
-                            // Extract customer name
-                            let person = "Unknown";
-                            const customerMatch = e.note?.match(/Customer: (.*?)(?:\n|$)/);
-                            const supplierMatch = e.note?.match(/Supplier: (.*?)(?:\n|$)/);
+                const [resSuppliers, resCustomers] = await Promise.all([
+                    fetch('/api/ledger/suppliers'),
+                    fetch('/api/ledger/customers')
+                ]);
 
-                            if (customerMatch) person = customerMatch[1].trim();
-                            else if (supplierMatch) person = supplierMatch[1].trim();
+                let allPending: any[] = [];
 
-                            return { ...e, remaining, personName: person };
-                        });
-                        // Deduplicate by Order # or Customer+Date
-                        const uniqueBills: any[] = [];
-                        const seenKeys = new Set();
-
-                        pending.forEach((e: any) => {
-                            let orderNum = "-";
-                            const orderMatch = e.note?.match(/Order #\s*([^\n]+)/);
-                            if (orderMatch) orderNum = orderMatch[1].trim();
-
-                            const key = orderNum !== "-"
-                                ? `ORD-${orderNum}`
-                                : `DATE-${e.date.split('T')[0]}-CUS-${e.personName}`;
-
-                            if (!seenKeys.has(key)) {
-                                seenKeys.add(key);
-                                uniqueBills.push(e);
-                            }
-                        });
-
-
-                        setPendingLedger(uniqueBills.slice(0, 5));
+                if (resSuppliers.ok) {
+                    const suppliers = await resSuppliers.json();
+                    if (Array.isArray(suppliers)) {
+                        allPending = [...allPending, ...suppliers.filter(s => s.balance > 0).map(s => ({
+                            personName: s.name,
+                            remaining: s.balance,
+                            type: 'debit', // Supplier debt is debit in ledger logic
+                            date: s.lastEntryDate
+                        }))];
                     }
                 }
+
+                if (resCustomers.ok) {
+                    const customers = await resCustomers.json();
+                    if (Array.isArray(customers)) {
+                        allPending = [...allPending, ...customers.filter(c => c.balance > 0).map(c => ({
+                            personName: c.name,
+                            remaining: c.balance,
+                            type: 'credit', // Customer debt is credit in ledger logic
+                            date: c.lastEntryDate
+                        }))];
+                    }
+                }
+
+                // Sort by date descending and take top 5
+                const sortedPending = allPending.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setPendingLedger(sortedPending.slice(0, 5));
             } catch (err) {
                 console.error(err);
             }

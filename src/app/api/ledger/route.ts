@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
         const search = searchParams.get("search");
         const from = searchParams.get("from");
         const to = searchParams.get("to");
+        const partyName = searchParams.get("partyName");
 
         // Debug: log incoming params to help diagnose intermittent filtering issues
         console.debug('[ledger GET] params:', { page, limit, type, categoryId, search, from, to });
@@ -215,6 +216,16 @@ export async function GET(req: NextRequest) {
             const db = b.date instanceof Date ? b.date : (b.date?.toDate ? b.date.toDate() : new Date(b.date));
             return db.getTime() - da.getTime();
         });
+
+        // Filter by partyName if provided (Strict match in note)
+        if (partyName) {
+            const partyLower = partyName.toLowerCase();
+            entries = entries.filter(entry => {
+                const note = (entry.note || "").toLowerCase();
+                return note.includes(`supplier: ${partyLower}`) ||
+                    note.includes(`customer: ${partyLower}`);
+            });
+        }
 
         // Filter by search term if provided (case-insensitive)
         if (search) {
