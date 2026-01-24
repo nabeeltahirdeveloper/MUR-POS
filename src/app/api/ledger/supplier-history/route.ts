@@ -11,6 +11,7 @@ const parseTransactionNote = (note: string) => {
     let advance: number | undefined = undefined;
     let remaining: number | undefined = undefined;
     let itemName = "";
+    let quantity = "";
 
     lines.forEach(line => {
         if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
@@ -21,11 +22,14 @@ const parseTransactionNote = (note: string) => {
             const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (.*?)\)/);
             if (match) {
                 itemName = match[2];
+                // Extract only quantity part before "@" if present
+                const fullQty = match[3] || "";
+                quantity = fullQty.split('@')[0].trim();
             }
         }
     });
 
-    return { orderNumber, paymentType, advance, remaining, itemName };
+    return { orderNumber, paymentType, advance, remaining, itemName, quantity };
 };
 
 export async function GET(req: NextRequest) {
@@ -109,10 +113,15 @@ export async function GET(req: NextRequest) {
                 const firstEntry = order.entries[0];
                 const parsed = parseTransactionNote(firstEntry.note || "");
 
-                // Collect all item names
+                // Collect all item names and quantities
                 const itemNames = order.entries
                     .map(e => parseTransactionNote(e.note || "").itemName)
                     .filter(name => name && name.trim())
+                    .join(", ");
+
+                const itemQuantities = order.entries
+                    .map(e => parseTransactionNote(e.note || "").quantity)
+                    .filter(qty => qty && qty.trim())
                     .join(", ");
 
                 return {
@@ -125,10 +134,11 @@ export async function GET(req: NextRequest) {
                     advance: parsed.advance,
                     remaining: parsed.remaining,
                     itemName: itemNames || (order.itemCount > 1 ? `${order.itemCount} items` : ""),
+                    quantity: itemQuantities || "-",
                     itemCount: order.itemCount,
-                    status: firstEntry.status || 'open',
                 };
-            });
+            })
+            .filter(tx => tx.itemName && tx.itemName.trim() !== "");
 
         return NextResponse.json({
             supplierName,

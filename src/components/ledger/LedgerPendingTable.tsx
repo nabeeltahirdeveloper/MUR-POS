@@ -103,7 +103,7 @@ export default function LedgerPendingTable({
         return { orderNumber, title, itemName, advance, remaining };
     };
 
-    // Group data by Order Number or (Date + Customer)
+    // Group data by Customer/Supplier Name to show only the latest remaining balance per person
     const groupedData = React.useMemo(() => {
         const groups: Record<string, {
             ids: (string | number)[];
@@ -117,12 +117,13 @@ export default function LedgerPendingTable({
             rawNote: string;
         }> = {};
 
-        data.forEach(entry => {
+        // Sort data by date descending to ensure we start with the latest
+        const sortedData = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        sortedData.forEach(entry => {
             const details = parsePendingDetails(entry.note);
-            // Unique Key: OrderNumber if exists, else Date+Customer
-            const key = details.orderNumber !== "-"
-                ? `ORD-${details.orderNumber}`
-                : `DATE-${entry.date.split('T')[0]}-CUS-${details.title}`;
+            // Unique Key: Person Name (title)
+            const key = details.title !== "-" ? details.title : `UNKNOWN-${entry.id}`;
 
             if (!groups[key]) {
                 groups[key] = {
@@ -132,7 +133,6 @@ export default function LedgerPendingTable({
                     customerName: details.title,
                     items: [],
                     totalBill: 0,
-                    // One-time capture of bill-level fields (Advance/Remaining are pre-calculated per bill in the note)
                     advance: details.advance,
                     remaining: details.remaining,
                     rawNote: entry.note || ""
@@ -140,16 +140,26 @@ export default function LedgerPendingTable({
             }
 
             groups[key].ids.push(entry.id);
-            groups[key].items.push(details.itemName);
+            if (details.itemName !== "-") {
+                groups[key].items.push(details.itemName);
+            }
             groups[key].totalBill += Number(entry.amount);
-            // Note: We don't sum remaining/advance because the note repeats the *bill total* remaining/advance for every item.
+
+            // If entry is newer than current group date, update meta-info (like Remaining)
+            if (new Date(entry.date).getTime() > new Date(groups[key].date).getTime()) {
+                groups[key].date = entry.date;
+                groups[key].orderNumber = details.orderNumber;
+                groups[key].advance = details.advance;
+                groups[key].remaining = details.remaining;
+                groups[key].rawNote = entry.note || "";
+            }
         });
 
         // Convert to array
-        return Object.values(groups).map((g, index) => ({
+        return Object.values(groups).map((g) => ({
             ...g,
-            id: g.ids[0], // Use first ID as row key
-            itemSummary: g.items.join(", ")
+            id: g.ids[0], // Use first ID as row key for Table
+            itemSummary: Array.from(new Set(g.items)).join(", ") // Deduplicate item names
         }));
     }, [data]);
 

@@ -83,7 +83,7 @@ export default function LedgerCustomerSummary({ onViewEntries, filters }: Ledger
             key: "balance",
             header: "Net Balance",
             render: (value: any) => (
-                <span className={`font-bold font-mono ${Number(value) >= 0 ? "text-green-700" : "text-red-700"}`}>
+                <span className={`font-bold font-mono ${Number(value) > 0 ? "text-red-700" : "text-green-700"}`}>
                     Rs. {Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
             ),

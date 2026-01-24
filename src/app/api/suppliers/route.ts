@@ -29,8 +29,17 @@ export async function GET(request: NextRequest) {
         const skip = (page - 1) * limit;
         const paginatedSuppliers = suppliers.slice(skip, skip + limit);
 
+        // Fetch balances for the paginated suppliers
+        const { getSupplierBalance } = await import('@/lib/ledger-balance');
+        const suppliersWithBalances = await Promise.all(
+            paginatedSuppliers.map(async (s) => {
+                const balance = await getSupplierBalance(s.name);
+                return { ...s, balance };
+            })
+        );
+
         return NextResponse.json({
-            suppliers: paginatedSuppliers,
+            suppliers: suppliersWithBalances,
             pagination: {
                 total,
                 pages: Math.ceil(total / limit),

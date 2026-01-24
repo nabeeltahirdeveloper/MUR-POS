@@ -82,6 +82,15 @@ export default function SuppliersPage() {
                 ),
             },
             {
+                key: "balance",
+                header: "Net Balance",
+                render: (value: any) => (
+                    <span className={`font-mono font-bold ${Number(value) > 0 ? "text-red-600" : "text-green-600"}`}>
+                        Rs. {Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
+                ),
+            },
+            {
                 key: "actions",
                 header: "Actions",
                 render: (_: any, row: Supplier) => (
