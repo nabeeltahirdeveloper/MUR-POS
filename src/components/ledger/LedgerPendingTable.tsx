@@ -88,6 +88,9 @@ export default function LedgerPendingTable({
                     itemName = trimmed.replace("Item: ", "").trim();
                 }
             }
+            else if (trimmed.startsWith("Details: ")) {
+                itemName = trimmed.replace("Details: ", "").trim();
+            }
 
             // Robust regex for Advance/Payment and Remaining
             const advMatch = trimmed.match(/^(Advance|Payment|Adjustment):\s*([\d\.]+)/i);

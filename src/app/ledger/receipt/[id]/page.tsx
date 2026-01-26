@@ -65,6 +65,9 @@ const parseTransactionNote = (note: string) => {
                 itemName = line.replace("Item: ", "").trim();
             }
         }
+        else if (line.startsWith("Details: ")) {
+            itemName = line.replace("Details: ", "").trim();
+        }
     });
 
     return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining };
