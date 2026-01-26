@@ -23,14 +23,24 @@ const parseTransactionNote = (note: string) => {
     let remaining = undefined;
 
     lines.forEach(line => {
-        if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
-        else if (line.startsWith("Customer: ")) partyName = line.replace("Customer: ", "").trim();
-        else if (line.startsWith("Supplier: ")) partyName = line.replace("Supplier: ", "").trim();
-        else if (line.startsWith("Phone: ")) customerPhone = line.replace("Phone: ", "").trim();
-        else if (line.startsWith("Address: ")) customerAddress = line.replace("Address: ", "").trim();
-        else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
-        else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
-        else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
+        const trimmed = line.trim();
+        if (trimmed.startsWith("Order #")) orderNumber = trimmed.replace("Order #", "").trim();
+        else if (trimmed.startsWith("Customer: ")) partyName = trimmed.replace("Customer: ", "").trim();
+        else if (trimmed.startsWith("Supplier: ")) partyName = trimmed.replace("Supplier: ", "").trim();
+        else if (trimmed.startsWith("Phone: ")) customerPhone = trimmed.replace("Phone: ", "").trim();
+        else if (trimmed.startsWith("Address: ")) customerAddress = trimmed.replace("Address: ", "").trim();
+
+        const amountMatch = trimmed.match(/^(Advance|Payment|Adjustment):\s*([\d\.]+(?!\s*[a-zA-Z]))/i);
+        if (amountMatch) {
+            advance = Number(amountMatch[2]);
+        }
+
+        const methodMatch = trimmed.match(/^Payment:\s*([a-zA-Z\s]+)$/i);
+        if (methodMatch) {
+            paymentType = methodMatch[1].trim();
+        }
+
+        if (trimmed.startsWith("Remaining: ")) remaining = Number(trimmed.replace("Remaining: ", "").trim());
         else if (line.startsWith("Item: ")) {
             // Robust Regex matching LedgerTable logic (updated for units)
             const match = line.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+).*?@\s*([^)]*)\)/);

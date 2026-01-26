@@ -242,45 +242,19 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         )}
                     </div>
 
-                    {/* Items Table */}
-                    <div className="border-t-2 border-gray-800 pt-2">
-                        <div className="grid grid-cols-[1fr_3rem_4.5rem_4.5rem] gap-1 text-sm font-bold text-gray-900">
-                            <div>ITEM</div>
-                            <div className="text-right pr-1">QTY</div>
-                            <div className="text-right pr-1">PRICE</div>
-                            <div className="text-right pr-1">AMT</div>
-                        </div>
-                        <div className="mt-1 border-t-2 border-gray-600" />
-                        <div className="mt-2 space-y-1 text-base font-semibold text-gray-900">
-                            {data.items.map((it, idx) => (
-                                <div key={idx} className="grid grid-cols-[1fr_3rem_4.5rem_4.5rem] gap-1">
-                                    <div className="break-words relative leading-tight">
-                                        <span className="align-middle">
-                                            {it.name}
-                                            {it.itemType?.toLowerCase().includes('stock') ? ' [S]' :
-                                                it.itemType?.toLowerCase().includes('custom') ? ' [C]' : ''}
-                                        </span>
-                                    </div>
-                                    <div className="text-right pr-1">{it.quantity}</div>
-                                    <div className="text-right pr-1">{fmt(it.unitPrice)}</div>
-                                    <div className="text-right pr-1">{fmt(it.amount)}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                    {/* Items Table Removed per user request */}
 
                     {/* Totals */}
                     <div className="mt-3 border-t-2 border-gray-800 pt-2 text-base">
-                        <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
-                            <span>TOTAL</span>
-                            <span>{currency.code} {fmt(data.total)}</span>
-                        </div>
-
-                        {((data.remaining !== undefined && data.remaining > 0) || (data.advance !== undefined && (data.total - data.advance) > 0)) && (
+                        {((data.remaining !== undefined && data.remaining > 0) || (data.advance !== undefined && (data.total - data.advance) > 0)) ? (
                             <>
+                                <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
+                                    <span>TOTAL BILL</span>
+                                    <span>{currency.code} {fmt((data.advance || 0) + (data.remaining || (data.total - (data.advance || 0))))}</span>
+                                </div>
                                 <div className="border-t border-dashed border-gray-400 mt-1 pt-1 mb-1"></div>
                                 <div className="flex justify-between font-semibold text-sm text-gray-800 mt-1">
-                                    <span>Advance</span>
+                                    <span>Paid Amount</span>
                                     <span>{currency.code} {fmt(data.advance || 0)}</span>
                                 </div>
                                 <div className="flex justify-between font-semibold text-sm text-gray-800 mt-1 mb-2">
@@ -288,6 +262,11 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                                     <span>{currency.code} {fmt(data.remaining || (data.total - (data.advance || 0)))}</span>
                                 </div>
                             </>
+                        ) : (
+                            <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
+                                <span>TOTAL</span>
+                                <span>{currency.code} {fmt(data.total)}</span>
+                            </div>
                         )}
                     </div>
 
