@@ -248,10 +248,37 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         )}
                     </div>
 
-                    {/* Items Table Removed per user request */}
+                    {/* Items Table - Only for CASH bills */}
+                    {data.status?.toUpperCase() === 'CASH' && (
+                        <div className="mt-3 border-t-2 border-gray-800 pt-2">
+                            <table className="w-full text-base font-semibold text-gray-900">
+                                <thead>
+                                    <tr className="border-b border-gray-400 text-sm">
+                                        <th className="text-left py-1 w-[40%]">Item</th>
+                                        <th className="text-right py-1">Price</th>
+                                        <th className="text-center py-1">Qty</th>
+                                        <th className="text-right py-1">Amt</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.items.map((item, idx) => (
+                                        <tr key={idx} className="border-b border-dashed border-gray-300">
+                                            <td className="py-1 text-left leading-tight pr-1">
+                                                {item.name}
+                                                {item.itemType && item.itemType !== 'Stock' && <span className="text-xs text-gray-600 block">({item.itemType})</span>}
+                                            </td>
+                                            <td className="py-1 text-right whitespace-nowrap">{fmt(item.unitPrice)}</td>
+                                            <td className="py-1 text-center">{item.quantity}</td>
+                                            <td className="py-1 text-right whitespace-nowrap">{fmt(item.amount)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
 
-                    {/* Transaction History Section */}
-                    {data.history && data.history.length > 0 && (
+                    {/* Transaction History Section - Hide for CASH bills */}
+                    {data.status?.toUpperCase() !== 'CASH' && data.history && data.history.length > 0 && (
                         <div className="mt-4 border-t-2 border-gray-800 pt-2">
                             <div className="text-sm font-bold text-gray-900 mb-2 uppercase text-center border-b border-gray-400 pb-1">Transaction History</div>
                             <div className="space-y-1.5 text-xs font-semibold text-gray-900">

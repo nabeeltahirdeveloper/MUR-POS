@@ -1233,19 +1233,17 @@ export default function LedgerEntryForm({
                                 )}
                             </div>
 
-                            {type !== 'debit' && (
-                                <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Item Type</label>
-                                    <select
-                                        value={itemType}
-                                        onChange={(e) => setItemType(e.target.value as "Stock" | "Customize")}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-gray-900"
-                                    >
-                                        <option value="Stock">Stock</option>
-                                        <option value="Customize">Customize</option>
-                                    </select>
-                                </div>
-                            )}
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Item Type</label>
+                                <select
+                                    value={itemType}
+                                    onChange={(e) => setItemType(e.target.value as "Stock" | "Customize")}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-gray-900"
+                                >
+                                    <option value="Stock">Stock</option>
+                                    <option value="Customize">Customize</option>
+                                </select>
+                            </div>
 
                             {/* Date */}
                             <div className={type === 'debit' ? "md:col-span-4" : "md:col-span-3"}>
@@ -1274,191 +1272,185 @@ export default function LedgerEntryForm({
                         {/* Removed background, added equal spacing */}
                         <div className="pt-2"> {/* Optional spacing wrapper */}
                             <div className="flex flex-col md:flex-row gap-4 items-end">
-                                {type !== 'debit' && (
-                                    <>
-                                        {/* Item Search */}
-                                        <div className="w-full md:flex-1 relative" ref={searchRef}>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Item Search</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="text"
-                                                    value={searchTerm}
-                                                    disabled={isEdit}
-                                                    onChange={(e) => {
-                                                        setSearchTerm(e.target.value);
-                                                        if (selectedItem && e.target.value !== selectedItem.name) setSelectedItem(null);
-                                                    }}
-                                                    onFocus={() => { if (searchTerm.length >= 1) setShowResults(true); }}
-                                                    placeholder={isEdit ? "Item editing disabled" : "Scan or Type Item..."}
-                                                    className={`w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900 ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                />
-                                                {isSearching && (
-                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                        <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {/* Dropdown Results */}
-                                            {showResults && (
-                                                <div className="absolute z-30 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto ring-1 ring-black/5">
-                                                    {isSearching ? <div className="p-4 text-center text-sm text-gray-500">Searching...</div> :
-                                                        searchResults.length > 0 ? (
-                                                            <ul>{searchResults.map(item => (
-                                                                <li key={item.id} onClick={() => handleSelectItem(item)} className="px-4 py-3 hover:bg-primary/10 cursor-pointer text-sm flex justify-between items-center group transition-colors border-b border-gray-50 last:border-0">
-                                                                    <span className="font-medium text-gray-700 group-hover:text-primary">{item.name}</span>
-                                                                    <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded-full text-gray-500 group-hover:bg-primary/20 group-hover:text-primary-dark transition-colors">{item.category?.name}</span>
-                                                                </li>
-                                                            ))}</ul>
-                                                        ) : <div className="p-4 text-center text-sm text-gray-500">No items found</div>}
-                                                </div>
-                                            )}
-
-                                            {selectedItem && (
-                                                <div className="absolute top-full left-0 mt-1 flex gap-2 z-20">
-                                                    {selectedItem.saleUnit && (
-                                                        <div className="flex items-center gap-1">
-                                                            <select
-                                                                value={selectedItem.saleUnit.id || (
-                                                                    // Fallback: try to find ID by name if ID missing, or just rely on name match if we must?
-                                                                    units.find(u => u.name === selectedItem.saleUnit?.name)?.id || ""
-                                                                )}
-                                                                onChange={(e) => {
-                                                                    const newUnitId = e.target.value;
-                                                                    const newUnit = units.find(u => u.id === newUnitId);
-                                                                    if (newUnit) {
-                                                                        setSelectedItem({
-                                                                            ...selectedItem,
-                                                                            saleUnit: {
-                                                                                name: newUnit.name,
-                                                                                symbol: newUnit.symbol,
-                                                                                id: newUnit.id // Ensure we keep ID if possible
-                                                                            } as any // Cast to satisfy type if needed, or update Item Type
-                                                                        });
-                                                                    }
-                                                                }}
-                                                                className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-1 py-0.5 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
-                                                            >
-                                                                {/* Ensure current option exists even if not in list yet? Usually it should be. */}
-                                                                {units.map(u => (
-                                                                    <option key={u.id} value={u.id}>
-                                                                        Sale: {u.symbol || u.name}
-                                                                    </option>
-                                                                ))}
-                                                                {/* Fallback if list empty or unit not found? */}
-                                                                {(!units.length) && <option>Sale: {selectedItem.saleUnit.name}</option>}
-                                                            </select>
-                                                        </div>
-                                                    )}
-                                                    {selectedItem.baseUnit && (
-                                                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded shadow-sm">
-                                                            Base: {selectedItem.baseUnit.name}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                <>
+                                    {/* Item Search */}
+                                    <div className="w-full md:flex-1 relative" ref={searchRef}>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Item Search</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={searchTerm}
+                                                disabled={isEdit}
+                                                onChange={(e) => {
+                                                    setSearchTerm(e.target.value);
+                                                    if (selectedItem && e.target.value !== selectedItem.name) setSelectedItem(null);
+                                                }}
+                                                onFocus={() => { if (searchTerm.length >= 1) setShowResults(true); }}
+                                                placeholder={isEdit ? "Item editing disabled" : "Scan or Type Item..."}
+                                                className={`w-full px-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm text-gray-900 ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            />
+                                            {isSearching && (
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                </span>
                                             )}
                                         </div>
-
-                                        {/* Payment Type */}
-                                        <div className="w-full md:w-32">
-                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Payment</label>
-                                            <select
-                                                value={paymentType}
-                                                onChange={(e) => setPaymentType(e.target.value as "Cash" | "Online")}
-                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-gray-900"
-                                            >
-                                                <option value="Cash">Cash</option>
-                                                <option value="Online">Online</option>
-                                            </select>
-                                        </div>
-
-                                        {/* Rate (Unit Price) - Visible for Customize or when needed */}
-                                        {(itemType === 'Customize') && (
-                                            <div className="w-full md:w-32">
-                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Rate</label>
-                                                <input
-                                                    type="number"
-                                                    value={unitPrice || ""}
-                                                    onChange={(e) => {
-                                                        const val = Number(e.target.value);
-                                                        setUnitPrice(val);
-                                                        // Auto-calculate Total Amount
-                                                        const qty = Number(quantity) || 0;
-                                                        setLineAmount((val * qty).toString());
-                                                    }}
-                                                    placeholder="0"
-                                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
-                                                />
+                                        {/* Dropdown Results */}
+                                        {showResults && (
+                                            <div className="absolute z-30 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto ring-1 ring-black/5">
+                                                {isSearching ? <div className="p-4 text-center text-sm text-gray-500">Searching...</div> :
+                                                    searchResults.length > 0 ? (
+                                                        <ul>{searchResults.map(item => (
+                                                            <li key={item.id} onClick={() => handleSelectItem(item)} className="px-4 py-3 hover:bg-primary/10 cursor-pointer text-sm flex justify-between items-center group transition-colors border-b border-gray-50 last:border-0">
+                                                                <span className="font-medium text-gray-700 group-hover:text-primary">{item.name}</span>
+                                                                <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded-full text-gray-500 group-hover:bg-primary/20 group-hover:text-primary-dark transition-colors">{item.category?.name}</span>
+                                                            </li>
+                                                        ))}</ul>
+                                                    ) : <div className="p-4 text-center text-sm text-gray-500">No items found</div>}
                                             </div>
                                         )}
-                                    </>
-                                )}
 
-                                {type !== 'debit' && (
-                                    <div className="w-full md:w-32">
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
-                                        <input
-                                            type="number"
-                                            value={quantity}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setQuantity(val);
-                                                // Auto-calculate Total Amount if unit price exists
-                                                if (unitPrice) {
-                                                    setLineAmount((unitPrice * (Number(val) || 0)).toString());
-                                                }
-                                            }}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
-                                        />
-                                    </div>
-                                )}
-
-                                {/* Amount */}
-                                {type !== 'debit' && (
-                                    <div className="w-full md:w-56">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label
-                                                onClick={handleAmountLabelClick}
-                                                className="text-xs font-bold text-gray-500 uppercase cursor-pointer hover:text-primary transition-colors select-none"
-                                            >
-                                                Amount
-                                            </label>
-
-                                            {/* Hidden Price Reveal UI */}
-                                            <div className="h-4 flex items-center justify-end">
-                                                {showPinInput && (
-                                                    <input
-                                                        autoFocus
-                                                        type="password"
-                                                        value={pinValue}
-                                                        onChange={(e) => setPinValue(e.target.value)}
-                                                        onKeyDown={handlePinSubmit}
-                                                        placeholder="PIN"
-                                                        className="w-16 px-1 py-0.5 text-xs border border-primary/50 rounded focus:outline-none text-center bg-white"
-                                                    />
+                                        {selectedItem && (
+                                            <div className="absolute top-full left-0 mt-1 flex gap-2 z-20">
+                                                {selectedItem.saleUnit && (
+                                                    <div className="flex items-center gap-1">
+                                                        <select
+                                                            value={selectedItem.saleUnit.id || (
+                                                                // Fallback: try to find ID by name if ID missing, or just rely on name match if we must?
+                                                                units.find(u => u.name === selectedItem.saleUnit?.name)?.id || ""
+                                                            )}
+                                                            onChange={(e) => {
+                                                                const newUnitId = e.target.value;
+                                                                const newUnit = units.find(u => u.id === newUnitId);
+                                                                if (newUnit) {
+                                                                    setSelectedItem({
+                                                                        ...selectedItem,
+                                                                        saleUnit: {
+                                                                            name: newUnit.name,
+                                                                            symbol: newUnit.symbol,
+                                                                            id: newUnit.id // Ensure we keep ID if possible
+                                                                        } as any // Cast to satisfy type if needed, or update Item Type
+                                                                    });
+                                                                }
+                                                            }}
+                                                            className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-1 py-0.5 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                                                        >
+                                                            {/* Ensure current option exists even if not in list yet? Usually it should be. */}
+                                                            {units.map(u => (
+                                                                <option key={u.id} value={u.id}>
+                                                                    {type === 'credit' ? 'Sale' : 'Purchase'}: {u.symbol || u.name}
+                                                                </option>
+                                                            ))}
+                                                            {/* Fallback if list empty or unit not found? */}
+                                                            {(!units.length) && <option>{type === 'credit' ? 'Sale' : 'Purchase'}: {selectedItem.saleUnit.name}</option>}
+                                                        </select>
+                                                    </div>
                                                 )}
-                                                {isPriceRevealed && selectedItem && (
-                                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 animate-in fade-in">
-                                                        Buy: {selectedItem.secondPurchasePrice || selectedItem.firstSalePrice || 0}
+                                                {selectedItem.baseUnit && (
+                                                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded shadow-sm">
+                                                        Base: {selectedItem.baseUnit.name}
                                                     </span>
                                                 )}
                                             </div>
-                                        </div>
-                                        <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rs.</span>
+                                        )}
+                                    </div>
+
+                                    {/* Payment Type */}
+                                    <div className="w-full md:w-32">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Payment</label>
+                                        <select
+                                            value={paymentType}
+                                            onChange={(e) => setPaymentType(e.target.value as "Cash" | "Online")}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-gray-900"
+                                        >
+                                            <option value="Cash">Cash</option>
+                                            <option value="Online">Online</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Rate (Unit Price) - Visible for Customize or when needed */}
+                                    {(itemType === 'Customize' || (type === 'debit' && selectedItem)) && (
+                                        <div className="w-full md:w-32">
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Rate</label>
                                             <input
                                                 type="number"
-                                                value={lineAmount}
-                                                disabled={isEdit}
-                                                onChange={(e) => setLineAmount(e.target.value)}
-                                                className={`w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-bold text-lg text-gray-800 ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                placeholder="0.00"
+                                                value={unitPrice || ""}
+                                                onChange={(e) => {
+                                                    const val = Number(e.target.value);
+                                                    setUnitPrice(val);
+                                                    // Auto-calculate Total Amount
+                                                    const qty = Number(quantity) || 0;
+                                                    setLineAmount((val * qty).toString());
+                                                }}
+                                                placeholder="0"
+                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
                                             />
                                         </div>
+                                    )}
+                                </>
+
+                                <div className="w-full md:w-32">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
+                                    <input
+                                        type="number"
+                                        value={quantity}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setQuantity(val);
+                                            // Auto-calculate Total Amount if unit price exists
+                                            if (unitPrice) {
+                                                setLineAmount((unitPrice * (Number(val) || 0)).toString());
+                                            }
+                                        }}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
+                                    />
+                                </div>
+
+                                {/* Amount */}
+                                <div className="w-full md:w-56">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label
+                                            onClick={handleAmountLabelClick}
+                                            className="text-xs font-bold text-gray-500 uppercase cursor-pointer hover:text-primary transition-colors select-none"
+                                        >
+                                            Amount
+                                        </label>
+
+                                        {/* Hidden Price Reveal UI */}
+                                        <div className="h-4 flex items-center justify-end">
+                                            {showPinInput && (
+                                                <input
+                                                    autoFocus
+                                                    type="password"
+                                                    value={pinValue}
+                                                    onChange={(e) => setPinValue(e.target.value)}
+                                                    onKeyDown={handlePinSubmit}
+                                                    placeholder="PIN"
+                                                    className="w-16 px-1 py-0.5 text-xs border border-primary/50 rounded focus:outline-none text-center bg-white"
+                                                />
+                                            )}
+                                            {isPriceRevealed && selectedItem && (
+                                                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 animate-in fade-in">
+                                                    Buy: {selectedItem.secondPurchasePrice || selectedItem.firstSalePrice || 0}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rs.</span>
+                                        <input
+                                            type="number"
+                                            value={lineAmount}
+                                            disabled={isEdit}
+                                            onChange={(e) => setLineAmount(e.target.value)}
+                                            className={`w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-bold text-lg text-gray-800 ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                </div>
 
                                 {type !== 'debit' && (
                                     <div className="w-full md:w-48">

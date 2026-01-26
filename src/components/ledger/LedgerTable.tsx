@@ -97,6 +97,10 @@ export default function LedgerTable({
                     itemName = trimmed.replace("Item: ", "").trim();
                 }
             }
+            else if (trimmed.startsWith("Details: ")) {
+                isStructured = true;
+                itemName = trimmed.replace("Details: ", "").trim();
+            }
 
             // Advance/Remaining labels
             const advMatch = trimmed.match(/^(Advance|Payment|Adjustment):\s*([\d\.]+)/i);
