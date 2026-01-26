@@ -27,6 +27,12 @@ export type ReceiptData = {
     notes?: string;
     terms?: string;
     orderNumber?: string | number;
+    history?: {
+        date: string | Date;
+        type: string;
+        amount: number;
+        note?: string;
+    }[];
 };
 
 type ThermalReceiptProps = {
@@ -243,6 +249,28 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                     </div>
 
                     {/* Items Table Removed per user request */}
+
+                    {/* Transaction History Section */}
+                    {data.history && data.history.length > 0 && (
+                        <div className="mt-4 border-t-2 border-gray-800 pt-2">
+                            <div className="text-sm font-bold text-gray-900 mb-2 uppercase text-center border-b border-gray-400 pb-1">Transaction History</div>
+                            <div className="space-y-1.5 text-xs font-semibold text-gray-900">
+                                {data.history.map((h, idx) => (
+                                    <div key={idx} className="flex justify-between items-center bg-gray-50/30 p-1 rounded">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-gray-600">{new Date(h.date).toLocaleDateString()}</span>
+                                            <span className="leading-tight truncate max-w-[120px]">{h.note?.split('\n')[0] || (h.type === 'credit' ? 'Cash-In' : 'Cash-Out')}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className={h.type === 'credit' ? 'text-emerald-700' : 'text-rose-700'}>
+                                                {h.type === 'credit' ? '+' : '-'}{fmt(h.amount)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Totals */}
                     <div className="mt-3 border-t-2 border-gray-800 pt-2 text-base">
