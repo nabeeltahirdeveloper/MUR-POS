@@ -337,15 +337,7 @@ export default function LedgerTable({
                 const { title } = parseTransactionNote(row.note);
                 return (
                     <div className="flex gap-2">
-                        <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => fetchHistory(title)}
-                            disabled={!title || title === "-"}
-                            title="View History"
-                        >
-                            History
-                        </Button>
+
                         <Button
                             size="sm"
                             variant="secondary"
