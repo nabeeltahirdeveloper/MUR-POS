@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = 'force-dynamic';
 import { auth } from "@/auth";
 import { db, Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById } from "@/lib/firestore-helpers";
@@ -104,11 +106,50 @@ export async function GET(req: NextRequest) {
             // Skip legacy utility entries to avoid double counting with virtual entries
             if (entry.note && entry.note.startsWith("Utility payment:")) continue;
 
-            const amount = Number(entry.amount);
+            const totalAmount = Number(entry.amount);
+
+            // Parse actual cash moved from note
+            let cashMoved = 0;
+            let hasAdvanceOrPayment = false;
+            let hasRemainingLabel = false;
+            let remainingValueFromNote = 0;
+
+            if (entry.note) {
+                const lines = entry.note.split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+
+                    // Robust regex check
+                    const advMatch = trimmed.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+                    if (advMatch) {
+                        cashMoved = Number(advMatch[2]) || 0;
+                        hasAdvanceOrPayment = true;
+                        break;
+                    }
+
+                    const remMatch = trimmed.match(/Remaining:\s*(\d+(\.\d+)?)/i);
+                    if (remMatch) {
+                        hasRemainingLabel = true;
+                        remainingValueFromNote = Number(remMatch[1]) || 0;
+                    }
+                }
+            }
+
+            // Fallback
+            if (!hasAdvanceOrPayment) {
+                if (!hasRemainingLabel || remainingValueFromNote === 0) {
+                    cashMoved = totalAmount;
+                } else {
+                    cashMoved = 0;
+                }
+            }
+
+            const currentCash = cashMoved;
+
             if (entry.type === "credit") {
-                totalCredit += amount;
+                totalCredit += currentCash;
             } else {
-                totalDebit += amount;
+                totalDebit += currentCash;
             }
 
             const catName = entry.category?.name || "Uncategorized";
@@ -117,9 +158,9 @@ export async function GET(req: NextRequest) {
             }
 
             if (entry.type === "credit") {
-                categoryBreakdown[catName].credit += amount;
+                categoryBreakdown[catName].credit += currentCash;
             } else {
-                categoryBreakdown[catName].debit += amount;
+                categoryBreakdown[catName].debit += currentCash;
             }
         }
 

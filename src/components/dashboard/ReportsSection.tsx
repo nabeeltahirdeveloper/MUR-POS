@@ -56,7 +56,6 @@ export default function ReportsSection() {
                 // Calculate summary
                 let credit = 0;
                 let debit = 0;
-                const processedOrders = new Set<string>();
 
                 // Calculate category breakdown
                 const breakdownMap: Record<string, {
@@ -64,34 +63,47 @@ export default function ReportsSection() {
                 }> = {};
 
                 data.forEach((entry: any) => {
-                    let entryCredit = entry.type === 'credit' ? entry.amount : 0;
-                    let entryDebit = entry.type === 'debit' ? entry.amount : 0;
+                    const totalAmount = Number(entry.amount);
 
-                    // Parse Remaining Amount
-                    let remaining = 0;
+                    // Parse actual cash moved from note
+                    let cashMoved = 0;
+                    let hasAdvanceOrPayment = false;
+                    let hasRemaining = false;
+                    let remainingValue = 0;
+
                     if (entry.note) {
-                        const match = entry.note.match(/Remaining: (\d+)/);
-                        if (match) remaining = Number(match[1]);
-                    }
+                        const lines = entry.note.split('\n');
+                        for (const line of lines) {
+                            const trimmed = line.trim();
 
-                    // Apply Virtual Adjustment for Pending Amounts
-                    if (remaining > 0) {
-                        // Generate key for deduplication (simple version for client-side)
-                        const orderMatch = entry.note?.match(/Order #(\d+)/);
-                        const orderKey = orderMatch ? `ORD-${orderMatch[1]}` : `DATE-${entry.date}-AMT-${entry.amount}`;
+                            // Robust regex check
+                            const advMatch = trimmed.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+                            if (advMatch) {
+                                cashMoved = Number(advMatch[2]) || 0;
+                                hasAdvanceOrPayment = true;
+                                break;
+                            }
 
-                        // Only apply if we haven't processed this remaining amount (fairly naive dedup for now)
-                        if (!processedOrders.has(orderKey)) {
-                            processedOrders.add(orderKey);
-                            if (entry.type === 'credit') {
-                                // Sale with Pending: Treat as Virtual Debit to reduce Net
-                                entryDebit += remaining;
-                            } else {
-                                // Purchase with Pending: Treat as Virtual Credit to reduce Net Cost
-                                entryCredit += remaining;
+                            const remMatch = trimmed.match(/Remaining:\s*(\d+(\.\d+)?)/i);
+                            if (remMatch) {
+                                hasRemaining = true;
+                                remainingValue = Number(remMatch[1]) || 0;
                             }
                         }
                     }
+
+                    // Fallback
+                    if (!hasAdvanceOrPayment) {
+                        if (!hasRemaining || remainingValue === 0) {
+                            cashMoved = totalAmount;
+                        } else {
+                            cashMoved = 0;
+                        }
+                    }
+
+                    // Count only actual cash moved
+                    let entryCredit = entry.type === 'credit' ? cashMoved : 0;
+                    let entryDebit = entry.type === 'debit' ? cashMoved : 0;
 
                     credit += entryCredit;
                     debit += entryDebit;
@@ -177,8 +189,10 @@ export default function ReportsSection() {
                         <p className="text-2xl font-black text-red-700 mt-1">Rs. {summary.debit.toLocaleString()}</p>
                     </div>
                     <div className={`${summary.net >= 0 ? 'bg-primary/10 border-primary/20' : 'bg-red-50 border-red-100'} p-4 rounded-xl border`}>
-                        <p className={`text-xs font-bold ${summary.net >= 0 ? 'text-primary' : 'text-red-600'} uppercase tracking-widest`}>Net Balance</p>
-                        <p className={`text-2xl font-black ${summary.net >= 0 ? 'text-primary-dark' : 'text-red-700'} mt-1`}>Rs. {summary.net.toLocaleString()}</p>
+                        <p className={`text-xs font-bold ${summary.net >= 0 ? 'text-primary' : 'text-red-600'} uppercase tracking-widest`}>
+                            Net Balance {summary.net >= 0 ? '(Profit)' : '(Loss)'}
+                        </p>
+                        <p className={`text-2xl font-black ${summary.net >= 0 ? 'text-primary-dark' : 'text-red-700'} mt-1`}>Rs. {Math.abs(summary.net).toLocaleString()}</p>
                     </div>
                 </div>
 

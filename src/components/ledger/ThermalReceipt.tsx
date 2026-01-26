@@ -276,7 +276,7 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                             <span>{currency.code} {fmt(data.total)}</span>
                         </div>
 
-                        {(data.advance !== undefined || data.remaining !== undefined) && (
+                        {((data.remaining !== undefined && data.remaining > 0) || (data.advance !== undefined && (data.total - data.advance) > 0)) && (
                             <>
                                 <div className="border-t border-dashed border-gray-400 mt-1 pt-1 mb-1"></div>
                                 <div className="flex justify-between font-semibold text-sm text-gray-800 mt-1">
