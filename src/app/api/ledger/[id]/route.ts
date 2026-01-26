@@ -287,7 +287,40 @@ export async function DELETE(
         }
 
         const { id } = await params;
-        const { deleteDoc } = await import('@/lib/firestore-helpers');
+        const { deleteDoc, getDocById, queryDocs, createDoc } = await import('@/lib/firestore-helpers');
+
+        // --- Stock Reconciliation (On Delete) ---
+        // Before deleting, find and revert any stock logs created for this entry
+        try {
+            const currentEntry = await getDocById<FirestoreLedger>('ledger', id);
+            if (currentEntry) {
+                // Find all logs related to this entry
+                const logs = await queryDocs<any>('stock_logs', [
+                    { field: 'description', operator: '>=', value: `Auto-generated from Ledger` },
+                ]);
+
+                // Filter strictly for this specific ID
+                const relevantLogs = logs.filter(l => l.description.includes(`#${id}`));
+
+                for (const log of relevantLogs) {
+                    // Revert the effect: if log was 'in', we 'out'
+                    const revertType = log.type === 'in' ? 'out' : 'in';
+                    await createDoc('stock_logs', {
+                        itemId: log.itemId,
+                        type: revertType,
+                        quantityBaseUnit: log.quantityBaseUnit,
+                        description: `Reversion of ${log.type} for DELETED Ledger #${id}`,
+                        createdAt: new Date()
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("Failed to revert stock for deleted ledger entry", err);
+            // We continue with deletion even if stock reversion fails to avoid stuck records,
+            // but the error is logged.
+        }
+        // ----------------------------------------
+
         await deleteDoc('ledger', id);
 
         return NextResponse.json({ message: "Deleted successfully" });

@@ -95,7 +95,28 @@ function LedgerPageContent() {
 
     const handleDelete = async (id: number | string) => {
         if (!await showConfirm("Delete this entry?", { variant: "danger", title: "Delete Transaction" })) return;
+        await processDelete(id);
+    };
 
+    const handleDeleteMultiple = async (ids: (number | string)[]) => {
+        if (!await showConfirm(`Delete this entire bill (${ids.length} items)? This will revert stock and update balances.`, { variant: "danger", title: "Delete Bill" })) return;
+
+        setLoading(true);
+        try {
+            // Process all deletions sequentially or in parallel?
+            // Sequential is safer for state consistency during development.
+            for (const id of ids) {
+                await processDelete(id, true);
+            }
+            await fetchEntries();
+        } catch (error) {
+            console.error("Bulk delete failed", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const processDelete = async (id: number | string, isBulk = false) => {
         // Try to find the order number from the entry notes
         const entryToDelete: any = entries.find((e: any) => String(e.id) === String(id));
         const orderMatch = entryToDelete?.note?.match(/Order #\s*([^\s\n]+)/);
@@ -120,10 +141,12 @@ function LedgerPageContent() {
                     }
                 }
 
-                // Update local list
-                fetchEntries();
+                if (!isBulk) {
+                    // Update local list
+                    fetchEntries();
+                }
 
-                // Update session storage for Recent Transactions in other views
+                // Update session storage for Recent Transactions
                 try {
                     const saved = sessionStorage.getItem("recentTransactions");
                     if (saved) {
@@ -137,6 +160,7 @@ function LedgerPageContent() {
             }
         } catch (error) {
             console.error(error);
+            if (!isBulk) throw error;
         }
     };
 
@@ -203,92 +227,111 @@ function LedgerPageContent() {
 
     return (
         <div className="space-y-6 relative pb-20">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <h1 className="text-2xl font-bold text-gray-900">Ledger</h1>
-                <div className="flex gap-2 shrink-0 overflow-x-auto pb-2 sm:pb-0">
-                    <div className="bg-gray-100 p-1 rounded-lg flex mr-2 whitespace-nowrap">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2 border-b border-gray-100">
+                <div className="flex items-center justify-between w-full lg:w-auto">
+                    <h1 className="text-2xl font-black text-gray-900 tracking-tight">Ledger</h1>
+                    <div className="flex lg:hidden gap-2">
+                        <Button
+                            variant={hasActiveFilters ? "primary" : "secondary"}
+                            size="sm"
+                            className="rounded-xl"
+                            onClick={() => setShowFilters(!showFilters)}
+                        >
+                            <FunnelIcon className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            size="sm"
+                            className="rounded-xl"
+                            onClick={() => setShowTransactionModal(true)}
+                        >
+                            <PlusIcon className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto overflow-hidden">
+                    <div className="bg-gray-100/80 p-1 rounded-xl flex overflow-x-auto scrollbar-hide whitespace-nowrap -mx-4 sm:mx-0 px-4 sm:px-1">
                         <button
                             onClick={() => handleViewChange("customers")}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "customers"
-                                ? "bg-white text-blue-600 shadow-sm"
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center ${view === "customers"
+                                ? "bg-white text-primary shadow-sm scale-105"
                                 : "text-gray-500 hover:text-gray-700"
                                 } cursor-pointer`}
                         >
-                            <UsersIcon className="h-4 w-4 mr-1.5" />
+                            <UsersIcon className="h-3.5 w-3.5 mr-1.5" />
                             By Customer
                         </button>
                         <button
                             onClick={() => handleViewChange("suppliers")}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "suppliers"
-                                ? "bg-white text-blue-600 shadow-sm"
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center ${view === "suppliers"
+                                ? "bg-white text-primary shadow-sm scale-105"
                                 : "text-gray-500 hover:text-gray-700"
                                 } cursor-pointer`}
                         >
-                            <BuildingStorefrontIcon className="h-4 w-4 mr-1.5" />
+                            <BuildingStorefrontIcon className="h-3.5 w-3.5 mr-1.5" />
                             By Supplier
                         </button>
                         <button
                             onClick={() => handleViewChange("loans")}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "loans"
-                                ? "bg-white text-blue-600 shadow-sm"
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center ${view === "loans"
+                                ? "bg-white text-primary shadow-sm scale-105"
                                 : "text-gray-500 hover:text-gray-700"
                                 } cursor-pointer`}
                         >
-                            <BanknotesIcon className="h-4 w-4 mr-1.5" />
+                            <BanknotesIcon className="h-3.5 w-3.5 mr-1.5" />
                             Loans
                         </button>
                         <button
                             onClick={() => handleViewChange("utilities")}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "utilities"
-                                ? "bg-white text-blue-600 shadow-sm"
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center ${view === "utilities"
+                                ? "bg-white text-primary shadow-sm scale-105"
                                 : "text-gray-500 hover:text-gray-700"
                                 } cursor-pointer`}
                         >
-                            <WrenchScrewdriverIcon className="h-4 w-4 mr-1.5" />
+                            <WrenchScrewdriverIcon className="h-3.5 w-3.5 mr-1.5" />
                             Utilities
                         </button>
                         <button
                             onClick={() => handleViewChange("entries")}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "entries"
-                                ? "bg-white text-blue-600 shadow-sm"
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center ${view === "entries"
+                                ? "bg-white text-primary shadow-sm scale-105"
                                 : "text-gray-500 hover:text-gray-700"
                                 } cursor-pointer`}
                         >
-                            <ListBulletIcon className="h-4 w-4 mr-1.5" />
+                            <ListBulletIcon className="h-3.5 w-3.5 mr-1.5" />
                             All Entries
                         </button>
                         <button
                             onClick={() => handleViewChange("pending")}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center ${view === "pending"
-                                ? "bg-white text-blue-600 shadow-sm"
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center ${view === "pending"
+                                ? "bg-white text-blue-600 shadow-sm scale-105"
                                 : "text-gray-500 hover:text-gray-700"
                                 } cursor-pointer`}
                         >
-                            <svg className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="h-3.5 w-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             Pending
                         </button>
                     </div>
 
-                    <Button
-                        variant={hasActiveFilters ? "primary" : "secondary"} // Visual cue on the button too
-                        className={hasActiveFilters ? "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100" : ""}
-                        onClick={() => setShowFilters(!showFilters)}
-                    >
-                        <FunnelIcon className={`h-5 w-5 mr-2 ${hasActiveFilters ? "text-blue-700" : ""}`} />
-                        Filters
-                        {hasActiveFilters && (
-                            <span className="ml-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
-                                Active
-                            </span>
-                        )}
-                    </Button>
-
-                    <Button onClick={() => setShowTransactionModal(true)}>
-                        <PlusIcon className="h-5 w-5 mr-2" />
-                        Add Entry
-                    </Button>
+                    <div className="hidden lg:flex gap-2 shrink-0">
+                        <Button
+                            variant={hasActiveFilters ? "primary" : "secondary"}
+                            className={`rounded-xl px-5 ${hasActiveFilters ? "bg-blue-50 text-blue-700 border-blue-200" : ""}`}
+                            onClick={() => setShowFilters(!showFilters)}
+                        >
+                            <FunnelIcon className="h-5 w-5 mr-2" />
+                            Filters
+                        </Button>
+                        <Button
+                            className="rounded-xl px-5 shadow-lg shadow-primary/20"
+                            onClick={() => setShowTransactionModal(true)}
+                        >
+                            <PlusIcon className="h-5 w-5 mr-2" />
+                            Add Entry
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -426,6 +469,7 @@ function LedgerPageContent() {
                         loading={loading}
                         onEdit={(id) => router.push(`/ledger/${id}/edit`)}
                         onDelete={handleDelete}
+                        onDeleteMultiple={handleDeleteMultiple}
                     />
                 </div>
             ) : (

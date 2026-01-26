@@ -18,6 +18,7 @@ interface LedgerPendingTableProps {
     data: LedgerEntry[];
     onEdit: (id: string | number) => void;
     onDelete: (id: string | number) => void;
+    onDeleteMultiple?: (ids: (string | number)[]) => void;
     loading?: boolean;
     onHistoryClick?: (name: string) => void;
 }
@@ -26,6 +27,7 @@ export default function LedgerPendingTable({
     data,
     onEdit,
     onDelete,
+    onDeleteMultiple,
     loading,
     onHistoryClick
 }: LedgerPendingTableProps) {
@@ -161,8 +163,12 @@ export default function LedgerPendingTable({
     }, [data]);
 
     const handleGroupDelete = async (ids: (string | number)[]) => {
-        if (await showConfirm(`Delete this entire bill (${ids.length} items)?`, { variant: "danger" })) {
-            ids.forEach(id => onDelete(id));
+        if (onDeleteMultiple) {
+            onDeleteMultiple(ids);
+        } else {
+            if (await showConfirm(`Delete this entire bill (${ids.length} items)?`, { variant: "danger" })) {
+                ids.forEach(id => onDelete(id));
+            }
         }
     };
 
@@ -243,45 +249,41 @@ export default function LedgerPendingTable({
         },
         {
             key: "actions",
-            header: "Actions",
+            header: <div className="text-center">Actions</div>,
             render: (_: any, row: any) => (
-                <div className="flex gap-2">
+                <div className="flex items-center justify-center gap-2 min-w-[320px]">
                     <Button
                         size="sm"
                         variant="secondary"
+                        className="h-8 px-3 rounded-lg text-xs font-black uppercase tracking-tight hover:bg-white hover:text-primary transition-all border border-gray-200"
                         onClick={() => fetchHistory(row.customerName)}
-                        title="View History"
+                        title="View Audit Trail"
                     >
                         History
                     </Button>
                     <Button
                         size="sm"
                         variant="secondary"
+                        className="h-8 px-3 rounded-lg text-xs font-black uppercase tracking-tight hover:bg-gray-200 transition-all border border-gray-200"
                         onClick={() => {
                             const ids = row.ids.join(',');
                             window.open(`/ledger/receipt/batch?ids=${ids}`, '_blank');
                         }}
-                        title="Print Bill"
+                        title="Print Batch Bill"
                     >
                         Print
                     </Button>
                     <Button
                         size="sm"
                         variant="primary"
-                        className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                        className="h-8 px-3 rounded-lg text-xs font-black uppercase tracking-tight bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-sm"
                         onClick={async () => {
-                            if (await showConfirm("Mark this bill as fully paid? This will update the status and net balance.", { variant: "info", title: "Settle Payment" })) {
+                            if (await showConfirm("Mark this entire bill as fully paid?", { variant: "info", title: "Settle Payment" })) {
                                 try {
-                                    // Update all items in the group to remove "Remaining" from note
                                     await Promise.all(row.ids.map(async (id: string | number) => {
                                         const res = await fetch(`/api/ledger/${id}`);
                                         if (res.ok) {
                                             const data = await res.json();
-                                            // Remove Remaining line, keep Advance for history?
-                                            // Or remove both? Let's remove Remaining only to clear "Pending" status.
-                                            // Remove BOTH "Remaining: " AND "Advance: " lines to ensure receipt shows fully paid (Standard Invoice)
-                                            // The user reported "same receipt shown", meaning it still showed as pending/advance.
-                                            // Removing these lines makes parseTransactionNote return undefined for advance/remaining.
                                             const newNote = (data.note || "")
                                                 .split('\n')
                                                 .filter((line: string) => !line.startsWith("Remaining: ") && !line.startsWith("Advance: "))
@@ -294,26 +296,22 @@ export default function LedgerPendingTable({
                                             });
                                         }
                                     }));
-                                    // Refresh by reloading or callback? 
-                                    // Since we don't have a refresh callback in props easily, we might rely on parent re-render or reload.
-                                    // But onEdit/onDelete triggers parent update? onDelete does.
-                                    // Let's reuse onDelete to trigger refresh? No, that deletes it.
-                                    // Ideally we need onUpdate callback.
-                                    // For now, simple window reload or forcing update.
                                     window.location.reload();
                                 } catch (e) {
                                     console.error("Failed to mark paid", e);
                                 }
                             }
                         }}
-                        title="Mark as Fully Paid"
+                        title="Mark as Fully Settled"
                     >
                         Mark Paid
                     </Button>
                     <Button
                         size="sm"
                         variant="danger"
+                        className="h-8 px-3 rounded-lg text-xs font-black uppercase tracking-tight bg-rose-600 hover:bg-rose-700 text-white border-rose-600 shadow-sm"
                         onClick={() => handleGroupDelete(row.ids)}
+                        title="Delete Entire Bill"
                     >
                         Delete
                     </Button>

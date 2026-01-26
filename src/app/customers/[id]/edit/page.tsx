@@ -104,48 +104,64 @@ export default function EditCustomerPage() {
         <div className="p-6 max-w-2xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Link href="/customers" className="text-gray-500 hover:text-gray-700">
-                        &larr; Back
+                    <Link
+                        href="/customers"
+                        className="p-2 bg-white border border-gray-200 rounded-xl text-gray-500 hover:text-primary hover:border-primary transition-all shadow-sm"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
                     </Link>
-                    <h1 className="text-2xl font-bold text-gray-900">Edit Customer</h1>
+                    <h1 className="text-2xl font-black text-gray-900 tracking-tight">Edit Customer</h1>
                 </div>
-                <Button variant="danger" onClick={handleDelete} isLoading={saving} disabled={!customer}>
+                <Button
+                    variant="danger"
+                    onClick={handleDelete}
+                    isLoading={saving}
+                    disabled={!customer}
+                    className="rounded-xl px-6 font-bold uppercase text-xs tracking-widest shadow-lg shadow-red-500/20"
+                >
                     Delete
                 </Button>
             </div>
 
             {error && <ErrorDisplay message={error} />}
 
-            <form onSubmit={handleSave} className="bg-white p-6 rounded-lg shadow border border-gray-200 space-y-4">
+            <form onSubmit={handleSave} className="bg-white p-8 rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 space-y-6">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 px-1">Customer Name</label>
                     <input
-                        className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 font-bold focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
                         value={form.name}
                         onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                        placeholder="Enter full name"
                         required
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 px-1">Phone Number</label>
                     <input
-                        className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 font-bold focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
                         value={form.phone}
                         onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                        placeholder="Optional"
+                        placeholder="e.g., 0300 1234567"
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 px-1">Address</label>
                     <textarea
-                        className="w-full border border-gray-300 rounded-md p-2 h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 font-bold h-32 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-300"
                         value={form.address}
                         onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                        placeholder="Optional"
+                        placeholder="Enter complete address"
                     />
                 </div>
-                <div className="flex justify-end">
-                    <Button type="submit" isLoading={saving}>
+                <div className="flex justify-end pt-4">
+                    <Button
+                        type="submit"
+                        isLoading={saving}
+                        className="w-full sm:w-auto rounded-xl px-10 py-4 font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 bg-primary hover:bg-primary-dark text-white"
+                    >
                         Save Changes
                     </Button>
                 </div>
