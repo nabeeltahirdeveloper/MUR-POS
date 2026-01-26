@@ -115,6 +115,20 @@ function BatchReceiptContent() {
                     remaining = total - advance;
                 }
 
+                // FETCH HISTORY for the receipt
+                let history: any[] = [];
+                try {
+                    const hRes = await fetch(`/api/ledger?search=${encodeURIComponent(meta.partyName)}&limit=100`);
+                    if (hRes.ok) {
+                        const hData = await hRes.json();
+                        history = (hData.data || [])
+                            .filter((e: any) => new Date(e.date) <= new Date(first.date))
+                            .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch history for receipt", e);
+                }
+
                 setData({
                     title: "Order RECEIPT",
                     id: first.id, // Primary ID for QR
@@ -129,6 +143,7 @@ function BatchReceiptContent() {
                     remaining: remaining,
                     notes: `Batch of ${results.length} items`,
                     orderNumber: first.orderNumber || meta.orderNumber,
+                    history: history
                 });
             } catch (err: any) {
                 setError(err.message);

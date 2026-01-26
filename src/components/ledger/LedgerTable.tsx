@@ -31,6 +31,8 @@ export default function LedgerTable({
     onSelectionChange,
 }: LedgerTableProps) {
     const [currency, setCurrency] = React.useState({ symbol: "Rs.", position: "prefix" });
+    const [historyModal, setHistoryModal] = React.useState<{ isOpen: boolean, name: string, entries: any[] }>({ isOpen: false, name: '', entries: [] });
+    const [historyLoading, setHistoryLoading] = React.useState(false);
 
     React.useEffect(() => {
         const fetchSettings = async () => {
@@ -56,7 +58,7 @@ export default function LedgerTable({
 
     // Helper to parse existing notes based on the standardized format
     const parseTransactionNote = (note: string | null) => {
-        if (!note) return { orderNumber: "-", title: "-", itemName: "-", quantity: null, unitPrice: null, isStructured: false, itemType: null };
+        if (!note) return { orderNumber: "-", title: "-", itemName: "-", quantity: null, unitPrice: null, isStructured: false, itemType: null, advance: undefined as number | undefined, remaining: undefined as number | undefined };
 
         const lines = note.split('\n');
         let orderNumber = "";
@@ -66,74 +68,63 @@ export default function LedgerTable({
         let unitPrice: number | null = null;
         let isStructured = false;
         let itemType: string | null = null;
+        let advance: number | undefined = undefined;
+        let remaining: number | undefined = undefined;
 
         lines.forEach(line => {
-            if (line.startsWith("Order #")) {
-                orderNumber = line.replace("Order #", "").trim();
+            const trimmed = line.trim();
+            if (trimmed.startsWith("Order #")) {
+                orderNumber = trimmed.replace("Order #", "").trim();
                 isStructured = true;
             }
-            else if (line.startsWith("Customer: ")) {
-                title = line.replace("Customer: ", "").trim();
+            else if (trimmed.startsWith("Customer: ")) {
+                title = trimmed.replace("Customer: ", "").trim();
                 isStructured = true;
             }
-            else if (line.startsWith("Supplier: ")) {
-                title = line.replace("Supplier: ", "").trim();
+            else if (trimmed.startsWith("Supplier: ")) {
+                title = trimmed.replace("Supplier: ", "").trim();
                 isStructured = true;
             }
-            else if (line.startsWith("Item: ")) {
+            else if (trimmed.startsWith("Item: ")) {
                 isStructured = true;
-                // Updated Regex: Handles units (e.g. 2 pcs) between Qty and @
-                const match = line.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+).*?@\s*([^)]*)\)/);
+                const match = trimmed.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+).*?@\s*([^)]*)\)/);
                 if (match) {
-                    itemType = match[1] || null; // Capture Type
+                    itemType = match[1] || null;
                     itemName = match[2].trim();
-                    // If regex was greedy and captured [Type] in name because of no space, fix it:
-                    if (itemName.startsWith("[") && !itemType) {
-                        const endBracket = itemName.indexOf(']');
-                        if (endBracket > 0) {
-                            itemType = itemName.substring(1, endBracket);
-                            itemName = itemName.substring(endBracket + 1).trim();
-                        }
-                    }
-
                     quantity = Number(match[3]);
                     unitPrice = Number(match[4]);
                 } else {
-                    itemName = line.replace("Item: ", "").trim();
+                    itemName = trimmed.replace("Item: ", "").trim();
                 }
             }
+
+            // Advance/Remaining labels
+            const advMatch = trimmed.match(/^(Advance|Payment|Adjustment):\s*([\d\.]+)/i);
+            if (advMatch) advance = Number(advMatch[2]);
+
+            const remMatch = trimmed.match(/Remaining:\s*([\d\.]+)/i);
+            if (remMatch) remaining = Number(remMatch[1]);
         });
 
         if (!isStructured) {
-            // Fallback for manual/unstructured notes
-            // If it matches [Loan] Person: Note format (from virtual entries)
+            // ... keep existing fallback logic ...
             if (note.startsWith("[Loan] ") || note.startsWith("[Payment] ")) {
                 const parts = note.split(":");
-                title = parts[0].trim(); // "[Loan] Name" or "[Payment] Name" initially
-
-                // Try to extract strict name if pattern matches
+                title = parts[0].trim();
                 const nameMatch = note.match(/^\[(Loan|Payment)\] (.*?):/);
                 if (nameMatch) {
                     title = nameMatch[2].trim();
                     itemName = note.replace(nameMatch[0], "").trim();
                 }
-
                 if (!itemName) itemName = note.startsWith("[Payment]") ? "Loan Repayment" : "Loan Given";
-
-                // If title still has the [Prefix], clean it up slightly if needed, but the regex above handles most.
-                // Fallback if regex didn't match (e.g. no colon)
                 if (title.startsWith("[")) {
                     const endBracket = title.indexOf("]");
-                    if (endBracket !== -1) {
-                        title = title.substring(endBracket + 1).trim();
-                    }
+                    if (endBracket !== -1) title = title.substring(endBracket + 1).trim();
                 }
             }
             else if (note.startsWith("[Bill] ")) {
-                // Expected format: [Bill] Name - Category
                 const content = note.replace("[Bill] ", "").trim();
                 const separatorIndex = content.lastIndexOf(" - ");
-
                 if (separatorIndex !== -1) {
                     title = content.substring(0, separatorIndex).trim();
                     itemName = content.substring(separatorIndex + 3).trim();
@@ -155,7 +146,9 @@ export default function LedgerTable({
             quantity,
             unitPrice,
             isStructured,
-            itemType
+            itemType,
+            advance,
+            remaining
         };
     };
 
@@ -178,6 +171,23 @@ export default function LedgerTable({
             onSelectionChange([]);
         } else {
             onSelectionChange(data.map(d => d.id));
+        }
+    };
+
+    const fetchHistory = async (name: string) => {
+        if (!name || name === "-") return;
+        setHistoryLoading(true);
+        setHistoryModal({ isOpen: true, name, entries: [] });
+        try {
+            const res = await fetch(`/api/ledger?search=${encodeURIComponent(name)}&limit=100`);
+            if (res.ok) {
+                const data = await res.json();
+                setHistoryModal(prev => ({ ...prev, entries: data.data || [] }));
+            }
+        } catch (e) {
+            console.error("Failed to fetch history", e);
+        } finally {
+            setHistoryLoading(false);
         }
     };
 
@@ -320,8 +330,18 @@ export default function LedgerTable({
                 }
 
                 // For real ledger entries, show full actions
+                const { title } = parseTransactionNote(row.note);
                 return (
                     <div className="flex gap-2">
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => fetchHistory(title)}
+                            disabled={!title || title === "-"}
+                            title="View History"
+                        >
+                            History
+                        </Button>
                         <Button
                             size="sm"
                             variant="secondary"
@@ -359,10 +379,99 @@ export default function LedgerTable({
     }
 
     return (
-        <Table
-            data={data}
-            columns={columns}
-            emptyMessage="No ledger entries found."
-        />
+        <div className="relative">
+            <Table
+                data={data}
+                columns={columns}
+                emptyMessage="No ledger entries found."
+            />
+
+            {/* History Modal */}
+            {historyModal.isOpen && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <div>
+                                <h3 className="text-xl font-black text-gray-900">Transaction History</h3>
+                                <p className="text-sm font-medium text-gray-500 mt-1">Audit trail for {historyModal.name}</p>
+                            </div>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setHistoryModal({ ...historyModal, isOpen: false })}
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </Button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {historyLoading ? (
+                                <div className="flex flex-col items-center justify-center py-12">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                                    <p className="text-sm text-gray-500 font-medium">Fetching records...</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {historyModal.entries.length > 0 ? (
+                                        <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-gray-50 border-b border-gray-200">
+                                                    <tr>
+                                                        <th className="px-4 py-3 font-bold text-gray-900">Date</th>
+                                                        <th className="px-4 py-3 font-bold text-gray-900 border-l border-gray-100 italic">#</th>
+                                                        <th className="px-4 py-3 font-bold text-gray-900 text-right">Paid</th>
+                                                        <th className="px-4 py-3 font-bold text-gray-900 text-right">Remaining</th>
+                                                        <th className="px-4 py-3 font-bold text-gray-900 text-right">Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {historyModal.entries.map((h: any) => {
+                                                        const p = parseTransactionNote(h.note);
+
+                                                        // Fallback logic for Paid Amount
+                                                        const paid = p.advance !== undefined ? p.advance :
+                                                            (p.isStructured ? 0 : (Number(h.amount) || 0));
+                                                        const remaining = p.remaining || 0;
+                                                        const total = paid + remaining;
+                                                        return (
+                                                            <tr key={h.id} className="hover:bg-gray-50/80 transition-colors">
+                                                                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{new Date(h.date).toLocaleDateString()}</td>
+                                                                <td className="px-4 py-3 text-gray-900 font-medium border-l border-gray-50 italic">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className={`px-1 py-0.5 rounded text-[8px] font-black uppercase ${h.type === 'credit' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                                            {h.type === 'credit' ? 'In' : 'Out'}
+                                                                        </span>
+                                                                        {p.orderNumber || "-"}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-right font-mono font-bold text-green-600">
+                                                                    {formatCurrency(paid)}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-right font-mono font-bold text-red-600">
+                                                                    {formatCurrency(remaining)}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-right font-mono font-bold text-gray-900">
+                                                                    {formatCurrency(total)}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12 text-gray-500 font-medium">No historical records found.</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end">
+                            <Button onClick={() => setHistoryModal({ ...historyModal, isOpen: false })}>Close</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }

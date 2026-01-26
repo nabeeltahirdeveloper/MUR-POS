@@ -141,6 +141,20 @@ export default function ReceiptPage() {
                     remaining = totalAmount - advance;
                 }
 
+                // FETCH HISTORY for the receipt
+                let history: any[] = [];
+                try {
+                    const hRes = await fetch(`/api/ledger?search=${encodeURIComponent(initialParsed.partyName)}&limit=100`);
+                    if (hRes.ok) {
+                        const hData = await hRes.json();
+                        history = (hData.data || [])
+                            .filter((e: any) => new Date(e.date) <= new Date(entry.date))
+                            .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch history for receipt", e);
+                }
+
                 setData({
                     title: "PAYMENT RECEIPT",
                     id: entry.id,
@@ -155,6 +169,7 @@ export default function ReceiptPage() {
                     remaining: remaining,
                     notes: entry.note,
                     orderNumber: entry.orderNumber || initialParsed.orderNumber,
+                    history: history
                 });
             })
             .catch(err => setError(err.message))
