@@ -1246,7 +1246,7 @@ export default function LedgerEntryForm({
                             </div>
 
                             {/* Date */}
-                            <div className={type === 'debit' ? "md:col-span-4" : "md:col-span-3"}>
+                            <div className="md:col-span-3">
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Date</label>
                                 <input
                                     type="date"
@@ -1257,7 +1257,7 @@ export default function LedgerEntryForm({
                             </div>
 
                             {/* Time */}
-                            <div className={type === 'debit' ? "md:col-span-4" : "md:col-span-3"}>
+                            <div className="md:col-span-3">
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Time</label>
                                 <input
                                     type="time"
@@ -1270,9 +1270,11 @@ export default function LedgerEntryForm({
 
                         {/* Row 3: Item Search | Qty | Amount | Actions */}
                         {/* Removed background, added equal spacing */}
-                        <div className="pt-2"> {/* Optional spacing wrapper */}
-                            <div className="flex flex-col md:flex-row gap-4 items-end">
-                                <>
+                        {/* Row 3: Item Search | Qty | Amount | Actions */}
+                        {/* Only show Item/Cart fields for Cash-In (sales) */}
+                        <div className="pt-2">
+                            {type !== 'debit' ? (
+                                <div className="flex flex-col md:flex-row gap-4 items-end">
                                     {/* Item Search */}
                                     <div className="w-full md:flex-1 relative" ref={searchRef}>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Item Search</label>
@@ -1319,7 +1321,6 @@ export default function LedgerEntryForm({
                                                     <div className="flex items-center gap-1">
                                                         <select
                                                             value={selectedItem.saleUnit.id || (
-                                                                // Fallback: try to find ID by name if ID missing, or just rely on name match if we must?
                                                                 units.find(u => u.name === selectedItem.saleUnit?.name)?.id || ""
                                                             )}
                                                             onChange={(e) => {
@@ -1331,20 +1332,18 @@ export default function LedgerEntryForm({
                                                                         saleUnit: {
                                                                             name: newUnit.name,
                                                                             symbol: newUnit.symbol,
-                                                                            id: newUnit.id // Ensure we keep ID if possible
-                                                                        } as any // Cast to satisfy type if needed, or update Item Type
+                                                                            id: newUnit.id
+                                                                        } as any
                                                                     });
                                                                 }
                                                             }}
                                                             className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-1 py-0.5 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
                                                         >
-                                                            {/* Ensure current option exists even if not in list yet? Usually it should be. */}
                                                             {units.map(u => (
                                                                 <option key={u.id} value={u.id}>
                                                                     {type === 'credit' ? 'Sale' : 'Purchase'}: {u.symbol || u.name}
                                                                 </option>
                                                             ))}
-                                                            {/* Fallback if list empty or unit not found? */}
                                                             {(!units.length) && <option>{type === 'credit' ? 'Sale' : 'Purchase'}: {selectedItem.saleUnit.name}</option>}
                                                         </select>
                                                     </div>
@@ -1371,8 +1370,8 @@ export default function LedgerEntryForm({
                                         </select>
                                     </div>
 
-                                    {/* Rate (Unit Price) - Visible for Customize or when needed */}
-                                    {(itemType === 'Customize' || (type === 'debit' && selectedItem)) && (
+                                    {/* Rate (Unit Price) */}
+                                    {itemType === 'Customize' && (
                                         <div className="w-full md:w-32">
                                             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Rate</label>
                                             <input
@@ -1381,7 +1380,6 @@ export default function LedgerEntryForm({
                                                 onChange={(e) => {
                                                     const val = Number(e.target.value);
                                                     setUnitPrice(val);
-                                                    // Auto-calculate Total Amount
                                                     const qty = Number(quantity) || 0;
                                                     setLineAmount((val * qty).toString());
                                                 }}
@@ -1390,69 +1388,66 @@ export default function LedgerEntryForm({
                                             />
                                         </div>
                                     )}
-                                </>
 
-                                <div className="w-full md:w-32">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
-                                    <input
-                                        type="number"
-                                        value={quantity}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            setQuantity(val);
-                                            // Auto-calculate Total Amount if unit price exists
-                                            if (unitPrice) {
-                                                setLineAmount((unitPrice * (Number(val) || 0)).toString());
-                                            }
-                                        }}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
-                                    />
-                                </div>
-
-                                {/* Amount */}
-                                <div className="w-full md:w-56">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <label
-                                            onClick={handleAmountLabelClick}
-                                            className="text-xs font-bold text-gray-500 uppercase cursor-pointer hover:text-primary transition-colors select-none"
-                                        >
-                                            Amount
-                                        </label>
-
-                                        {/* Hidden Price Reveal UI */}
-                                        <div className="h-4 flex items-center justify-end">
-                                            {showPinInput && (
-                                                <input
-                                                    autoFocus
-                                                    type="password"
-                                                    value={pinValue}
-                                                    onChange={(e) => setPinValue(e.target.value)}
-                                                    onKeyDown={handlePinSubmit}
-                                                    placeholder="PIN"
-                                                    className="w-16 px-1 py-0.5 text-xs border border-primary/50 rounded focus:outline-none text-center bg-white"
-                                                />
-                                            )}
-                                            {isPriceRevealed && selectedItem && (
-                                                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 animate-in fade-in">
-                                                    Buy: {selectedItem.secondPurchasePrice || selectedItem.firstSalePrice || 0}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rs.</span>
+                                    <div className="w-full md:w-32">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
                                         <input
                                             type="number"
-                                            value={lineAmount}
-                                            disabled={isEdit}
-                                            onChange={(e) => setLineAmount(e.target.value)}
-                                            className={`w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-bold text-lg text-gray-800 ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            placeholder="0.00"
+                                            value={quantity}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setQuantity(val);
+                                                if (unitPrice) {
+                                                    setLineAmount((unitPrice * (Number(val) || 0)).toString());
+                                                }
+                                            }}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
                                         />
                                     </div>
-                                </div>
 
-                                {type !== 'debit' && (
+                                    {/* Amount */}
+                                    <div className="w-full md:w-56">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label
+                                                onClick={handleAmountLabelClick}
+                                                className="text-xs font-bold text-gray-500 uppercase cursor-pointer hover:text-primary transition-colors select-none"
+                                            >
+                                                Amount
+                                            </label>
+
+                                            <div className="h-4 flex items-center justify-end">
+                                                {showPinInput && (
+                                                    <input
+                                                        autoFocus
+                                                        type="password"
+                                                        value={pinValue}
+                                                        onChange={(e) => setPinValue(e.target.value)}
+                                                        onKeyDown={handlePinSubmit}
+                                                        placeholder="PIN"
+                                                        className="w-16 px-1 py-0.5 text-xs border border-primary/50 rounded focus:outline-none text-center bg-white"
+                                                    />
+                                                )}
+                                                {isPriceRevealed && selectedItem && (
+                                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 animate-in fade-in">
+                                                        Buy: {selectedItem.secondPurchasePrice || selectedItem.firstSalePrice || 0}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rs.</span>
+                                            <input
+                                                type="number"
+                                                value={lineAmount}
+                                                disabled={isEdit}
+                                                onChange={(e) => setLineAmount(e.target.value)}
+                                                className={`w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-bold text-lg text-gray-800 ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Remaining - For Cash-In */}
                                     <div className="w-full md:w-48">
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Remaining</label>
                                         <div className="relative">
@@ -1465,39 +1460,40 @@ export default function LedgerEntryForm({
                                             />
                                         </div>
                                     </div>
-                                )}
 
-
-
-                                {/* Action Buttons */}
-                                <div className="w-full md:w-auto md:shrink-0 flex items-end justify-end">
-                                    {type !== 'debit' && !isEdit && (
-                                        editingCartId ? (
-                                            <div className="flex gap-2 w-full md:w-auto">
-                                                <button type="button" onClick={handleAddOrUpdateItem} className="flex-1 md:flex-none bg-primary hover:bg-primary-dark text-slate-900 px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 whitespace-nowrap cursor-pointer">
-                                                    Update
-                                                </button>
-                                                <button type="button" onClick={() => {
-                                                    setEditingCartId(null);
-                                                    setSelectedItem(null);
-                                                    setSearchTerm("");
-                                                    setQuantity("1");
-                                                    setUnitPrice(0);
-                                                    setLineAmount("");
-                                                }} className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-3 rounded-xl transition-all shadow-sm cursor-pointer">
-                                                    ✕
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <button type="button" onClick={handleAddOrUpdateItem} className="w-full md:w-auto px-3 bg-slate-900 hover:bg-black text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 flex items-center justify-center mb-1 gap-2 group whitespace-nowrap cursor-pointer">
-                                                <div className="bg-white/20 rounded-full p-1 group-hover:bg-white/30 transition-colors">
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                    {/* Action Buttons */}
+                                    <div className="w-full md:w-auto md:shrink-0 flex items-end justify-end">
+                                        {!isEdit && (
+                                            editingCartId ? (
+                                                <div className="flex gap-2 w-full md:w-auto">
+                                                    <button type="button" onClick={handleAddOrUpdateItem} className="flex-1 md:flex-none bg-primary hover:bg-primary-dark text-slate-900 px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 whitespace-nowrap cursor-pointer">
+                                                        Update
+                                                    </button>
+                                                    <button type="button" onClick={() => {
+                                                        setEditingCartId(null);
+                                                        setSelectedItem(null);
+                                                        setSearchTerm("");
+                                                        setQuantity("1");
+                                                        setUnitPrice(0);
+                                                        setLineAmount("");
+                                                    }} className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-3 rounded-xl transition-all shadow-sm cursor-pointer">
+                                                        ✕
+                                                    </button>
                                                 </div>
-                                            </button>
-                                        )
-                                    )}
+                                            ) : (
+                                                <button type="button" onClick={handleAddOrUpdateItem} className="w-full md:w-auto px-3 bg-slate-900 hover:bg-black text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 flex items-center justify-center mb-1 gap-2 group whitespace-nowrap cursor-pointer">
+                                                    <div className="bg-white/20 rounded-full p-1 group-hover:bg-white/30 transition-colors">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                                    </div>
+                                                </button>
+                                            )
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                // Render NOTHING for 'debit' mode in this middle row - User wants fields hidden
+                                null
+                            )}
                         </div>
 
                         {/* Cart Items List */}
