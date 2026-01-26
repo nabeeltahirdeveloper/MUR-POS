@@ -61,18 +61,56 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
             const trimmed = line.trim();
             if (trimmed.toLowerCase().startsWith("supplier:")) {
                 supplierName = trimmed.substring("supplier:".length).trim();
-            } else if (trimmed.toLowerCase().startsWith("remaining:")) {
-                remaining = Number(trimmed.replace(/[^0-9.-]/g, '')) || 0;
+            } else if (trimmed.toLowerCase().includes("remaining:")) {
+                const match = trimmed.match(/remaining:\s*(\d+(\.\d+)?)/i);
+                if (match) remaining = Number(match[1]) || 0;
             }
         });
 
         if (supplierName && entry.type === 'debit') {
             const party = getPartyData(supplierName);
-            const amount = Number(entry.amount);
+            const totalAmount = Number(entry.amount);
             const entryDate = entry.date instanceof Date ? entry.date : (entry.date?.toDate ? entry.date.toDate() : new Date(entry.date));
 
-            // totalCredit is Cash-Out (Payments to supplier)
-            party.totalCredit += amount;
+            // Parse actual cash flower from note
+            let cashMoved = 0;
+            let hasAdvanceOrPayment = false;
+            let hasRemainingLabel = false;
+            let remainingValueFromNote = 0;
+
+            lines.forEach(line => {
+                const trimmed = line.trim();
+
+                // Robust regex check
+                const advMatch = trimmed.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+                if (advMatch) {
+                    cashMoved = Number(advMatch[2]) || 0;
+                    hasAdvanceOrPayment = true;
+                }
+
+                const remMatch = trimmed.match(/Remaining:\s*(\d+(\.\d+)?)/i);
+                if (remMatch) {
+                    hasRemainingLabel = true;
+                    remainingValueFromNote = Number(remMatch[1]) || 0;
+                }
+            });
+
+            // Fallback: If no label, check if fully paid
+            if (!hasAdvanceOrPayment) {
+                if (!hasRemainingLabel || remainingValueFromNote === 0) {
+                    cashMoved = totalAmount;
+                } else {
+                    cashMoved = 0;
+                }
+            }
+
+            // We track "totalPurchase" (internal name totalCredit in this structure) 
+            // and the "actualPaid" sum separately? 
+            // Actually let's use the same logic as elsewhere for consistency.
+            // We want totalCredit to be the SUM of all BILL amounts? 
+            // The original code used totalCredit (internal) as total Purchase amount.
+            party.totalCredit += totalAmount;
+            party.totalDebit += cashMoved;
 
             // Use the reported remaining from the LATEST entry as the definitive balance
             if (entryDate > party.lastEntryDate) {
@@ -104,16 +142,22 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
     });
 
     // 3. Finalize
-    // For Suppliers: Owe (Negative) or Credit?
-    // Let's use the convention: Positive Balance = We owe them (Debt).
-    // This matches the Dashboard filter balance > 0.
-    return Object.values(supplierMap).map(s => ({
-        name: s.name,
-        balance: s.latestRemaining,
-        lastEntryDate: s.lastEntryDate,
-        totalCredit: s.totalCredit,
-        totalDebit: s.totalCredit + s.latestRemaining // Total bought = Paid + Still Owed
-    })).sort((a, b) => b.lastEntryDate.getTime() - a.lastEntryDate.getTime());
+    // For Suppliers: 
+    // - totalCredit (Cash-In) = 0 (we don't receive money from suppliers)
+    // - totalDebit (Cash-Out) = actual payments made (total amount - remaining)
+    // - balance = what we still owe them
+    return Object.values(supplierMap).map(s => {
+        const stillOwed = s.latestRemaining;
+        const actualPaid = s.totalDebit;
+
+        return {
+            name: s.name,
+            balance: stillOwed,
+            lastEntryDate: s.lastEntryDate,
+            totalCredit: 0,
+            totalDebit: actualPaid
+        };
+    }).sort((a, b) => b.lastEntryDate.getTime() - a.lastEntryDate.getTime());
 }
 
 /**
@@ -161,21 +205,50 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
             const trimmed = line.trim();
             if (trimmed.toLowerCase().startsWith("customer:")) {
                 customerName = trimmed.substring("customer:".length).trim();
-            } else if (trimmed.toLowerCase().startsWith("remaining:")) {
-                remaining = Number(trimmed.replace(/[^0-9.-]/g, '')) || 0;
+            } else if (trimmed.toLowerCase().includes("remaining:")) {
+                const match = trimmed.match(/remaining:\s*(\d+(\.\d+)?)/i);
+                if (match) remaining = Number(match[1]) || 0;
             }
         });
 
-        if (customerName) {
+        if (customerName && entry.type === 'credit') {
             const party = getPartyData(customerName);
-            const amount = Number(entry.amount);
+            const totalAmount = Number(entry.amount);
             const entryDate = entry.date instanceof Date ? entry.date : (entry.date?.toDate ? entry.date.toDate() : new Date(entry.date));
 
-            if (entry.type === 'credit') {
-                party.totalCredit += amount;
-            } else {
-                // Debit from us = we paid them? Or adjustment.
+            // Parse actual cash flower from note
+            let cashMoved = 0;
+            let hasAdvanceOrPayment = false;
+            let hasRemainingLabel = false;
+            let remainingValueFromNote = 0;
+
+            lines.forEach(line => {
+                const trimmed = line.trim();
+
+                // Robust regex check
+                const advMatch = trimmed.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+                if (advMatch) {
+                    cashMoved = Number(advMatch[2]) || 0;
+                    hasAdvanceOrPayment = true;
+                }
+
+                const remMatch = trimmed.match(/Remaining:\s*(\d+(\.\d+)?)/i);
+                if (remMatch) {
+                    hasRemainingLabel = true;
+                    remainingValueFromNote = Number(remMatch[1]) || 0;
+                }
+            });
+
+            // Fallback
+            if (!hasAdvanceOrPayment) {
+                if (!hasRemainingLabel || remainingValueFromNote === 0) {
+                    cashMoved = totalAmount;
+                } else {
+                    cashMoved = 0;
+                }
             }
+
+            party.totalCredit += cashMoved; // Total Paid (Cash-In for customers)
 
             if (entryDate > party.lastEntryDate) {
                 party.lastEntryDate = entryDate;
@@ -186,13 +259,18 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
         }
     });
 
-    return Object.values(customerMap).map(c => ({
-        name: c.name,
-        balance: c.latestRemaining,
-        lastEntryDate: c.lastEntryDate,
-        totalCredit: c.totalCredit,
-        totalDebit: c.totalCredit + c.latestRemaining
-    })).sort((a, b) => b.lastEntryDate.getTime() - a.lastEntryDate.getTime());
+    return Object.values(customerMap).map(c => {
+        const stillOwed = c.latestRemaining; // Cumulative balance
+        const actualReceived = c.totalCredit; // Total actual cash received
+
+        return {
+            name: c.name,
+            balance: stillOwed,
+            lastEntryDate: c.lastEntryDate,
+            totalCredit: actualReceived, // Total Cash-In
+            totalDebit: 0
+        };
+    }).sort((a, b) => b.lastEntryDate.getTime() - a.lastEntryDate.getTime());
 }
 
 export async function getSupplierBalance(name: string): Promise<number> {

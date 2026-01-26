@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = 'force-dynamic';
 import { auth } from "@/auth";
 import { getAllDocs } from "@/lib/firestore-helpers";
 import type { FirestoreLedger, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility } from "@/types/firestore";
@@ -21,71 +23,55 @@ export async function GET(req: NextRequest) {
         let totalCredit = 0;
         let totalDebit = 0;
 
-        const processedOrders = new Set<string>();
-
-        // Process Ledger entries
+        // Process Ledger entries - Only count actual cash transactions (paid amounts)
         for (const entry of ledgerEntries) {
             // Skip legacy utility entries to avoid double counting with virtual entries
             if (entry.note && entry.note.startsWith("Utility payment:")) continue;
 
-            const amount = Number(entry.amount);
-            if (entry.type === "credit") {
-                totalCredit += amount;
-            } else if (entry.type === "debit") {
-                totalDebit += amount;
-            }
+            const totalAmount = Number(entry.amount);
 
-            // --- Virtual Debit/Credit Logic for Pending Payments ---
+            // Parse actual cash moved from note
+            let cashMoved = 0;
+            let hasAdvanceOrPayment = false;
+            let hasRemaining = false;
+            let remainingValue = 0;
+
             if (entry.note) {
                 const lines = entry.note.split('\n');
-                let remaining = 0;
-                let orderNumber = "";
-                // We need names for key generation (customer/supplier) to be consistent with other APIs
-                let personName = "";
-
-                lines.forEach(line => {
+                for (const line of lines) {
                     const trimmed = line.trim();
-                    if (trimmed.startsWith("Remaining:")) {
-                        remaining = Number(trimmed.replace("Remaining:", "").trim()) || 0;
-                    } else if (trimmed.startsWith("Order #")) {
-                        orderNumber = trimmed.replace("Order #", "").trim();
-                    } else if (trimmed.includes("Order #")) {
-                        const match = trimmed.match(/Order #(\d+)/);
-                        if (match) orderNumber = match[1];
-                    } else if (trimmed.startsWith("Customer:")) {
-                        personName = trimmed.replace("Customer:", "").trim();
-                    } else if (trimmed.startsWith("Supplier:")) {
-                        personName = trimmed.replace("Supplier:", "").trim();
+
+                    // Robust regex check for Advance or Payment
+                    const advMatch = trimmed.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+                    if (advMatch) {
+                        cashMoved = Number(advMatch[2]) || 0;
+                        hasAdvanceOrPayment = true;
+                        break;
                     }
-                });
 
-                if (remaining > 0) {
-                    // Generate key for deduplication (same logic as customer/supplier APIs)
-
-                    // Date Key
-                    const dateKey = (entry.date instanceof Date)
-                        ? entry.date.toISOString()
-                        : (entry.date && typeof entry.date.toDate === 'function')
-                            ? entry.date.toDate().toISOString()
-                            : String(entry.date);
-
-                    const orderKey = orderNumber
-                        ? `${personName}-${orderNumber}`
-                        : `${personName}-${dateKey}`;
-
-                    if (!processedOrders.has(orderKey)) {
-                        if (entry.type === 'credit') {
-                            // Sale with Remaining -> We haven't received this cash yet.
-                            // Treat as Virtual Debit to reduce Net Cash-In.
-                            totalDebit += remaining;
-                        } else if (entry.type === 'debit') {
-                            // Purchase with Remaining -> We haven't paid this cash yet.
-                            // Treat as Virtual Credit to reduce Net Cash-Out.
-                            totalCredit += remaining;
-                        }
-                        processedOrders.add(orderKey);
+                    // Robust regex check for Remaining
+                    const remMatch = trimmed.match(/Remaining:\s*(\d+(\.\d+)?)/i);
+                    if (remMatch) {
+                        hasRemaining = true;
+                        remainingValue = Number(remMatch[1]) || 0;
                     }
                 }
+            }
+
+            // Fallback
+            if (!hasAdvanceOrPayment) {
+                if (!hasRemaining || remainingValue === 0) {
+                    cashMoved = totalAmount;
+                } else {
+                    cashMoved = 0;
+                }
+            }
+
+            // Only count the actual cash moved
+            if (entry.type === "credit") {
+                totalCredit += cashMoved;
+            } else if (entry.type === "debit") {
+                totalDebit += cashMoved;
             }
         }
 
