@@ -248,8 +248,8 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         )}
                     </div>
 
-                    {/* Items Table - Only for CASH bills */}
-                    {data.status?.toUpperCase() === 'CASH' && (
+                    {/* Items Table - Only for CASH bills, and NOT for Direct Payment to Supplier */}
+                    {data.status?.toUpperCase() === 'CASH' && !data.items.some(item => item.name.toLowerCase().includes("direct payment to supplier")) && (
                         <div className="mt-3 border-t-2 border-gray-800 pt-2">
                             <table className="w-full text-base font-semibold text-gray-900">
                                 <thead>
