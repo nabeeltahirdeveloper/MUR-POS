@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAlert } from "@/contexts/AlertContext";
+import { LedgerHistoryDropdown } from "@/components/ledger/LedgerHistoryDropdown";
 
 interface Customer {
     id: string;
@@ -78,6 +79,15 @@ export default function CustomersPage() {
                 header: "Address",
                 render: (value: any) => (
                     <span className="max-w-[32rem] block truncate">{value || "—"}</span>
+                ),
+            },
+            {
+                key: "balance",
+                header: "Net Balance",
+                render: (value: any) => (
+                    <span className={`font-mono font-bold ${Number(value) > 0 ? "text-red-600" : "text-green-600"}`}>
+                        Rs. {Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
                 ),
             },
             {
@@ -233,7 +243,12 @@ export default function CustomersPage() {
                     <LoadingSpinner message="Loading customers..." />
                 ) : (
                     <>
-                        <Table data={customers} columns={columns} emptyMessage="No customers found." />
+                        <Table
+                            data={customers}
+                            columns={columns}
+                            emptyMessage="No customers found."
+                            renderSubComponent={(row) => <LedgerHistoryDropdown type="customer" name={row.name} />}
+                        />
                         <div className="flex justify-end gap-2 mt-4">
                             <Button
                                 variant="secondary"

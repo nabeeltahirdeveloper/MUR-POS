@@ -129,38 +129,38 @@ export default function ReportsSection() {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-4 sm:p-8">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
                     <div>
-                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                            <CalendarIcon className="h-5 w-5 text-primary" />
+                        <h3 className="text-xl font-black text-gray-900 flex items-center gap-2 tracking-tight">
+                            <CalendarIcon className="h-6 w-6 text-primary" />
                             Reports & Analysis
                         </h3>
-                        <p className="text-sm text-gray-500">Analyze your ledger data across date ranges and categories</p>
+                        <p className="text-sm font-medium text-gray-500 mt-1">Analyze your ledger data across date ranges and categories</p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-gray-500">From:</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 items-end gap-3 w-full xl:w-auto">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">From Date</label>
                             <input
                                 type="date"
-                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary outline-none text-gray-900"
+                                className="w-full text-sm font-bold border border-gray-100 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-gray-900 transition-all"
                                 value={filters.from}
                                 onChange={(e) => setFilters(f => ({ ...f, from: e.target.value }))}
                             />
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-gray-500">To:</span>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">To Date</label>
                             <input
                                 type="date"
-                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary outline-none text-gray-900"
+                                className="w-full text-sm font-bold border border-gray-100 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-gray-900 transition-all"
                                 value={filters.to}
                                 onChange={(e) => setFilters(f => ({ ...f, to: e.target.value }))}
                             />
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-gray-500">Category:</span>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Category</label>
                             <select
-                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-primary outline-none text-gray-900"
+                                className="w-full text-sm font-bold border border-gray-100 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-gray-900 transition-all"
                                 value={filters.categoryId}
                                 onChange={(e) => setFilters(f => ({ ...f, categoryId: e.target.value }))}
                             >
@@ -170,12 +170,16 @@ export default function ReportsSection() {
                                 ))}
                             </select>
                         </div>
-                        <button
-                            onClick={fetchData}
-                            className="p-2 text-gray-400 hover:text-primary transition-colors"
-                        >
-                            <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={fetchData}
+                                className="flex-1 lg:flex-none p-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-400 hover:text-primary hover:bg-white hover:border-primary transition-all flex items-center justify-center shadow-sm"
+                                title="Refresh Report"
+                            >
+                                <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                                <span className="ml-2 font-bold text-xs uppercase tracking-widest lg:hidden">Sync Data</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
