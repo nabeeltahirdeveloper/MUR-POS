@@ -34,6 +34,7 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
         totalDebit: number;  // What we bought
         latestRemaining: number;
         lastEntryDate: Date;
+        lastRemainingDate: Date;
     }> = {};
 
     const getPartyData = (name: string) => {
@@ -44,11 +45,14 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
                 totalCredit: 0,
                 totalDebit: 0,
                 latestRemaining: 0,
-                lastEntryDate: new Date(0)
+                lastEntryDate: new Date(0),
+                lastRemainingDate: new Date(0)
             };
         }
         return supplierMap[normalized];
     };
+
+    const processedSupplierOrders = new Set<string>();
 
     // 1. Process Ledger Entries
     ledgerEntries.forEach(entry => {
@@ -71,6 +75,10 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
             const party = getPartyData(supplierName);
             const totalAmount = Number(entry.amount);
             const entryDate = entry.date instanceof Date ? entry.date : (entry.date?.toDate ? entry.date.toDate() : new Date(entry.date));
+
+            // DEDUPLICATION: Track order numbers per business (supplier)
+            const orderKey = entry.orderNumber ? `${supplierName}_${entry.orderNumber}` : null;
+            const isDuplicateOrder = orderKey && processedSupplierOrders.has(orderKey);
 
             // Parse actual cash flower from note
             let cashMoved = 0;
@@ -104,20 +112,26 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
                 }
             }
 
-            // We track "totalPurchase" (internal name totalCredit in this structure) 
-            // and the "actualPaid" sum separately? 
-            // Actually let's use the same logic as elsewhere for consistency.
-            // We want totalCredit to be the SUM of all BILL amounts? 
-            // The original code used totalCredit (internal) as total Purchase amount.
+            // If it's a duplicate order, we only add the item amount (totalCredit internal), 
+            // but NOT the cashMoved (totalDebit internal) which represents the fixed Advance/Payment.
             party.totalCredit += totalAmount;
-            party.totalDebit += cashMoved;
+            if (!isDuplicateOrder) {
+                party.totalDebit += cashMoved;
+                if (orderKey) processedSupplierOrders.add(orderKey);
+            }
 
             // Use the reported remaining from the LATEST entry as the definitive balance
+
+            // Use the reported remaining from the LATEST entry as the definitive balance
+            // Also update last entry date
             if (entryDate > party.lastEntryDate) {
                 party.lastEntryDate = entryDate;
-                if (remaining !== null) {
-                    party.latestRemaining = remaining;
-                }
+            }
+
+            // Update remaining balance from the most recent entry that has a Remaining field
+            if (remaining !== null && entryDate > party.lastRemainingDate) {
+                party.latestRemaining = remaining;
+                party.lastRemainingDate = entryDate;
             }
         }
     });
@@ -179,6 +193,7 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
         totalDebit: number;  // What they bought from us
         latestRemaining: number;
         lastEntryDate: Date;
+        lastRemainingDate: Date; // Track when remaining was last updated
     }> = {};
 
     const getPartyData = (name: string) => {
@@ -189,11 +204,14 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
                 totalCredit: 0,
                 totalDebit: 0,
                 latestRemaining: 0,
-                lastEntryDate: new Date(0)
+                lastEntryDate: new Date(0),
+                lastRemainingDate: new Date(0)
             };
         }
         return customerMap[normalized];
     };
+
+    const processedCustomerOrders = new Set<string>();
 
     ledgerEntries.forEach(entry => {
         if (!entry.note) return;
@@ -215,6 +233,10 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
             const party = getPartyData(customerName);
             const totalAmount = Number(entry.amount);
             const entryDate = entry.date instanceof Date ? entry.date : (entry.date?.toDate ? entry.date.toDate() : new Date(entry.date));
+
+            // DEDUPLICATION
+            const orderKey = entry.orderNumber ? `${customerName}_${entry.orderNumber}` : null;
+            const isDuplicateOrder = orderKey && processedCustomerOrders.has(orderKey);
 
             // Parse actual cash flower from note
             let cashMoved = 0;
@@ -248,18 +270,27 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
                 }
             }
 
-            party.totalCredit += cashMoved; // Total Paid (Cash-In for customers)
 
+            if (!isDuplicateOrder) {
+                party.totalCredit += cashMoved; // Total Paid (Cash-In for customers)
+                if (orderKey) processedCustomerOrders.add(orderKey);
+            }
+
+            // Update last entry date
             if (entryDate > party.lastEntryDate) {
                 party.lastEntryDate = entryDate;
-                if (remaining !== null) {
-                    party.latestRemaining = remaining;
-                }
+            }
+
+            // Update remaining balance from the most recent entry that has a Remaining field
+            // Track this separately so we don't lose the balance if newer entries don't have it
+            if (remaining !== null && entryDate > party.lastRemainingDate) {
+                party.latestRemaining = remaining;
+                party.lastRemainingDate = entryDate;
             }
         }
     });
 
-    return Object.values(customerMap).map(c => {
+    const result = Object.values(customerMap).map(c => {
         const stillOwed = c.latestRemaining; // Cumulative balance
         const actualReceived = c.totalCredit; // Total actual cash received
 
@@ -271,6 +302,8 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
             totalDebit: 0
         };
     }).sort((a, b) => b.lastEntryDate.getTime() - a.lastEntryDate.getTime());
+
+    return result;
 }
 
 export async function getSupplierBalance(name: string): Promise<number> {

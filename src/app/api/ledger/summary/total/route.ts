@@ -22,11 +22,23 @@ export async function GET(req: NextRequest) {
 
         let totalCredit = 0;
         let totalDebit = 0;
+        const processedOrderNumbers = new Set<number>();
 
         // Process Ledger entries - Only count actual cash transactions (paid amounts)
         for (const entry of ledgerEntries) {
             // Skip legacy utility entries to avoid double counting with virtual entries
             if (entry.note && entry.note.startsWith("Utility payment:")) continue;
+
+            // DEDUPLICATION LOGIC:
+            // If this entry has an orderNumber, and we've already processed this orderNumber,
+            // we should NOT add the advance/payment again (as it's repeated in every entry of the batch).
+            const orderNum = entry.orderNumber ? Number(entry.orderNumber) : null;
+            if (orderNum && processedOrderNumbers.has(orderNum)) {
+                continue;
+            }
+            if (orderNum) {
+                processedOrderNumbers.add(orderNum);
+            }
 
             const totalAmount = Number(entry.amount);
 
