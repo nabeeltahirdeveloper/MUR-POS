@@ -238,7 +238,7 @@ export default function LedgerPendingTable({
         },
         {
             key: "advance",
-            header: "Advance",
+            header: "paid",
             render: (_: any, row: any) => {
                 return <span className="font-mono font-bold text-green-600 block text-right">{formatCurrency(row.advance)}</span>;
             },

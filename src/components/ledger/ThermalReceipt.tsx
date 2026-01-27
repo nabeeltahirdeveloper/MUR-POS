@@ -251,30 +251,55 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                     {/* Items Table - Only for CASH bills, and NOT for Direct Payment to Supplier */}
                     {data.status?.toUpperCase() === 'CASH' && !data.items.some(item => item.name.toLowerCase().includes("direct payment to supplier")) && (
                         <div className="mt-3 border-t-2 border-gray-800 pt-2">
-                            <table className="w-full text-base font-semibold text-gray-900">
+                            <table className="w-full table-fixed text-base font-semibold text-gray-900">
                                 <thead>
                                     <tr className="border-b border-gray-400 text-sm">
-                                        <th className="text-left py-1 w-[40%]">Item</th>
-                                        <th className="text-right py-1">Price</th>
-                                        <th className="text-center py-1">Qty</th>
-                                        <th className="text-right py-1">Amt</th>
+                                        <th className="text-left py-1 w-[45%]">Item</th>
+                                        <th className="text-right py-1 w-[20%]">Price</th>
+                                        <th className="text-center py-1 w-[15%]">Qty</th>
+                                        <th className="text-right py-1 w-[20%]">Amt</th>
                                     </tr>
                                 </thead>
+
                                 <tbody>
                                     {data.items.map((item, idx) => (
-                                        <tr key={idx} className="border-b border-dashed border-gray-300">
-                                            <td className="py-1 text-left leading-tight pr-1">
-                                                {item.name}
-                                                {item.itemType && item.itemType !== 'Stock' && <span className="text-xs text-gray-600 block">({item.itemType})</span>}
+                                        <tr
+                                            key={idx}
+                                            className="border-b border-dashed border-gray-300 align-middle"
+                                        >
+                                            {/* Item Name */}
+                                            <td className="py-1 text-left pr-1 align-middle">
+                                                <div className="break-words whitespace-normal leading-tight">
+                                                    {item.name}
+                                                </div>
+
+                                                {item.itemType && item.itemType !== "Stock" && (
+                                                    <div className="text-xs text-gray-600">
+                                                        ({item.itemType})
+                                                    </div>
+                                                )}
                                             </td>
-                                            <td className="py-1 text-right whitespace-nowrap">{fmt(item.unitPrice)}</td>
-                                            <td className="py-1 text-center">{item.quantity}</td>
-                                            <td className="py-1 text-right whitespace-nowrap">{fmt(item.amount)}</td>
+
+                                            {/* Price */}
+                                            <td className="py-1 text-right whitespace-nowrap align-middle">
+                                                {fmt(item.unitPrice)}
+                                            </td>
+
+                                            {/* Quantity */}
+                                            <td className="py-1 text-center align-middle">
+                                                {item.quantity}
+                                            </td>
+
+                                            {/* Amount */}
+                                            <td className="py-1 text-right whitespace-nowrap align-middle">
+                                                {fmt(item.amount)}
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
+
                     )}
 
                     {/* Transaction History Section - Hide for CASH bills */}
