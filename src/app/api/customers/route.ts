@@ -4,6 +4,8 @@ import type { FirestoreCustomer } from "@/types/firestore";
 
 export const runtime = "nodejs";
 
+import { getCustomersSummaries } from "@/lib/ledger-balance";
+
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || "";
@@ -16,6 +18,9 @@ export async function GET(request: NextRequest) {
             orderDirection: 'asc',
         });
 
+        // Fetch balances
+        const summaries = await getCustomersSummaries();
+
         // Filter by search term if provided (case-insensitive)
         if (search) {
             const searchLower = search.toLowerCase();
@@ -25,9 +30,18 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const total = customers.length;
+        // Merge balance
+        const customersWithBalance = customers.map(c => {
+            const summary = summaries.find(s => s.name.toLowerCase() === c.name.toLowerCase());
+            return {
+                ...c,
+                balance: summary ? summary.balance : 0
+            };
+        });
+
+        const total = customersWithBalance.length;
         const skip = (page - 1) * limit;
-        const paginatedCustomers = customers.slice(skip, skip + limit);
+        const paginatedCustomers = customersWithBalance.slice(skip, skip + limit);
 
         return NextResponse.json({
             customers: paginatedCustomers,
