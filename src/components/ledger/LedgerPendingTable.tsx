@@ -117,6 +117,7 @@ export default function LedgerPendingTable({
             advance: number;
             remaining: number;
             rawNote: string;
+            type: "debit" | "credit";
         }> = {};
 
         // Sort data by date descending to ensure we start with the latest
@@ -137,7 +138,8 @@ export default function LedgerPendingTable({
                     totalBill: 0,
                     advance: details.advance || 0,
                     remaining: details.remaining || 0,
-                    rawNote: entry.note || ""
+                    rawNote: entry.note || "",
+                    type: entry.type
                 };
             }
 
@@ -207,9 +209,18 @@ export default function LedgerPendingTable({
         },
         {
             key: "title",
-            header: "Customer",
+            header: "CUSTOMER / SUPPLIER",
             render: (_: any, row: any) => {
-                return <span className="text-gray-900 font-medium">{row.customerName}</span>;
+                const isCashIn = row.type === 'credit';
+                return (
+                    <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${isCashIn ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-rose-100 text-rose-700 border border-rose-200'
+                            }`}>
+                            {isCashIn ? 'IN' : 'OUT'}
+                        </span>
+                        <span className="text-gray-900 font-bold">{row.customerName}</span>
+                    </div>
+                );
             },
         },
         {
@@ -378,18 +389,22 @@ export default function LedgerPendingTable({
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-100">
-                                                    {historyModal.entries.map((h: any) => {
-                                                        const pParsed = parsePendingDetails(h.note);
-                                                        // Fallback logic: 
-                                                        // 1. If Advance is explicitly in the note (even 0), use it.
-                                                        // 2. If no Advance line but it's a structured note, default to 0 paid.
-                                                        // 3. If it's an old unstructured note, use the row amount.
-                                                        const paid = pParsed.advance !== undefined ? pParsed.advance :
-                                                            (pParsed.orderNumber !== "-" ? 0 : (Number(h.amount) || 0));
-                                                        const remaining = pParsed.remaining || 0;
-                                                        const total = paid + remaining;
+                                                    {historyModal.entries
+                                                        .map((h: any) => {
+                                                            const pParsed = parsePendingDetails(h.note);
+                                                            // Fallback logic: 
+                                                            // 1. If Advance is explicitly in the note (even 0), use it.
+                                                            // 2. If no Advance line but it's a structured note, default to 0 paid.
+                                                            // 3. If it's an old unstructured note, use the row amount.
+                                                            const paid = pParsed.advance !== undefined ? pParsed.advance :
+                                                                (pParsed.orderNumber !== "-" ? 0 : (Number(h.amount) || 0));
+                                                            const remaining = pParsed.remaining || 0;
+                                                            const total = paid + remaining;
 
-                                                        return (
+                                                            return { h, pParsed, paid, remaining, total };
+                                                        })
+                                                        .filter(({ total }) => total > 0) // Filter out empty entries
+                                                        .map(({ h, pParsed, paid, remaining, total }) => (
                                                             <tr key={h.id} className="hover:bg-gray-50/80 transition-colors">
                                                                 <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{new Date(h.date).toLocaleDateString()}</td>
                                                                 <td className="px-4 py-3 text-gray-900 font-medium border-l border-gray-50 italic">
@@ -410,8 +425,7 @@ export default function LedgerPendingTable({
                                                                     {formatCurrency(total)}
                                                                 </td>
                                                             </tr>
-                                                        );
-                                                    })}
+                                                        ))}
                                                 </tbody>
                                             </table>
                                         </div>

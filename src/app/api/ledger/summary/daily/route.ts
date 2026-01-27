@@ -99,12 +99,17 @@ export async function GET(req: NextRequest) {
         // Calculate totals
         let totalCredit = 0;
         let totalDebit = 0;
+        const processedOrderNumbers = new Set<number>();
         const categoryBreakdown: Record<string, { name: string; credit: number; debit: number }> = {};
 
         // 1. Process Ledger entries
         for (const entry of entriesWithCategories) {
             // Skip legacy utility entries to avoid double counting with virtual entries
             if (entry.note && entry.note.startsWith("Utility payment:")) continue;
+
+            // DEDUPLICATION LOGIC
+            const orderNum = entry.orderNumber ? Number(entry.orderNumber) : null;
+            const isDuplicateOrder = orderNum && processedOrderNumbers.has(orderNum);
 
             const totalAmount = Number(entry.amount);
 
@@ -144,7 +149,10 @@ export async function GET(req: NextRequest) {
                 }
             }
 
-            const currentCash = cashMoved;
+            const currentCash = isDuplicateOrder ? 0 : cashMoved;
+            if (orderNum && !isDuplicateOrder) {
+                processedOrderNumbers.add(orderNum);
+            }
 
             if (entry.type === "credit") {
                 totalCredit += currentCash;

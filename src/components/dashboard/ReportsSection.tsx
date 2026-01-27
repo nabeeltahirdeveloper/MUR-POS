@@ -56,6 +56,7 @@ export default function ReportsSection() {
                 // Calculate summary
                 let credit = 0;
                 let debit = 0;
+                const processedOrderNumbers = new Set<string>();
 
                 // Calculate category breakdown
                 const breakdownMap: Record<string, {
@@ -64,6 +65,10 @@ export default function ReportsSection() {
 
                 data.forEach((entry: any) => {
                     const totalAmount = Number(entry.amount);
+
+                    // Deduplication logic for batch orders
+                    const orderNum = entry.orderNumber ? String(entry.orderNumber) : null;
+                    const isDuplicateOrder = orderNum && processedOrderNumbers.has(orderNum);
 
                     // Parse actual cash moved from note
                     let cashMoved = 0;
@@ -102,8 +107,15 @@ export default function ReportsSection() {
                     }
 
                     // Count only actual cash moved
-                    let entryCredit = entry.type === 'credit' ? cashMoved : 0;
-                    let entryDebit = entry.type === 'debit' ? cashMoved : 0;
+                    // If it's a duplicate order, we skip adding cashMoved to the totals
+                    let entryCredit = 0;
+                    let entryDebit = 0;
+
+                    if (!isDuplicateOrder) {
+                        entryCredit = entry.type === 'credit' ? cashMoved : 0;
+                        entryDebit = entry.type === 'debit' ? cashMoved : 0;
+                        if (orderNum) processedOrderNumbers.add(orderNum);
+                    }
 
                     credit += entryCredit;
                     debit += entryDebit;

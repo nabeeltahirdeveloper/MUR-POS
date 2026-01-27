@@ -421,15 +421,20 @@ export default function LedgerTable({
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-100">
-                                                    {historyModal.entries.map((h: any) => {
-                                                        const p = parseTransactionNote(h.note);
+                                                    {historyModal.entries
+                                                        .map((h: any) => {
+                                                            const p = parseTransactionNote(h.note);
 
-                                                        // Fallback logic for Paid Amount
-                                                        const paid = p.advance !== undefined ? p.advance :
-                                                            (p.isStructured ? 0 : (Number(h.amount) || 0));
-                                                        const remaining = p.remaining || 0;
-                                                        const total = paid + remaining;
-                                                        return (
+                                                            // Fallback logic for Paid Amount
+                                                            const paid = p.advance !== undefined ? p.advance :
+                                                                (p.isStructured ? 0 : (Number(h.amount) || 0));
+                                                            const remaining = p.remaining || 0;
+                                                            const total = paid + remaining;
+
+                                                            return { h, p, paid, remaining, total };
+                                                        })
+                                                        .filter(({ total }) => total > 0) // Filter out empty entries
+                                                        .map(({ h, p, paid, remaining, total }) => (
                                                             <tr key={h.id} className="hover:bg-gray-50/80 transition-colors">
                                                                 <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{new Date(h.date).toLocaleDateString()}</td>
                                                                 <td className="px-4 py-3 text-gray-900 font-medium border-l border-gray-50 italic">
@@ -450,8 +455,7 @@ export default function LedgerTable({
                                                                     {formatCurrency(total)}
                                                                 </td>
                                                             </tr>
-                                                        );
-                                                    })}
+                                                        ))}
                                                 </tbody>
                                             </table>
                                         </div>
