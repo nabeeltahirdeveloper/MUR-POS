@@ -5,7 +5,8 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAlert } from "@/contexts/AlertContext";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { PrinterIcon, PencilSquareIcon, LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/outline";
+import { PrinterIcon, PencilSquareIcon, LockClosedIcon, LockOpenIcon, MinusIcon } from "@heroicons/react/24/outline";
+import { RemoveTransactionItemModal } from "./RemoveTransactionItemModal";
 
 interface LedgerEntry {
     id: string;
@@ -22,6 +23,12 @@ export function SupplierLedgerList({ supplierName }: { supplierName: string }) {
     const [entries, setEntries] = useState<LedgerEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const { showAlert, showConfirm } = useAlert();
+    const [showRemoveModal, setShowRemoveModal] = useState(false);
+    const [selectedItemForRemoval, setSelectedItemForRemoval] = useState<{
+        ledgerId: string;
+        item: { name: string; qty: string; rate: string };
+    } | null>(null);
+    const [removingItem, setRemovingItem] = useState(false);
 
     const fetchEntries = async () => {
         setLoading(true);
@@ -68,6 +75,40 @@ export function SupplierLedgerList({ supplierName }: { supplierName: string }) {
         } catch (error) {
             console.error("Failed to toggle status", error);
             showAlert("Error updating status", { variant: "danger" });
+        }
+    };
+
+    const handleRemoveItem = async (quantityToRemove: number, reason: string, notes: string) => {
+        if (!selectedItemForRemoval) return;
+
+        setRemovingItem(true);
+        try {
+            const res = await fetch("/api/ledger/remove-item", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ledgerId: selectedItemForRemoval.ledgerId,
+                    quantityToRemove,
+                    reason,
+                    notes,
+                }),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to remove item");
+            }
+
+            const result = await res.json();
+            showAlert(`${quantityToRemove} item(s) removed successfully`, { variant: "success" });
+            setShowRemoveModal(false);
+            setSelectedItemForRemoval(null);
+            fetchEntries(); // Refresh
+        } catch (error: any) {
+            console.error("Failed to remove item:", error);
+            showAlert(error.message || "Failed to remove item from transaction", { variant: "danger" });
+        } finally {
+            setRemovingItem(false);
         }
     };
 
@@ -219,12 +260,31 @@ export function SupplierLedgerList({ supplierName }: { supplierName: string }) {
                                             </summary>
                                             <div className="mt-1 pl-2 text-xs text-gray-600 border-l-2 border-gray-200 space-y-1">
                                                 {group.items.map((item, idx) => (
-                                                    <div key={idx} className="flex justify-between gap-4">
-                                                        <span className="font-medium text-gray-700">{item.name}</span>
-                                                        <div className="flex gap-2 whitespace-nowrap">
-                                                            <span className="text-gray-500">@{item.rate}</span>
-                                                            <span className="text-gray-400 font-semibold">x{item.qty}</span>
+                                                    <div key={idx} className="flex justify-between gap-4 items-center group/item py-1">
+                                                        <div className="flex-1">
+                                                            <span className="font-medium text-gray-700">{item.name}</span>
+                                                            <div className="flex gap-2 whitespace-nowrap">
+                                                                <span className="text-gray-500">@{item.rate}</span>
+                                                                <span className="text-gray-400 font-semibold">x{item.qty}</span>
+                                                            </div>
                                                         </div>
+                                                        {group.status !== 'closed' && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setSelectedItemForRemoval({
+                                                                        ledgerId: group.id,
+                                                                        item: item
+                                                                    });
+                                                                    setShowRemoveModal(true);
+                                                                }}
+                                                                className="opacity-0 group-hover/item:opacity-100 text-red-500 hover:text-red-700 transition-all p-1 rounded hover:bg-red-50"
+                                                                title="Remove from transaction"
+                                                            >
+                                                                <MinusIcon className="h-4 w-4" />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 ))}
                                                 {group.notes.length > 0 && (
@@ -314,6 +374,18 @@ export function SupplierLedgerList({ supplierName }: { supplierName: string }) {
                     </tbody>
                 </table>
             </div>
+
+            {/* Remove Item Modal */}
+            <RemoveTransactionItemModal
+                isOpen={showRemoveModal}
+                item={selectedItemForRemoval?.item || null}
+                isLoading={removingItem}
+                onConfirm={handleRemoveItem}
+                onCancel={() => {
+                    setShowRemoveModal(false);
+                    setSelectedItemForRemoval(null);
+                }}
+            />
         </div>
     );
 }

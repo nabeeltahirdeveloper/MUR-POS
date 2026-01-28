@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDownIcon, ChevronRightIcon, PrinterIcon, LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, ChevronRightIcon, PrinterIcon, LockClosedIcon, LockOpenIcon, MinusIcon } from "@heroicons/react/24/outline";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useAlert } from "@/contexts/AlertContext";
+import { RemoveTransactionItemModal } from "./RemoveTransactionItemModal";
 
 interface LedgerEntry {
     id: string;
     date: string;
     amount: number;
     type: 'debit' | 'credit';
+    itemId?: string;
+    quantity?: number;
     status?: 'open' | 'closed';
     note?: string;
     orderNumber?: number;
@@ -31,13 +34,20 @@ interface DateGroup {
 }
 
 export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps) {
-    const { showConfirm } = useAlert();
+    const { showConfirm, showAlert } = useAlert();
     const [entries, setEntries] = useState<LedgerEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewLevel, setViewLevel] = useState<'years' | 'months' | 'dates'>('years');
     const [selectedYear, setSelectedYear] = useState<number | null>(null);
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
     const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+    const [showRemoveModal, setShowRemoveModal] = useState(false);
+    const [selectedItemForRemoval, setSelectedItemForRemoval] = useState<{
+        ledgerId: string;
+        item: { name: string; qty: string; rate: string };
+        purchasePrice?: number;
+    } | null>(null);
+    const [removingItem, setRemovingItem] = useState(false);
 
     useEffect(() => {
         fetchEntries();
@@ -229,6 +239,50 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
         }
     };
 
+    const handleRemoveItem = async (quantityToRemove: number, reason: string, notes: string) => {
+        if (!selectedItemForRemoval) return;
+
+        setRemovingItem(true);
+        try {
+            const res = await fetch("/api/ledger/remove-item", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ledgerId: selectedItemForRemoval.ledgerId,
+                    quantityToRemove,
+                    reason,
+                    notes,
+                }),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to remove item");
+            }
+
+            const result = await res.json();
+            showAlert(`${quantityToRemove} item(s) removed successfully. New quantity: ${result.newQuantity}`, { variant: "success" });
+            setShowRemoveModal(false);
+            setSelectedItemForRemoval(null);
+            
+            // Add a small delay to ensure database is updated, then refresh
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Reset view levels to force complete refresh and show all data updated
+            setViewLevel('years');
+            setSelectedYear(null);
+            setSelectedMonth(null);
+            setExpandedDates(new Set());
+            
+            fetchEntries(); // Refresh all entries and recalculate totals
+        } catch (error: any) {
+            console.error("Failed to remove item:", error);
+            showAlert(error.message || "Failed to remove item from transaction", { variant: "danger" });
+        } finally {
+            setRemovingItem(false);
+        }
+    };
+
     const months = [
         { value: null, label: "All Months" },
         { value: 1, label: "January" },
@@ -289,7 +343,8 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
     };
 
     return (
-        <div className="p-4 bg-gray-50 space-y-4">
+        <>
+            <div className="p-4 bg-gray-50 space-y-4">
             {/* Breadcrumb Navigation */}
             {viewLevel !== 'years' && (
                 <div className="flex items-center gap-2 text-sm">
@@ -416,10 +471,11 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
                                                         <th className="px-4 py-3 text-left font-black text-gray-400 uppercase tracking-tighter text-[10px]">Qty</th>
                                                         <th className="px-4 py-3 text-left font-black text-gray-400 uppercase tracking-tighter text-[10px]">Items</th>
                                                         <th className="px-4 py-3 text-right font-black text-gray-400 uppercase tracking-tighter text-[10px]">Amount</th>
+                                                        <th className="px-4 py-3 text-center font-black text-gray-400 uppercase tracking-tighter text-[10px]">Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-100">
-                                                    {group.entries.map((entry) => {
+                                                {group.entries.map((entry) => {
                                                         const p = parseLedgerNote(entry.note);
                                                         const ordNum = entry.orderNumber || (p.orderNumber !== '-' ? p.orderNumber : '-');
 
@@ -435,7 +491,7 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
                                                                     {formatTime(entry.date)}
                                                                 </td>
                                                                 <td className="px-4 py-3 font-bold text-gray-900">
-                                                                    {p.qty !== '-' ? p.qty : "-"}
+                                                                    {entry.quantity !== undefined && entry.quantity !== null ? entry.quantity : (p.qty !== '-' ? p.qty : "-")}
                                                                 </td>
                                                                 <td className="px-4 py-3">
                                                                     <div className="max-w-[200px] truncate font-medium text-gray-900" title={entry.note}>
@@ -444,6 +500,39 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
                                                                 </td>
                                                                 <td className="px-4 py-3 text-right font-mono font-bold text-gray-900">
                                                                     {formatCurrency(entry.amount)}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    {entry.status !== 'closed' && p.itemName !== '-' && p.qty !== '-' && (
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                try {
+                                                                                    // Calculate actual rate from this specific transaction
+                                                                                    // This is important because same item from different suppliers has different rates
+                                                                                   const transactionRate =
+                                                                                        entry.quantity != null && entry.amount != null
+                                                                                            ? Number(entry.amount) / Number(entry.quantity)
+                                                                                            : 0;
+                                                                                    
+                                                                                    setSelectedItemForRemoval({
+                                                                                        ledgerId: entry.id,
+                                                                                        item: {
+                                                                                            name: p.itemName,
+                                                                                            qty: p.qty,
+                                                                                            rate: p.qty
+                                                                                        },
+                                                                                        purchasePrice: transactionRate
+                                                                                    });
+                                                                                    setShowRemoveModal(true);
+                                                                                } catch (err) {
+                                                                                    console.error("Failed to open removal modal:", err);
+                                                                                }
+                                                                            }}
+                                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-all"
+                                                                            title="Remove from transaction"
+                                                                        >
+                                                                            <MinusIcon className="h-4 w-4" />
+                                                                        </button>
+                                                                    )}
                                                                 </td>
                                                             </tr>
                                                         );
@@ -459,5 +548,19 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
                 </div>
             )}
         </div>
+
+        {/* Remove Item Modal */}
+        <RemoveTransactionItemModal
+            isOpen={showRemoveModal}
+            item={selectedItemForRemoval?.item || null}
+            purchasePrice={selectedItemForRemoval?.purchasePrice}
+            isLoading={removingItem}
+            onConfirm={handleRemoveItem}
+            onCancel={() => {
+                setShowRemoveModal(false);
+                setSelectedItemForRemoval(null);
+            }}
+        />
+    </>
     );
 }

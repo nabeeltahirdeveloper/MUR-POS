@@ -10,6 +10,7 @@ type LedgerEntry = {
     amount: number | string;
     category: { name: string } | null;
     note: string | null;
+    quantity: number | null;
     date: string; // ISO string
 };
 

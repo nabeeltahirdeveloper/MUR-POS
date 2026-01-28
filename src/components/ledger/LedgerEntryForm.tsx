@@ -12,6 +12,7 @@ type LedgerEntry = {
     categoryId: string | null;
     note: string;
     date: string;
+    quantity: number | null;
 };
 
 type Item = {
