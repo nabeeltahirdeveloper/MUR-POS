@@ -12,6 +12,8 @@ interface LedgerEntry {
     date: string;
     amount: number;
     type: 'debit' | 'credit';
+    itemId?: string;
+    quantity?: number;
     status?: 'open' | 'closed';
     note?: string;
     orderNumber?: number;
@@ -506,18 +508,16 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
                                                                                 try {
                                                                                     // Calculate actual rate from this specific transaction
                                                                                     // This is important because same item from different suppliers has different rates
-                                                                                    const transactionRate = entry.quantity && entry.amount 
-                                                                                        ? entry.amount / entry.quantity 
-                                                                                        : 0;
-                                                                                    
-                                                                                    // Use entry.quantity (current) instead of p.qty (original) to show updated quantity
-                                                                                    const currentQty = entry.quantity !== undefined && entry.quantity !== null ? entry.quantity : parseFloat(p.qty.split(' ')[0]);
+                                                                                   const transactionRate =
+                                                                                        entry.quantity != null && entry.amount != null
+                                                                                            ? Number(entry.amount) / Number(entry.quantity)
+                                                                                            : 0;
                                                                                     
                                                                                     setSelectedItemForRemoval({
                                                                                         ledgerId: entry.id,
                                                                                         item: {
                                                                                             name: p.itemName,
-                                                                                            qty: `${currentQty} pc`,
+                                                                                            qty: p.qty,
                                                                                             rate: p.qty
                                                                                         },
                                                                                         purchasePrice: transactionRate
