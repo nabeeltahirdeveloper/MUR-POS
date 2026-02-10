@@ -634,6 +634,31 @@ export default function LedgerEntryForm({
                 return;
             }
         }
+        // Price vs Purchase Warning (Cash-In / Sale)
+        // Many users directly edit the AMOUNT field instead of unit price.
+        // So we compare the edited total (or effective unit) against the purchase price.
+        if (type === 'credit' && itemType === 'Stock' && selectedItem) {
+            const purchasePricePerUnit = Number(selectedItem.secondPurchasePrice || selectedItem.firstSalePrice || 0);
+            const qtyNumber = Number(quantity) || 1;
+            const totalAmount = Number(lineAmount) || 0;
+            const effectiveUnitPrice = totalAmount / qtyNumber;
+
+            // Compare by total (preferred) and fallback to per-unit check
+            const totalPurchaseCost = purchasePricePerUnit * qtyNumber;
+            if (
+                purchasePricePerUnit > 0 &&
+                (totalAmount < totalPurchaseCost || effectiveUnitPrice < purchasePricePerUnit)
+            ) {
+                showAlert(
+                    "The sale amount is less than the purchase price.",
+                    {
+                        title: "Low Selling Price",
+                        variant: "warning",
+                        confirmText: "OK",
+                    }
+                );
+            }
+        }
 
         let itemToAdd = selectedItem;
 
@@ -1112,7 +1137,7 @@ export default function LedgerEntryForm({
                         {/* Row 2: Customer Name | Item Type | Date | Time */}
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                             {/* Party Search */}
-                            <div className="md:col-span-4 relative" ref={partySearchRef}>
+                            <div className={`${type === 'credit' ? 'md:col-span-4' : 'md:col-span-6'} relative`} ref={partySearchRef}>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
                                     {type === 'credit' ? 'Customer' : 'Supplier'} Search
                                 </label>
@@ -1234,17 +1259,20 @@ export default function LedgerEntryForm({
                                 )}
                             </div>
 
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Item Type</label>
-                                <select
-                                    value={itemType}
-                                    onChange={(e) => setItemType(e.target.value as "Stock" | "Customize")}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-gray-900"
-                                >
-                                    <option value="Stock">Stock</option>
-                                    <option value="Customize">Customize</option>
-                                </select>
-                            </div>
+                            {type === 'credit' && (
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Item Type</label>
+                                    <select
+                                        value={itemType}
+                                        onChange={(e) => setItemType(e.target.value as "Stock" | "Customize")}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-gray-900"
+                                    >
+                                        <option value="Stock">Stock</option>
+                                        <option value="Customize">Customize</option>
+                                    </select>
+                                </div>
+                            )}
+
 
                             {/* Date */}
                             <div className="md:col-span-3">
@@ -1553,7 +1581,7 @@ export default function LedgerEntryForm({
                                     </span>
                                 </div>
                                 <div className="border border-gray-100 rounded-xl overflow-hidden overflow-x-auto max-h-96">
-                                    <table className="w-full text-sm text-left min-w-[600px]">
+                                    <table className="w-full text-sm text-left min-w-[700px]">
                                         <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100 sticky top-0">
                                             <tr>
                                                 <th className="px-4 py-3">#</th>
@@ -1561,12 +1589,17 @@ export default function LedgerEntryForm({
                                                 <th className="px-4 py-3">Time</th>
                                                 <th className="px-4 py-3 text-center">Qty</th>
                                                 <th className="px-4 py-3">Items</th>
-                                                <th className="px-4 py-3 text-right">Amount</th>
+                                                <th className="px-4 py-3 text-right">Debit</th>
+                                                <th className="px-4 py-3 text-right">Credit</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-50">
                                             {supplierHistory.map((transaction, idx) => {
                                                 const txDate = new Date(transaction.date);
+                                                const hasItem = !!(transaction.itemName && transaction.itemName.trim() !== "");
+                                                const amount = Number(transaction.amount) || 0;
+                                                const debitAmount = hasItem ? 0 : amount;
+                                                const creditAmount = hasItem ? amount : 0;
                                                 const isPaid = transaction.remaining === 0 || transaction.remaining === undefined;
 
                                                 return (
@@ -1581,18 +1614,27 @@ export default function LedgerEntryForm({
                                                             {txDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </td>
                                                         <td className="px-4 py-3 text-center text-gray-900 font-bold">
-                                                            {transaction.quantity || '-'}
+                                                            {hasItem ? (transaction.quantity || '-') : '-'}
                                                         </td>
                                                         <td className="px-4 py-3 text-gray-600 text-xs">
-                                                            {transaction.itemName || (type === 'debit' ? 'Direct Payment' : '-')}
-                                                            {transaction.itemCount > 1 && (
-                                                                <span className="ml-1 text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                                                                    {transaction.itemCount} items
-                                                                </span>
+                                                            {hasItem ? (
+                                                                <>
+                                                                    {transaction.itemName}
+                                                                    {transaction.itemCount > 1 && (
+                                                                        <span className="ml-1 text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                                                                            {transaction.itemCount} items
+                                                                        </span>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                "-"
                                                             )}
                                                         </td>
-                                                        <td className="px-4 py-3 text-right font-bold text-red-600">
-                                                            Rs. {Number(transaction.amount).toLocaleString()}
+                                                        <td className="px-4 py-3 text-right font-mono font-bold text-red-600">
+                                                            {debitAmount > 0 ? `Rs. ${debitAmount.toLocaleString()}` : "-"}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700">
+                                                            {creditAmount > 0 ? `Rs. ${creditAmount.toLocaleString()}` : "-"}
                                                         </td>
                                                     </tr>
                                                 );
