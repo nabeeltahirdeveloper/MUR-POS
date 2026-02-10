@@ -137,8 +137,7 @@ export async function GET(req: NextRequest) {
                     quantity: itemQuantities || "-",
                     itemCount: order.itemCount,
                 };
-            })
-            .filter(tx => tx.itemName && tx.itemName.trim() !== "");
+            });
 
         return NextResponse.json({
             supplierName,
