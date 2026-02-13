@@ -8,12 +8,14 @@ import { Item } from "@/types/inventory";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 import { DashboardLayout } from "@/components/layout";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { useAlert } from "@/contexts/AlertContext";
+import { useLock } from "@/contexts/LockContext";
 
 export default function ItemsPage() {
     const [items, setItems] = useState<Item[]>([]);
     const { showConfirm, showAlert } = useAlert();
+    const { isLocked } = useLock();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -65,12 +67,19 @@ export default function ItemsPage() {
                             Manage your inventory items and stock levels.
                         </p>
                     </div>
-                    <Link href="/items/new">
-                        <Button>
-                            <PlusIcon className="h-5 w-5 mr-2" />
-                            Add
+                    {isLocked ? (
+                        <Button disabled>
+                            <LockClosedIcon className="h-5 w-5 mr-2" />
+                            Add (Locked)
                         </Button>
-                    </Link>
+                    ) : (
+                        <Link href="/items/new">
+                            <Button>
+                                <PlusIcon className="h-5 w-5 mr-2" />
+                                Add
+                            </Button>
+                        </Link>
+                    )}
                 </div>
 
                 {loading ? (
@@ -81,10 +90,10 @@ export default function ItemsPage() {
                     <ErrorDisplay message={error} onRetry={fetchItems} />
                 ) : (
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                        <ItemTable items={items} onDelete={handleDelete} onUpdate={fetchItems} />
+                        <ItemTable items={items} onDelete={handleDelete} onUpdate={fetchItems} isLocked={isLocked} />
                     </div>
                 )}
             </div>
-        </DashboardLayout>
+        </DashboardLayout >
     );
 }

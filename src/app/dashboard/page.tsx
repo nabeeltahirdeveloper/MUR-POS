@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { DashboardLayout } from "@/components/layout";
+import { useLock } from "@/contexts/LockContext";
 import {
     CubeIcon,
     ChartBarIcon,
@@ -13,6 +14,7 @@ import {
     BoltIcon,
     CheckCircleIcon,
     RectangleGroupIcon,
+    LockClosedIcon,
 } from "@heroicons/react/24/outline";
 import PendingCustomOrders from "@/components/dashboard/PendingCustomOrders";
 import LowStockWidget from "@/components/dashboard/LowStockWidget";
@@ -23,6 +25,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 function DashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { isLocked } = useLock();
     const [dailySummary, setDailySummary] = useState<any>(null);
     const [totalSummary, setTotalSummary] = useState<any>(null);
     const [upcomingUtilities, setUpcomingUtilities] = useState<any[]>([]);
@@ -173,49 +176,70 @@ function DashboardContent() {
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Summary</p>
-                                <p className="text-2xl font-black text-primary">
-                                    Net: {formatCurr(totalSummary?.summary?.net || 0)}
-                                </p>
+                                {isLocked ? (
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <LockClosedIcon className="h-5 w-5 text-gray-400" />
+                                        <p className="text-lg font-bold text-gray-400">🔒 Locked</p>
+                                    </div>
+                                ) : (
+                                    <p className="text-2xl font-black text-primary">
+                                        Net: {formatCurr(totalSummary?.summary?.net || 0)}
+                                    </p>
+                                )}
                             </div>
                             <div className="p-3 bg-primary/10 rounded-lg">
                                 <RectangleGroupIcon className="h-6 w-6 text-primary" />
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <div className="flex-1">
-                                <div className="flex justify-between text-xs font-bold mb-1">
-                                    <span className="text-green-600">Cash-In</span>
-                                    <span className="text-red-500">Cash-Out</span>
+                        {isLocked ? (
+                            <div className="flex items-center gap-2 mt-4 text-center justify-center p-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                                <LockClosedIcon className="h-5 w-5 text-gray-400" />
+                                <p className="text-sm font-bold text-gray-400">Locked</p>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1">
+                                    <div className="flex justify-between text-xs font-bold mb-1">
+                                        <span className="text-green-600">Cash-In</span>
+                                        <span className="text-red-500">Cash-Out</span>
+                                    </div>
+                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden flex">
+                                        <div
+                                            className="h-full bg-green-500"
+                                            style={{ width: `${(totalSummary?.summary?.totalCredit / (totalSummary?.summary?.totalCredit + totalSummary?.summary?.totalDebit || 1)) * 100}%` }}
+                                        ></div>
+                                        <div
+                                            className="h-full bg-red-500"
+                                            style={{ width: `${(totalSummary?.summary?.totalDebit / (totalSummary?.summary?.totalCredit + totalSummary?.summary?.totalDebit || 1)) * 100}%` }}
+                                        ></div>
+                                    </div>
                                 </div>
-                                <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden flex">
-                                    <div
-                                        className="h-full bg-green-500"
-                                        style={{ width: `${(totalSummary?.summary?.totalCredit / (totalSummary?.summary?.totalCredit + totalSummary?.summary?.totalDebit || 1)) * 100}%` }}
-                                    ></div>
-                                    <div
-                                        className="h-full bg-red-500"
-                                        style={{ width: `${(totalSummary?.summary?.totalDebit / (totalSummary?.summary?.totalCredit + totalSummary?.summary?.totalDebit || 1)) * 100}%` }}
-                                    ></div>
+                                <div className="text-right">
+                                    <p className="text-xs text-gray-500 font-medium">Out of</p>
+                                    <p className="text-sm font-bold text-gray-900">{formatCurr(totalSummary?.summary?.totalCredit + totalSummary?.summary?.totalDebit || 0)}</p>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <p className="text-xs text-gray-500 font-medium">Out of</p>
-                                <p className="text-sm font-bold text-gray-900">{formatCurr(totalSummary?.summary?.totalCredit + totalSummary?.summary?.totalDebit || 0)}</p>
-                            </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Quick Access to Ledger */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center">
-                        <Link href="/ledger" className="flex items-center justify-between group">
-                            <div>
-                                <p className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">Go to Detailed</p>
-                                <p className="text-lg font-bold text-gray-900">Full Records →</p>
+                        {isLocked ? (
+                            <div className="flex items-center justify-center gap-2">
+                                <LockClosedIcon className="h-6 w-6 text-gray-400" />
+                                <p className="text-sm font-bold text-gray-400">Full Records Locked</p>
                             </div>
-                            <div className="p-2 bg-gray-50 rounded-lg group-hover:bg-primary/10 transition-colors">
-                                <ChartBarIcon className="h-5 w-5 text-gray-400 group-hover:text-primary" />
-                            </div>
-                        </Link>
+                        ) : (
+                            <Link href="/ledger" className="flex items-center justify-between group">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">Go to Detailed</p>
+                                    <p className="text-lg font-bold text-gray-900">Full Records →</p>
+                                </div>
+                                <div className="p-2 bg-gray-50 rounded-lg group-hover:bg-primary/10 transition-colors">
+                                    <ChartBarIcon className="h-5 w-5 text-gray-400 group-hover:text-primary" />
+                                </div>
+                            </Link>
+                        )}
                     </div>
                 </div>
 
