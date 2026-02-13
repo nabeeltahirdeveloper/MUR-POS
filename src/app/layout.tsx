@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Moon Traders | General Order Supplier",
-  description: "Your Trust, Our Promise. Professional General Order Supplier services.",
+  title: "JB & COMPANY | General Order Supplier",
+  description: "JB & COMPANY - Your Trust, Our Promise. Professional General Order Supplier services.",
   icons: {
     icon: "/favicon.jpg",
     apple: "/favicon.jpg",
@@ -19,10 +19,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`antialiased`}
-      ><Providers>{children}</Providers>
+        suppressHydrationWarning
+      >
+        <Providers>{children}</Providers>
+        <div className="text-center py-4 text-sm text-gray-500">
+          <span>
+            © {new Date().getFullYear()} JB & COMPANY. All rights reserved.
+          </span>
+        </div>
       </body>
     </html >
   );

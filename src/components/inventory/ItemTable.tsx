@@ -9,9 +9,10 @@ interface ItemTableProps {
     items: Item[];
     onDelete?: (id: string) => void;
     onUpdate?: () => void;
+    isLocked?: boolean;
 }
 
-export function ItemTable({ items, onDelete, onUpdate }: ItemTableProps) {
+export function ItemTable({ items, onDelete, onUpdate, isLocked = false }: ItemTableProps) {
     return (
         <Table<Item>
             data={items}
@@ -87,24 +88,42 @@ export function ItemTable({ items, onDelete, onUpdate }: ItemTableProps) {
                     header: "Actions",
                     render: (_, row) => (
                         <div className="flex space-x-2">
-                            <Link href={`/items/${row.id}/stock`}>
-                                <Button variant="secondary" size="sm">
-                                    Stock
-                                </Button>
-                            </Link>
-                            <Link href={`/items/${row.id}/edit`}>
-                                <Button variant="outline" size="sm">
-                                    Edit
-                                </Button>
-                            </Link>
-                            {onDelete && (
-                                <Button
-                                    variant="danger"
-                                    size="sm"
-                                    onClick={() => onDelete(row.id)}
-                                >
-                                    Delete
-                                </Button>
+                            {isLocked ? (
+                                <>
+                                    <Button variant="secondary" size="sm" disabled>
+                                        Stock
+                                    </Button>
+                                    <Button variant="outline" size="sm" disabled>
+                                        Edit
+                                    </Button>
+                                    {onDelete && (
+                                        <Button variant="danger" size="sm" disabled>
+                                            Delete
+                                        </Button>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <Link href={`/items/${row.id}/stock`}>
+                                        <Button variant="secondary" size="sm">
+                                            Stock
+                                        </Button>
+                                    </Link>
+                                    <Link href={`/items/${row.id}/edit`}>
+                                        <Button variant="outline" size="sm">
+                                            Edit
+                                        </Button>
+                                    </Link>
+                                    {onDelete && (
+                                        <Button
+                                            variant="danger"
+                                            size="sm"
+                                            onClick={() => onDelete(row.id)}
+                                        >
+                                            Delete
+                                        </Button>
+                                    )}
+                                </>
                             )}
                         </div>
                     ),

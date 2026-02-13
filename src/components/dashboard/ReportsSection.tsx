@@ -6,10 +6,13 @@ import {
     TagIcon,
     ChevronDownIcon,
     ChevronUpIcon,
-    ArrowPathIcon
+    ArrowPathIcon,
+    LockClosedIcon
 } from "@heroicons/react/24/outline";
+import { useLock } from "@/contexts/LockContext";
 
 export default function ReportsSection() {
+    const { isLocked } = useLock();
     const [entries, setEntries] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -195,63 +198,75 @@ export default function ReportsSection() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                        <p className="text-xs font-bold text-green-600 uppercase tracking-widest">Total Cash-In</p>
-                        <p className="text-2xl font-black text-green-700 mt-1">Rs. {summary.credit.toLocaleString()}</p>
+                {isLocked ? (
+                    <div className="py-12 bg-gray-50 rounded-xl border border-gray-200 mb-8">
+                        <div className="text-center">
+                            <LockClosedIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                            <p className="text-lg font-bold text-gray-500">Reports & Analytics Locked</p>
+                            <p className="text-sm text-gray-400 mt-1">Click the lock icon in the header to unlock</p>
+                        </div>
                     </div>
-                    <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                        <p className="text-xs font-bold text-red-600 uppercase tracking-widest">Total Cash-Out</p>
-                        <p className="text-2xl font-black text-red-700 mt-1">Rs. {summary.debit.toLocaleString()}</p>
-                    </div>
-                    <div className={`${summary.net >= 0 ? 'bg-primary/10 border-primary/20' : 'bg-red-50 border-red-100'} p-4 rounded-xl border`}>
-                        <p className={`text-xs font-bold ${summary.net >= 0 ? 'text-primary' : 'text-red-600'} uppercase tracking-widest`}>
-                            Net Balance {summary.net >= 0 ? '(Profit)' : '(Loss)'}
-                        </p>
-                        <p className={`text-2xl font-black ${summary.net >= 0 ? 'text-primary-dark' : 'text-red-700'} mt-1`}>Rs. {Math.abs(summary.net).toLocaleString()}</p>
-                    </div>
-                </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                                <p className="text-xs font-bold text-green-600 uppercase tracking-widest">Total Cash-In</p>
+                                <p className="text-2xl font-black text-green-700 mt-1">Rs. {summary.credit.toLocaleString()}</p>
+                            </div>
+                            <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                                <p className="text-xs font-bold text-red-600 uppercase tracking-widest">Total Cash-Out</p>
+                                <p className="text-2xl font-black text-red-700 mt-1">Rs. {summary.debit.toLocaleString()}</p>
+                            </div>
+                            <div className={`${summary.net >= 0 ? 'bg-primary/10 border-primary/20' : 'bg-red-50 border-red-100'} p-4 rounded-xl border`}>
+                                <p className={`text-xs font-bold ${summary.net >= 0 ? 'text-primary' : 'text-red-600'} uppercase tracking-widest`}>
+                                    Net Balance {summary.net >= 0 ? '(Profit)' : '(Loss)'}
+                                </p>
+                                <p className={`text-2xl font-black ${summary.net >= 0 ? 'text-primary-dark' : 'text-red-700'} mt-1`}>Rs. {Math.abs(summary.net).toLocaleString()}</p>
+                            </div>
+                        </div>
 
-                <div className="space-y-4">
-                    <h4 className="font-bold text-gray-900 flex items-center gap-2 px-2">
-                        <TagIcon className="h-4 w-4 text-purple-500" />
-                        Category Breakdown
-                    </h4>
-                    {categoryBreakdown.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {categoryBreakdown.map((cat) => (
-                                <div key={cat.name} className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-primary/20 transition-colors">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="font-bold text-gray-900">{cat.name}</span>
-                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cat.credit - cat.debit >= 0 ? 'bg-primary/10 text-primary-dark' : 'bg-red-100 text-red-700'}`}>
-                                            {((cat.credit - cat.debit) / (summary.credit + summary.debit || 1) * 100).toFixed(1)}%
-                                        </span>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-gray-500">Cash-In:</span>
-                                            <span className="font-mono text-green-600 font-bold">Rs. {cat.credit.toLocaleString()}</span>
+                        <div className="space-y-4">
+                            <h4 className="font-bold text-gray-900 flex items-center gap-2 px-2">
+                                <TagIcon className="h-4 w-4 text-purple-500" />
+                                Category Breakdown
+                            </h4>
+                            {categoryBreakdown.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {categoryBreakdown.map((cat) => (
+                                        <div key={cat.name} className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-primary/20 transition-colors">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="font-bold text-gray-900">{cat.name}</span>
+                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cat.credit - cat.debit >= 0 ? 'bg-primary/10 text-primary-dark' : 'bg-red-100 text-red-700'}`}>
+                                                    {((cat.credit - cat.debit) / (summary.credit + summary.debit || 1) * 100).toFixed(1)}%
+                                                </span>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-gray-500">Cash-In:</span>
+                                                    <span className="font-mono text-green-600 font-bold">Rs. {cat.credit.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-gray-500">Cash-Out:</span>
+                                                    <span className="font-mono text-red-600 font-bold">Rs. {cat.debit.toLocaleString()}</span>
+                                                </div>
+                                                <div className="pt-2 border-t border-gray-200 mt-2 flex justify-between">
+                                                    <span className="text-xs font-bold text-gray-700">Net:</span>
+                                                    <span className={`font-mono text-sm font-black ${cat.credit - cat.debit >= 0 ? 'text-primary' : 'text-red-600'}`}>
+                                                        Rs. {(cat.credit - cat.debit).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-gray-500">Cash-Out:</span>
-                                            <span className="font-mono text-red-600 font-bold">Rs. {cat.debit.toLocaleString()}</span>
-                                        </div>
-                                        <div className="pt-2 border-t border-gray-200 mt-2 flex justify-between">
-                                            <span className="text-xs font-bold text-gray-700">Net:</span>
-                                            <span className={`font-mono text-sm font-black ${cat.credit - cat.debit >= 0 ? 'text-primary' : 'text-red-600'}`}>
-                                                Rs. {(cat.credit - cat.debit).toLocaleString()}
-                                            </span>
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
+                            ) : (
+                                <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                    <p className="text-gray-400 font-medium">No data available for this range</p>
+                                </div>
+                            )}
                         </div>
-                    ) : (
-                        <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                            <p className="text-gray-400 font-medium">No data available for this range</p>
-                        </div>
-                    )}
-                </div>
+                    </>
+                )}
             </div>
         </div>
     );

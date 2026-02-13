@@ -9,8 +9,13 @@ import {
     BellIcon,
     MagnifyingGlassIcon,
     XMarkIcon,
+    LockClosedIcon,
+    LockOpenIcon,
 } from "@heroicons/react/24/outline";
 import { reminderTypeLabel } from "@/lib/reminders-shared";
+import { useLock } from "@/contexts/LockContext";
+import UnlockModal from "@/components/modals/UnlockModal";
+
 
 type HeaderReminder = {
     id: string;
@@ -26,13 +31,16 @@ export default function Header({
     setSidebarOpen: (open: boolean) => void;
 }) {
     const { data: session, status } = useSession();
+    const { isLocked, lock } = useLock();
     const [panelOpen, setPanelOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [unlockModalOpen, setUnlockModalOpen] = useState(false);
     const [loadingReminders, setLoadingReminders] = useState(false);
     const [reminders, setReminders] = useState<HeaderReminder[]>([]);
     const [remindersError, setRemindersError] = useState<string | null>(null);
     const panelRef = useRef<HTMLDivElement | null>(null);
     const userMenuRef = useRef<HTMLDivElement | null>(null);
+
 
     const refreshReminders = async () => {
         try {
@@ -122,6 +130,27 @@ export default function Header({
                 </form>
 
                 <div className="flex items-center gap-x-6">
+                    {/* Lock button */}
+                    <button
+                        type="button"
+                        className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 cursor-pointer"
+                        onClick={() => {
+                            if (isLocked) {
+                                setUnlockModalOpen(true);
+                            } else {
+                                lock();
+                            }
+                        }}
+                        title={isLocked ? "Unlock protected features" : "Lock protected features"}
+                    >
+                        <span className="sr-only">{isLocked ? "Unlock" : "Lock"}</span>
+                        {isLocked ? (
+                            <LockClosedIcon className="h-6 w-6" aria-hidden="true" />
+                        ) : (
+                            <LockOpenIcon className="h-6 w-6" aria-hidden="true" />
+                        )}
+                    </button>
+
                     {/* Notification button */}
                     <div className="relative" ref={panelRef}>
                         <button
@@ -329,6 +358,9 @@ export default function Header({
                     </div>
                 </div>
             </div>
+
+            {/* Unlock Modal */}
+            <UnlockModal isOpen={unlockModalOpen} onClose={() => setUnlockModalOpen(false)} />
         </header>
     );
 }
