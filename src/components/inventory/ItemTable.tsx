@@ -86,49 +86,32 @@ export function ItemTable({ items, onDelete, onUpdate, isLocked = false }: ItemT
                 {
                     key: "actions",
                     header: "Actions",
+                    hidden: isLocked, // Pass this to utility table if it supports it, enabling dynamic filtering
                     render: (_, row) => (
                         <div className="flex space-x-2">
-                            {isLocked ? (
-                                <>
-                                    <Button variant="secondary" size="sm" disabled>
-                                        Stock
-                                    </Button>
-                                    <Button variant="outline" size="sm" disabled>
-                                        Edit
-                                    </Button>
-                                    {onDelete && (
-                                        <Button variant="danger" size="sm" disabled>
-                                            Delete
-                                        </Button>
-                                    )}
-                                </>
-                            ) : (
-                                <>
-                                    <Link href={`/items/${row.id}/stock`}>
-                                        <Button variant="secondary" size="sm">
-                                            Stock
-                                        </Button>
-                                    </Link>
-                                    <Link href={`/items/${row.id}/edit`}>
-                                        <Button variant="outline" size="sm">
-                                            Edit
-                                        </Button>
-                                    </Link>
-                                    {onDelete && (
-                                        <Button
-                                            variant="danger"
-                                            size="sm"
-                                            onClick={() => onDelete(row.id)}
-                                        >
-                                            Delete
-                                        </Button>
-                                    )}
-                                </>
+                            <Link href={`/items/${row.id}/stock`}>
+                                <Button variant="secondary" size="sm">
+                                    Stock
+                                </Button>
+                            </Link>
+                            <Link href={`/items/${row.id}/edit`}>
+                                <Button variant="outline" size="sm">
+                                    Edit
+                                </Button>
+                            </Link>
+                            {onDelete && (
+                                <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => onDelete(row.id)}
+                                >
+                                    Delete
+                                </Button>
                             )}
                         </div>
                     ),
                 },
-            ]}
+            ].filter(col => !col.hidden)}
             emptyMessage="No items found. Create one to get started."
         />
     );

@@ -3,7 +3,6 @@
 import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { RECEIPT_LOGO_BASE64 } from "@/components/ledger/ReceiptLogoBase64";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 function LedgerPrintContent() {
@@ -156,14 +155,38 @@ function LedgerPrintContent() {
         };
     };
 
+    const [paperSize, setPaperSize] = useState<"80mm" | "A4">("80mm");
+
+    // ... (existing code)
+
     return (
         <div className="bg-white min-h-screen text-black font-sans font-bold text-sm leading-snug p-2 print:p-0">
-            {/* Thermal Receipt Container - 80mm ~ 300px */}
+            {/* Controls - Hidden in print */}
+            <div className="print:hidden mb-4 flex justify-center gap-4">
+                <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-700">Paper Size:</label>
+                    <select
+                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                        value={paperSize}
+                        onChange={(e) => setPaperSize(e.target.value as "80mm" | "A4")}
+                    >
+                        <option value="80mm">80mm (Thermal)</option>
+                        <option value="A4">A4 (Standard)</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Receipt Container */}
             {/* Added px-2 padding to container to prevent edge clipping */}
-            <div className="report-container max-w-[80mm] mx-auto print:w-full print:max-w-none px-1">
+            <div
+                className={`report-container mx-auto print:w-full px-1 ${paperSize === '80mm' ? 'max-w-[80mm]' : 'max-w-[210mm]'}`}
+            >
                 <style jsx global>{`
                     @media print {
-                        @page { margin: 0; size: auto; }
+                        @page { 
+                            margin: 0; 
+                            size: ${paperSize === 'A4' ? 'A4 portrait' : '80mm auto'}; 
+                        }
                         body { margin: 0; padding: 0; }
                         /* Hide app chrome in print preview */
                         header, nav, aside, .sidebar, .topbar, .header, .search, .toggle, .bell, .app-header, .AppHeader, .site-header { display: none !important; visibility: hidden !important; }
@@ -171,6 +194,8 @@ function LedgerPrintContent() {
                         .report-container {
                             margin-top: -60px !important;
                             overflow: visible !important;
+                            width: 100% !important;
+                            max-width: none !important;
                         }
 
                         /* Receipt specific optimizations */
@@ -192,15 +217,8 @@ function LedgerPrintContent() {
                     }
                 `}</style>
 
-                {/* Header */}
-                <div className="text-center mb-1">
-                    {/* Logo */}
-                    <img
-                        src={RECEIPT_LOGO_BASE64}
-                        alt="Moon Traders"
-                        className="receipt-logo"
-                    />
-                    <h1 className="text-xl font-black uppercase tracking-tight break-words mt-[-50px] relative z-50 receipt-title">
+                <div className="text-center mb-1 pt-4">
+                    <h1 className="text-xl font-black uppercase tracking-tight break-words relative z-50 receipt-title">
                         {view === 'customers' ? 'CUS. LIST' : 'LEDGER RPT'}
                     </h1>
                     <p className="text-xs font-bold text-black break-words relative z-50">
@@ -301,10 +319,10 @@ function LedgerPrintContent() {
                         onClick={() => window.print()}
                         className="bg-black text-white px-8 py-3 rounded-full font-black text-base shadow-xl hover:scale-105 transition-transform"
                     >
-                        PRINT (80MM)
+                        PRINT ({paperSize})
                     </button>
                     <p className="text-xs font-bold text-gray-500 mt-4 max-w-[200px] mx-auto">
-                        High Contrast Mode Enabled. Select 80mm paper.
+                        High Contrast Mode Enabled. Select {paperSize} paper.
                     </p>
                 </div>
             </div>

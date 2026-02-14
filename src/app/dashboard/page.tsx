@@ -172,31 +172,19 @@ function DashboardContent() {
                     <StockValueWidget />
 
                     {/* Ledger Summary Widget */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-2">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Summary</p>
-                                {isLocked ? (
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <LockClosedIcon className="h-5 w-5 text-gray-400" />
-                                        <p className="text-lg font-bold text-gray-400">Locked</p>
-                                    </div>
-                                ) : (
+                    {!isLocked && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-2">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Summary</p>
                                     <p className="text-2xl font-black text-primary">
                                         Net: {formatCurr(totalSummary?.summary?.net || 0)}
                                     </p>
-                                )}
+                                </div>
+                                <div className="p-3 bg-primary/10 rounded-lg">
+                                    <RectangleGroupIcon className="h-6 w-6 text-primary" />
+                                </div>
                             </div>
-                            <div className="p-3 bg-primary/10 rounded-lg">
-                                <RectangleGroupIcon className="h-6 w-6 text-primary" />
-                            </div>
-                        </div>
-                        {isLocked ? (
-                            <div className="flex items-center gap-2 mt-4 text-center justify-center p-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                                <LockClosedIcon className="h-5 w-5 text-gray-400" />
-                                <p className="text-sm font-bold text-gray-400">Locked</p>
-                            </div>
-                        ) : (
                             <div className="flex items-center gap-4">
                                 <div className="flex-1">
                                     <div className="flex justify-between text-xs font-bold mb-1">
@@ -219,17 +207,12 @@ function DashboardContent() {
                                     <p className="text-sm font-bold text-gray-900">{formatCurr(totalSummary?.summary?.totalCredit + totalSummary?.summary?.totalDebit || 0)}</p>
                                 </div>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
 
                     {/* Quick Access to Ledger */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center">
-                        {isLocked ? (
-                            <div className="flex items-center justify-center gap-2">
-                                <LockClosedIcon className="h-6 w-6 text-gray-400" />
-                                <p className="text-sm font-bold text-gray-400">Full Records Locked</p>
-                            </div>
-                        ) : (
+                    {!isLocked && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center">
                             <Link href="/ledger" className="flex items-center justify-between group">
                                 <div>
                                     <p className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">Go to Detailed</p>
@@ -239,8 +222,8 @@ function DashboardContent() {
                                     <ChartBarIcon className="h-5 w-5 text-gray-400 group-hover:text-primary" />
                                 </div>
                             </Link>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Quick Actions Component */}
