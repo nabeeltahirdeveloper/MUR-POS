@@ -41,7 +41,7 @@ export default function StockValueWidget() {
                     {isLocked ? (
                         <div className="flex items-center gap-2 mt-1">
                             <LockClosedIcon className="h-5 w-5 text-gray-400" />
-                            <p className="text-lg font-bold text-gray-400">🔒 Locked</p>
+                            <p className="text-lg font-bold text-gray-400">Locked</p>
                         </div>
                     ) : (
                         <>
