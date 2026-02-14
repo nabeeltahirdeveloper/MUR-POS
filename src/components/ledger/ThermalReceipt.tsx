@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { RECEIPT_LOGO_BASE64 } from "./ReceiptLogoBase64";
 
 // Unified types to support both Ledger and Purchase Order data
 export type ReceiptItem = {
@@ -42,7 +41,7 @@ type ThermalReceiptProps = {
 };
 
 export default function ThermalReceipt({ data, onClose, autoPrint = false }: ThermalReceiptProps) {
-    const [paperWidth, setPaperWidth] = useState<"80mm" | "58mm">("80mm");
+    const [paperWidth, setPaperWidth] = useState<"80mm" | "58mm" | "210mm">("80mm");
     const [currency, setCurrency] = useState({ symbol: "Rs.", code: "PKR", position: "prefix" });
 
     useEffect(() => {
@@ -90,12 +89,17 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         color-adjust: exact !important;
                         color: #000 !important;
                     }
+                    /* Prevent extra blank pages caused by full-screen layouts */
+                    .min-h-screen {
+                        min-height: auto !important;
+                        height: auto !important;
+                    }
                     /* Hide app chrome in print preview */
                     header, nav, aside, .sidebar, .topbar, .header, .search, .toggle, .bell, .app-header, .AppHeader, .site-header { display: none !important; visibility: hidden !important; }
                     .print-hide { display: none !important; }
                     .receipt {
                         width: var(--paper-width) !important;
-                        margin: -95px auto !important;
+                        margin: 0 auto !important;
                         overflow: visible !important;
                         padding: 0 6mm !important;
                         box-shadow: none !important;
@@ -127,12 +131,12 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                     /* Optimize logo for thermal printing */
                     .receipt-logo {
                         width: 100%;
-                        max-width: 250px;
+                        max-width: ${paperWidth === '210mm' ? '300px' : '250px'};
                         height: auto;
                         display: block;
                         margin: 0 auto -10px auto;
-                        image-rendering: pixelated;
-                        filter: contrast(160%);
+                        image-rendering: ${paperWidth === '210mm' ? 'auto' : 'pixelated'};
+                        ${paperWidth !== '210mm' ? 'filter: contrast(160%);' : ''}
                         -webkit-print-color-adjust: exact !important;
                         color-adjust: exact !important;
                         position: relative !important;
@@ -161,6 +165,7 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                             >
                                 <option value="80mm">80mm</option>
                                 <option value="58mm">58mm</option>
+                                <option value="210mm">A4</option>
                             </select>
                         </div>
                         <div className="flex gap-2">
@@ -181,14 +186,14 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         </div>
                     </div>
 
-                    <div className="text-center mb-1">
-                        {/* Logo for thermal printing */}
-                        <img
-                            src={RECEIPT_LOGO_BASE64}
-                            alt="Logo"
-                            className="receipt-logo"
-                        />
-                        <div className="text-sm text-gray-900 tracking-wide font-semibold uppercase mt-[-50px] relative z-50">{data.title || "RECEIPT"}</div>
+                    <div className="text-center mb-1 pt-4">
+                        <div className="font-black text-gray-900 uppercase tracking-wide leading-tight text-2xl">
+                            <div>Jamshed Babri</div>
+                            <div className="text-xl">&amp; Company</div>
+                        </div>
+                        <div className="text-sm text-gray-900 tracking-wide font-semibold uppercase relative z-50 mt-2">
+                            {data.title || "RECEIPT"}
+                        </div>
                     </div>
                     <div className="border-b-2 border-gray-800 relative z-50 mb-3"></div>
 
@@ -234,22 +239,10 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                             <span className="font-bold">Name:</span>
                             <span className="font-semibold text-right">{data.customerName || "Walk-in"}</span>
                         </div>
-                        {data.customerPhone && (
-                            <div className="flex justify-between mb-1">
-                                <span className="font-bold">Contact:</span>
-                                <span className="font-semibold text-right">{data.customerPhone}</span>
-                            </div>
-                        )}
-                        {data.customerAddress && (
-                            <div className="flex justify-between">
-                                <span className="font-bold">Detail:</span>
-                                <span className="whitespace-pre-wrap text-sm font-semibold text-right max-w-[60%]">{data.customerAddress}</span>
-                            </div>
-                        )}
                     </div>
 
-                    {/* Items Table - Only for CASH bills, and NOT for Direct Payment to Supplier */}
-                    {data.status?.toUpperCase() === 'CASH' && !data.items.some(item => item.name.toLowerCase().includes("direct payment to supplier")) && (
+                    {/* Items Table - Show whenever there are items, and NOT for Direct Payment to Supplier */}
+                    {data.items && data.items.length > 0 && !data.items.some(item => item.name.toLowerCase().includes("direct payment to supplier")) && (
                         <div className="mt-3 border-t-2 border-gray-800 pt-2">
                             <table className="w-full table-fixed text-base font-semibold text-gray-900">
                                 <thead>
@@ -273,9 +266,9 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                                                     {item.name}
                                                 </div>
 
-                                                {item.itemType && item.itemType !== "Stock" && (
+                                                {item.itemType && (
                                                     <div className="text-xs text-gray-600">
-                                                        ({item.itemType})
+                                                        ({item.itemType.toLowerCase().startsWith('custom') || item.itemType === 'Customize' ? 'C' : 'S'})
                                                     </div>
                                                 )}
                                             </td>
@@ -302,27 +295,6 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
 
                     )}
 
-                    {/* Transaction History Section - Hide for CASH bills */}
-                    {data.status?.toUpperCase() !== 'CASH' && data.history && data.history.length > 0 && (
-                        <div className="mt-4 border-t-2 border-gray-800 pt-2">
-                            <div className="text-sm font-bold text-gray-900 mb-2 uppercase text-center border-b border-gray-400 pb-1">Transaction History</div>
-                            <div className="space-y-1.5 text-xs font-semibold text-gray-900">
-                                {data.history.map((h, idx) => (
-                                    <div key={idx} className="flex justify-between items-center bg-gray-50/30 p-1 rounded">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-gray-600">{new Date(h.date).toLocaleDateString()}</span>
-                                            <span className="leading-tight truncate max-w-[120px]">{h.note?.split('\n')[0] || (h.type === 'credit' ? 'Cash-In' : 'Cash-Out')}</span>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className={h.type === 'credit' ? 'text-emerald-700' : 'text-rose-700'}>
-                                                {h.type === 'credit' ? '+' : '-'}{fmt(h.amount)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Totals */}
                     <div className="mt-3 border-t-2 border-gray-800 pt-2 text-base">
