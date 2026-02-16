@@ -27,7 +27,7 @@ export default function RootLayout({
         <Providers>{children}</Providers>
         <div className="text-center py-4 text-sm text-gray-500">
           <span>
-            © {new Date().getFullYear()} JB & COMPANY. All rights reserved.
+            © {new Date().getFullYear()} Moon Traders. All rights reserved.
           </span>
         </div>
       </body>

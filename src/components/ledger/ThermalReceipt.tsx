@@ -186,15 +186,26 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         </div>
                     </div>
 
-                    <div className="text-center mb-1 pt-4">
-                        <div className="font-black text-gray-900 uppercase tracking-wide leading-tight text-2xl">
-                            <div>Jamshed Babri</div>
-                            <div className="text-xl">&amp; Company</div>
+                    <div className="text-center mb-2 pt-4">
+                        {/* Logo */}
+                        <div className="flex justify-center">
+                            <img
+                            src="/receipt-logo.png"
+                            alt="logo"
+                            className="receipt-logo block object-contain"
+                            style={{
+                                maxWidth: paperWidth === "58mm" ? "48mm" : paperWidth === "80mm" ? "70mm" : "180mm",
+                                height: "auto",
+                            }}
+                            />
                         </div>
-                        <div className="text-sm text-gray-900 tracking-wide font-semibold uppercase relative z-50 mt-2">
+
+                        {/* Title */}
+                        <div className="text-sm text-gray-900 tracking-wide font-semibold uppercase relative z-50 mt-2 receipt-title">
                             {data.title || "RECEIPT"}
                         </div>
-                    </div>
+                        </div>
+
                     <div className="border-b-2 border-gray-800 relative z-50 mb-3"></div>
 
                     {/* Barcode & Meta */}

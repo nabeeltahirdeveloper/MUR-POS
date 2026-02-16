@@ -65,7 +65,7 @@ export default function Sidebar({
     const { isLocked } = useLock();
 
     const [expandedItems, setExpandedItems] = useState<string[]>(["Ledger"]);
-    const [businessName, setBusinessName] = useState("JB & COMPANY");
+    const [businessName, setBusinessName] = useState("Moon Traders");
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -125,8 +125,8 @@ export default function Sidebar({
                                 <button
                                     onClick={() => toggleExpanded(item.name)}
                                     className={`w-full group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
-                                            ? "bg-slate-800 text-white"
-                                            : "text-slate-400 hover:bg-slate-800/50 hover:text-white cursor-pointer"
+                                        ? "bg-slate-800 text-white"
+                                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white cursor-pointer"
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
