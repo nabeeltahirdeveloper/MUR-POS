@@ -67,12 +67,7 @@ export default function ItemsPage() {
                             Manage your inventory items and stock levels.
                         </p>
                     </div>
-                    {isLocked ? (
-                        <Button disabled>
-                            <LockClosedIcon className="h-5 w-5 mr-2" />
-                            Add (Locked)
-                        </Button>
-                    ) : (
+                    {!isLocked && (
                         <Link href="/items/new">
                             <Button>
                                 <PlusIcon className="h-5 w-5 mr-2" />

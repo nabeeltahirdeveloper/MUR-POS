@@ -65,7 +65,7 @@ export default function Sidebar({
     const { isLocked } = useLock();
 
     const [expandedItems, setExpandedItems] = useState<string[]>(["Ledger"]);
-    const [businessName, setBusinessName] = useState("JB & COMPANY");
+    const [businessName, setBusinessName] = useState("Moon Traders");
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -74,11 +74,17 @@ export default function Sidebar({
                 if (res.ok) {
                     const data = await res.json();
                     if (data?.businessProfile?.name) {
-                        setBusinessName(data.businessProfile.name.replace('JBC', 'JB'));
+                        const name = String(data.businessProfile.name).trim();
+
+                        // Force "Moon Traders" if old name variants found
+                        const oldNameRegex = /(jb\s*&?\s*company|jb\s*&?\s*cmpany|jb\s*&?\s*co\.?|jbc)/i;
+
+                        setBusinessName(oldNameRegex.test(name) ? "Moon Traders" : name);
                     }
                 }
             } catch (error) {
                 // fallback to default
+                setBusinessName("Moon Traders");
             }
         };
         fetchSettings();
@@ -116,22 +122,22 @@ export default function Sidebar({
                     const lockedTabs = ["Suppliers", "Customers", "Ledger"];
                     const isTabLocked = isLocked && lockedTabs.includes(item.name);
 
+                    // If tab is locked, do not render it at all
+                    if (isTabLocked) return null;
+
                     return (
                         <div key={item.name}>
                             {hasChildren ? (
                                 <button
-                                    onClick={() => !isTabLocked && toggleExpanded(item.name)}
-                                    className={`w-full group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${isTabLocked ? "opacity-50 cursor-not-allowed" :
-                                        active
-                                            ? "bg-slate-800 text-white"
-                                            : "text-slate-400 hover:bg-slate-800/50 hover:text-white cursor-pointer"
+                                    onClick={() => toggleExpanded(item.name)}
+                                    className={`w-full group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
+                                        ? "bg-slate-800 text-white"
+                                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white cursor-pointer"
                                         }`}
-                                    disabled={isTabLocked}
                                 >
                                     <div className="flex items-center gap-3">
                                         <item.icon className="h-5 w-5 shrink-0" />
                                         {item.name}
-                                        {isTabLocked && <LockClosedIcon className="h-4 w-4 ml-1" />}
                                     </div>
                                     <ChevronDownIcon
                                         className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""
@@ -139,32 +145,21 @@ export default function Sidebar({
                                     />
                                 </button>
                             ) : (
-                                isTabLocked ? (
-                                    <div
-                                        className="group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg opacity-50 cursor-not-allowed text-slate-400"
-                                        title="This section is locked. Click the lock icon in the header to unlock."
-                                    >
-                                        <item.icon className="h-5 w-5 shrink-0" />
-                                        {item.name}
-                                        <LockClosedIcon className="h-4 w-4 ml-auto" />
-                                    </div>
-                                ) : (
-                                    <Link
-                                        href={item.href}
-                                        onClick={() => setSidebarOpen(false)}
-                                        className={`group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
-                                            ? "bg-primary/10 text-primary border-l-2 border-primary"
-                                            : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
-                                            }`}
-                                    >
-                                        <item.icon className="h-5 w-5 shrink-0" />
-                                        {item.name}
-                                    </Link>
-                                )
+                                <Link
+                                    href={item.href}
+                                    onClick={() => setSidebarOpen(false)}
+                                    className={`group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
+                                        ? "bg-primary/10 text-primary border-l-2 border-primary"
+                                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                                        }`}
+                                >
+                                    <item.icon className="h-5 w-5 shrink-0" />
+                                    {item.name}
+                                </Link>
                             )}
 
                             {/* Sub-navigation */}
-                            {hasChildren && isExpanded && !isTabLocked && (
+                            {hasChildren && isExpanded && (
                                 <div className="mt-1 ml-4 pl-4 border-l border-slate-700 space-y-1">
                                     {item.children?.map((child) => {
                                         // Logic to determine if child is active
