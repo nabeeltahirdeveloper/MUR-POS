@@ -74,11 +74,17 @@ export default function Sidebar({
                 if (res.ok) {
                     const data = await res.json();
                     if (data?.businessProfile?.name) {
-                        setBusinessName(data.businessProfile.name.replace(/jbc/gi, 'JB'));
+                        const name = String(data.businessProfile.name).trim();
+
+                        // Force "Moon Traders" if old name variants found
+                        const oldNameRegex = /(jb\s*&?\s*company|jb\s*&?\s*cmpany|jb\s*&?\s*co\.?|jbc)/i;
+
+                        setBusinessName(oldNameRegex.test(name) ? "Moon Traders" : name);
                     }
                 }
             } catch (error) {
                 // fallback to default
+                setBusinessName("Moon Traders");
             }
         };
         fetchSettings();
@@ -99,7 +105,7 @@ export default function Sidebar({
         <>
             {/* Logo */}
             <div className="flex h-16 shrink-0 items-center px-6 border-b border-slate-800">
-                <img src="/favicon.ico" alt="Logo" className="h-10 w-10 rounded-lg object-cover" />
+                <img src="/favicon.jpg" alt="Logo" className="h-10 w-10 rounded-lg object-cover" />
                 <span className="ml-2 text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
                     {businessName}
                 </span>

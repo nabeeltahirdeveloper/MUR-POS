@@ -190,13 +190,13 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         {/* Logo */}
                         <div className="flex justify-center">
                             <img
-                            src="/receipt-logo.png"
-                            alt="logo"
-                            className="receipt-logo block object-contain"
-                            style={{
-                                maxWidth: paperWidth === "58mm" ? "48mm" : paperWidth === "80mm" ? "70mm" : "180mm",
-                                height: "auto",
-                            }}
+                                src="/receipt-logo.png"
+                                alt="logo"
+                                className="receipt-logo block object-contain -mb-8 -mt-8 "
+                                style={{
+                                    maxWidth: paperWidth === "58mm" ? "48mm" : paperWidth === "80mm" ? "70mm" : "120mm",
+                                    height: "auto",
+                                }}
                             />
                         </div>
 
@@ -204,7 +204,7 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         <div className="text-sm text-gray-900 tracking-wide font-semibold uppercase relative z-50 mt-2 receipt-title">
                             {data.title || "RECEIPT"}
                         </div>
-                        </div>
+                    </div>
 
                     <div className="border-b-2 border-gray-800 relative z-50 mb-3"></div>
 
