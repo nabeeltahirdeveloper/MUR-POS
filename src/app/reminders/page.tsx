@@ -39,7 +39,7 @@ export default function RemindersPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`/api/reminders?status=${encodeURIComponent(status)}&limit=100`);
+      const res = await fetch(`/api/reminders?status=${encodeURIComponent(status)}&limit=500`);
       if (res.status === 401) {
         setRows([]);
         setError("Unauthorized. Please sign in.");

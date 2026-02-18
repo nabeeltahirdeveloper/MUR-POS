@@ -16,7 +16,6 @@ import { reminderTypeLabel } from "@/lib/reminders-shared";
 import { useLock } from "@/contexts/LockContext";
 import UnlockModal from "@/components/modals/UnlockModal";
 
-
 type HeaderReminder = {
     id: string;
     type: "low_stock" | "bill_due" | "debt_due";
@@ -40,14 +39,19 @@ export default function Header({
     const [remindersError, setRemindersError] = useState<string | null>(null);
     const panelRef = useRef<HTMLDivElement | null>(null);
     const userMenuRef = useRef<HTMLDivElement | null>(null);
+    const [totalReminders, setTotalReminders] = useState(0);
+    const DROPDOWN_LIMIT = 20;
+
 
 
     const refreshReminders = async () => {
         try {
             setLoadingReminders(true);
             setRemindersError(null);
-            const res = await fetch("/api/reminders?status=triggered&limit=50");
+
+            const res = await fetch(`/api/reminders?status=triggered&limit=${DROPDOWN_LIMIT}`);
             if (!res.ok) throw new Error(`Failed to load reminders (${res.status})`);
+
             const data = await res.json();
             setReminders(Array.isArray(data?.reminders) ? data.reminders : []);
         } catch (e) {
@@ -59,6 +63,21 @@ export default function Header({
         }
     };
 
+    const refreshRemindersCount = async () => {
+        try {
+            const res = await fetch(`/api/reminders/count?status=triggered`, { cache: "no-store" });
+            if (!res.ok) throw new Error("Failed to load reminders count");
+            const data = await res.json();
+            setTotalReminders(Number(data?.total ?? 0));
+        } catch {
+            // fallback: keep current total, don't force 0
+            setTotalReminders((prev) => (prev > 0 ? prev : reminders.length));
+        }
+    };
+
+
+
+
     const resolveFromHeader = async (id: string) => {
         try {
             await fetch(`/api/reminders/${encodeURIComponent(id)}`, {
@@ -67,19 +86,27 @@ export default function Header({
                 body: JSON.stringify({ resolved: true }),
             });
             await refreshReminders();
-        } catch {
-            // UI will refresh on next poll/open; keep silent.
-        }
+            await refreshRemindersCount();
+        } catch { }
     };
+
 
     // Load on mount (if authenticated) and keep fresh.
     useEffect(() => {
         if (status !== "authenticated") return;
+
         refreshReminders();
-        const t = setInterval(() => refreshReminders(), 60_000);
+        refreshRemindersCount();
+
+        const t = setInterval(() => {
+            refreshReminders();
+            refreshRemindersCount();
+        }, 60_000);
+
         return () => clearInterval(t);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [status]);
+
 
     // Close on outside click / escape.
     useEffect(() => {
@@ -105,9 +132,9 @@ export default function Header({
             document.removeEventListener("keydown", onKey);
         };
     }, [panelOpen, userMenuOpen]);
+    const visibleCount = totalReminders;
+    const badgeText = visibleCount > 99 ? "99+" : String(visibleCount);
 
-    const visibleCount = reminders.length;
-    const badgeText = visibleCount >= 50 ? "50+" : String(visibleCount);
 
     return (
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">

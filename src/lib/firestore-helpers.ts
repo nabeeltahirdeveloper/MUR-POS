@@ -1,17 +1,23 @@
-import { db, Timestamp } from './firebase-admin';
-import type { firestore } from 'firebase-admin';
+import { db, Timestamp } from "./firebase-admin";
+import type { firestore } from "firebase-admin";
 
 /**
  * Convert Firestore Timestamp to JavaScript Date
-    */
-export function timestampToDate(timestamp: firestore.Timestamp | Date | null | undefined): Date | null {
+ */
+export function timestampToDate(
+    timestamp: firestore.Timestamp | Date | null | undefined
+): Date | null {
     if (!timestamp) return null;
     if (timestamp instanceof Date) return timestamp;
     if (timestamp instanceof Timestamp) return timestamp.toDate();
     return null;
 }
 
-export const SAFE_LIMIT = 50;
+/**
+ * ✅ SAFE_LIMIT now only used when you explicitly pass `limit`
+ * (No default limit will be applied in getAllDocs/queryDocs)
+ */
+export const SAFE_LIMIT = 500;
 
 export function safeLimit(limit?: number | null): number {
     return Math.min(Math.max(Number(limit) || 20, 1), SAFE_LIMIT);
@@ -35,10 +41,12 @@ export async function getSettings() {
 /**
  * Convert JavaScript Date to Firestore Timestamp
  */
-export function dateToTimestamp(date: Date | string | null | undefined): firestore.Timestamp | null {
+export function dateToTimestamp(
+    date: Date | string | null | undefined
+): firestore.Timestamp | null {
     if (!date) return null;
     if (date instanceof Date) return Timestamp.fromDate(date);
-    if (typeof date === 'string') return Timestamp.fromDate(new Date(date));
+    if (typeof date === "string") return Timestamp.fromDate(new Date(date));
     return null;
 }
 
@@ -67,8 +75,7 @@ export function docToObject<T extends Record<string, any>>(
     }
 
     if (convertDecimals) {
-        // Firestore stores numbers as numbers, but we might need to handle Decimal types
-        // This is a placeholder for any decimal conversion logic if needed
+        // placeholder for decimal conversion logic if needed
     }
 
     return result as T & { id: string };
@@ -98,8 +105,10 @@ export function objectToFirestore<T extends Record<string, any>>(
         Object.keys(result).forEach((key) => {
             if (result[key] instanceof Date) {
                 result[key] = Timestamp.fromDate(result[key]);
-            } else if (typeof result[key] === 'string' && /^\d{4}-\d{2}-\d{2}/.test(result[key])) {
-                // Try to parse date strings
+            } else if (
+                typeof result[key] === "string" &&
+                /^\d{4}-\d{2}-\d{2}/.test(result[key])
+            ) {
                 const date = new Date(result[key]);
                 if (!isNaN(date.getTime())) {
                     result[key] = Timestamp.fromDate(date);
@@ -110,9 +119,7 @@ export function objectToFirestore<T extends Record<string, any>>(
 
     // Remove undefined values (Firestore doesn't support undefined)
     Object.keys(result).forEach((key) => {
-        if (result[key] === undefined) {
-            delete result[key];
-        }
+        if (result[key] === undefined) delete result[key];
     });
 
     return result;
@@ -131,22 +138,23 @@ export async function getDocById<T extends Record<string, any>>(
 }
 
 /**
- * Get all documents from a collection
+ * ✅ Get all documents from a collection (NO DEFAULT LIMIT)
+ * - If you pass options.limit => limit applied (safeLimit)
+ * - If you don't pass limit => fetch ALL
  */
 export async function getAllDocs<T extends Record<string, any>>(
     collection: string,
-    options?: { orderBy?: string; orderDirection?: 'asc' | 'desc'; limit?: number }
+    options?: { orderBy?: string; orderDirection?: "asc" | "desc"; limit?: number }
 ): Promise<(T & { id: string })[]> {
     let query: firestore.Query = db.collection(collection);
 
     if (options?.orderBy) {
-        query = query.orderBy(options.orderBy, options.orderDirection || 'asc');
+        query = query.orderBy(options.orderBy, options.orderDirection || "asc");
     }
 
-    if (options?.limit) {
+    // ✅ Only apply limit when explicitly provided
+    if (options?.limit != null) {
         query = query.limit(safeLimit(options.limit));
-    } else {
-        query = query.limit(SAFE_LIMIT);
     }
 
     const snapshot = await query.get();
@@ -192,12 +200,27 @@ export async function deleteDoc(collection: string, id: string): Promise<void> {
 }
 
 /**
- * Query documents with filters
+ * ✅ Query documents with filters (NO DEFAULT LIMIT)
+ * - If you pass options.limit => limit applied
+ * - Otherwise => fetch ALL matching docs
  */
 export async function queryDocs<T extends Record<string, any>>(
     collection: string,
-    filters: Array<{ field: string; operator: '<' | '<=' | '==' | '>' | '>=' | '!=' | 'array-contains' | 'in' | 'array-contains-any'; value: any }>,
-    options?: { orderBy?: string; orderDirection?: 'asc' | 'desc'; limit?: number }
+    filters: Array<{
+        field: string;
+        operator:
+        | "<"
+        | "<="
+        | "=="
+        | ">"
+        | ">="
+        | "!="
+        | "array-contains"
+        | "in"
+        | "array-contains-any";
+        value: any;
+    }>,
+    options?: { orderBy?: string; orderDirection?: "asc" | "desc"; limit?: number }
 ): Promise<(T & { id: string })[]> {
     let query: firestore.Query = db.collection(collection);
 
@@ -206,16 +229,49 @@ export async function queryDocs<T extends Record<string, any>>(
     });
 
     if (options?.orderBy) {
-        query = query.orderBy(options.orderBy, options.orderDirection || 'asc');
+        query = query.orderBy(options.orderBy, options.orderDirection || "asc");
     }
 
-    if (options?.limit) {
+    // ✅ Only apply limit when explicitly provided
+    if (options?.limit != null) {
         query = query.limit(safeLimit(options.limit));
-    } else {
-        query = query.limit(SAFE_LIMIT);
     }
 
     const snapshot = await query.get();
     return docsToArray<T>(snapshot);
 }
 
+/**
+ * Pagination helper (kept as-is)
+ * - limit is required here because it's paging
+ */
+export async function getPagedDocs<T extends Record<string, any>>(
+    collection: string,
+    options: {
+        orderBy: string;
+        orderDirection?: "asc" | "desc";
+        limit?: number;
+        startAfter?: any[]; // values according to orderBy fields
+    }
+): Promise<{ docs: (T & { id: string })[]; lastDoc: firestore.DocumentSnapshot | null }> {
+    let query: firestore.Query = db.collection(collection);
+
+    query = query.orderBy(options.orderBy, options.orderDirection || "asc");
+
+    // ✅ stable ordering (avoid duplicates/missing when orderNumber same)
+    query = query.orderBy(firestore.FieldPath.documentId());
+
+    if (options.startAfter?.length) {
+        query = query.startAfter(...options.startAfter);
+    }
+
+    const pageSize = safeLimit(options.limit ?? 20);
+    query = query.limit(pageSize);
+
+    const snapshot = await query.get();
+
+    const docs = snapshot.docs.map((doc) => docToObject<T>(doc));
+    const lastDoc = snapshot.docs.length ? snapshot.docs[snapshot.docs.length - 1] : null;
+
+    return { docs, lastDoc };
+}
