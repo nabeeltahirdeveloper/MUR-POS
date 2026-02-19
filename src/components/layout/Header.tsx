@@ -50,12 +50,12 @@ export default function Header({
             setRemindersError(null);
 
             const res = await fetch(`/api/reminders?status=triggered&limit=${DROPDOWN_LIMIT}`);
-            if (!res.ok) throw new Error(`Failed to load reminders (${res.status})`);
+            if (!res.ok) throw new Error(`Failed to load notifications (${res.status})`);
 
             const data = await res.json();
             setReminders(Array.isArray(data?.reminders) ? data.reminders : []);
         } catch (e) {
-            const msg = e instanceof Error ? e.message : "Failed to load reminders";
+            const msg = e instanceof Error ? e.message : "Failed to load notifications";
             setRemindersError(msg);
             setReminders([]);
         } finally {
@@ -215,7 +215,7 @@ export default function Header({
                                 <div className="max-h-96 overflow-y-auto">
                                     {status !== "authenticated" && (
                                         <div className="px-4 py-6 text-sm text-gray-500">
-                                            Sign in to view reminders.
+                                            Sign in to view notifications.
                                         </div>
                                     )}
 

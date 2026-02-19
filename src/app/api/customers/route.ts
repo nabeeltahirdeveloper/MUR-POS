@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
 
     try {
-        let customers = await getAllDocs<FirestoreCustomer>('customers', {
+        const customers = await getAllDocs<FirestoreCustomer>('customers', {
             orderBy: 'name',
             orderDirection: 'asc',
         });
@@ -22,16 +22,17 @@ export async function GET(request: NextRequest) {
         const summaries = await getCustomersSummaries();
 
         // Filter by search term if provided (case-insensitive)
+        let filteredCustomers = customers;
         if (search) {
             const searchLower = search.toLowerCase();
-            customers = customers.filter(customer =>
+            filteredCustomers = customers.filter(customer =>
                 customer.name.toLowerCase().includes(searchLower) ||
                 customer.phone?.toLowerCase().includes(searchLower)
             );
         }
 
         // Merge balance
-        const customersWithBalance = customers.map(c => {
+        const customersWithBalance = filteredCustomers.map(c => {
             const summary = summaries.find(s => s.name.toLowerCase() === c.name.toLowerCase());
             return {
                 ...c,
@@ -39,18 +40,9 @@ export async function GET(request: NextRequest) {
             };
         });
 
-        const total = customersWithBalance.length;
-        const skip = (page - 1) * limit;
-        const paginatedCustomers = customersWithBalance.slice(skip, skip + limit);
-
         return NextResponse.json({
-            customers: paginatedCustomers,
-            pagination: {
-                total,
-                pages: Math.ceil(total / limit),
-                page,
-                limit,
-            },
+            customers: customersWithBalance,
+            total: customersWithBalance.length,
         });
     } catch (error) {
         console.error("Error fetching customers:", error);
