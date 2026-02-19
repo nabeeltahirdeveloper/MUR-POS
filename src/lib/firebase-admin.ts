@@ -36,6 +36,6 @@ if (!admin.apps.length) {
 export const adminApp = admin;
 export const db = admin.firestore();
 export const auth = admin.auth();
-export const { Timestamp, FieldValue } = admin.firestore;
+export const { Timestamp, FieldValue, FieldPath } = admin.firestore;
 export type { firestore } from 'firebase-admin';
 

@@ -1,4 +1,4 @@
-import { db, Timestamp } from "./firebase-admin";
+import { db, Timestamp, FieldPath } from "./firebase-admin";
 import type { firestore } from "firebase-admin";
 
 /**
@@ -259,7 +259,7 @@ export async function getPagedDocs<T extends Record<string, any>>(
     query = query.orderBy(options.orderBy, options.orderDirection || "asc");
 
     // ✅ stable ordering (avoid duplicates/missing when orderNumber same)
-    query = query.orderBy(firestore.FieldPath.documentId());
+    query = query.orderBy(FieldPath.documentId());
 
     if (options.startAfter?.length) {
         query = query.startAfter(...options.startAfter);

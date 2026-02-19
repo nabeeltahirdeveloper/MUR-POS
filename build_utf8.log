@@ -1,0 +1,86 @@
+﻿
+> moon-electric@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local, .env.production, .env
+
+node.exe : ΓÜá The 
+"middleware" file 
+convention is 
+deprecated. Please 
+use "proxy" instead. 
+Learn more: https://n
+extjs.org/docs/messag
+es/middleware-to-prox
+y
+At line:1 char:1
++ & "C:\Program Files
+\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (ΓÜá The   
+  "middle...lewar    
+e-to-proxy:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 11.3s
+  Running TypeScript ...
+Failed to compile.
+
+./src/lib/firestore-h
+elpers.ts:262:27
+Type error: 
+'firestore' cannot 
+be used as a value 
+because it was 
+imported using 
+'import type'.
+
+[0m [90m 260 |[39m
+ [90m 261 |[39m    
+ [90m// Γ£à stable 
+ordering (avoid 
+duplicates/missing 
+when orderNumber 
+same)[39m
+[31m[1m>[22m[39m
+[90m 262 |[39m     
+query [33m=[39m que
+ry[33m.[39morderBy(
+firestore[33m.[39m
+[33mFieldPath[39m[3
+3m.[39mdocumentId())
+[33m;[39m
+ [90m     |[39m    
+                     
+  
+[31m[1m^[22m[39m
+ [90m 263 |[39m
+ [90m 264 |[39m    
+ [36mif[39m (option
+s[33m.[39mstartAfte
+r[33m?[39m[33m.[3
+9mlength) {
+ [90m 265 |[39m    
+     query 
+[33m=[39m query[33
+m.[39mstartAfter([3
+3m...[39moptions[33
+m.[39mstartAfter)[3
+3m;[39m[0m
+Next.js build worker 
+exited with code: 1 
+and signal: null
