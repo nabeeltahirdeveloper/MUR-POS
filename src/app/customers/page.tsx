@@ -25,8 +25,6 @@ export default function CustomersPage() {
     const { showConfirm } = useAlert();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [search, setSearch] = useState("");
-    const [page, setPage] = useState(1);
-    const limit = 10;
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -41,12 +39,10 @@ export default function CustomersPage() {
         try {
             const params = new URLSearchParams();
             if (search.trim()) params.set("search", search.trim());
-            params.set("page", String(page));
-            params.set("limit", String(limit));
 
             const res = await fetch(`/api/customers?${params.toString()}`);
             if (!res.ok) throw new Error("Failed to fetch customers");
-            const data = (await res.json()) as CustomersResponse;
+            const data = (await res.json()) as { customers: Customer[]; total: number };
             setCustomers(data.customers);
         } catch (e: any) {
             setError(e.message || "Failed to fetch customers");
@@ -58,12 +54,11 @@ export default function CustomersPage() {
     useEffect(() => {
         fetchCustomers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page]);
+    }, []);
 
-    // Debounce search (reset to page 1)
+    // Debounce search
     useEffect(() => {
         const t = setTimeout(() => {
-            setPage(1);
             fetchCustomers();
         }, 300);
         return () => clearTimeout(t);
@@ -234,38 +229,17 @@ export default function CustomersPage() {
                             </span>
                         )}
                     </div>
-                    <div className="text-sm text-gray-500">
-                        Page {page}
-                    </div>
                 </div>
 
                 {loading ? (
                     <LoadingSpinner message="Loading customers..." />
                 ) : (
-                    <>
-                        <Table
-                            data={customers}
-                            columns={columns}
-                            emptyMessage="No customers found."
-                            renderSubComponent={(row) => <LedgerHistoryDropdown type="customer" name={row.name} />}
-                        />
-                        <div className="flex justify-end gap-2 mt-4">
-                            <Button
-                                variant="secondary"
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                disabled={page === 1 || loading}
-                            >
-                                Prev
-                            </Button>
-                            <Button
-                                variant="secondary"
-                                onClick={() => setPage((p) => p + 1)}
-                                disabled={loading || customers.length < limit}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    </>
+                    <Table
+                        data={customers}
+                        columns={columns}
+                        emptyMessage="No customers found."
+                        renderSubComponent={(row) => <LedgerHistoryDropdown type="customer" name={row.name} />}
+                    />
                 )}
             </div>
         </div>

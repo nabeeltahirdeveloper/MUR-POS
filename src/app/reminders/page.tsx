@@ -87,7 +87,7 @@ export default function RemindersPage() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Notifications & Reminders</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
             <p className="text-sm text-gray-500 mt-1">
               Stay updated on stock levels, utility bills, and loan repayments.
             </p>
@@ -119,7 +119,7 @@ export default function RemindersPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-4">
             <LoadingSpinner />
-            <p className="text-sm text-gray-500 font-medium">Fetching active reminders...</p>
+            <p className="text-sm text-gray-500 font-medium">Fetching active notifications...</p>
           </div>
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-16 bg-white rounded-2xl border border-gray-100 shadow-sm text-center">
@@ -127,7 +127,7 @@ export default function RemindersPage() {
               <BellIcon className="h-8 w-8 text-gray-300" />
             </div>
             <p className="text-gray-900 font-semibold text-lg">All caught up!</p>
-            <p className="text-gray-500 text-sm mt-1">No {tab} reminders found at the moment.</p>
+            <p className="text-gray-500 text-sm mt-1">No {tab} notifications found at the moment.</p>
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

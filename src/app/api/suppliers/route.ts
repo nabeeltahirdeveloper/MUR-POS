@@ -11,28 +11,25 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
 
     try {
-        let suppliers = await getAllDocs<FirestoreSupplier>('suppliers', {
+        const suppliers = await getAllDocs<FirestoreSupplier>('suppliers', {
             orderBy: 'name',
             orderDirection: 'asc',
         });
 
         // Filter by search term if provided (case-insensitive)
+        let filteredSuppliers = suppliers;
         if (search) {
             const searchLower = search.toLowerCase();
-            suppliers = suppliers.filter(supplier =>
+            filteredSuppliers = suppliers.filter(supplier =>
                 supplier.name.toLowerCase().includes(searchLower) ||
                 supplier.phone?.toLowerCase().includes(searchLower)
             );
         }
 
-        const total = suppliers.length;
-        const skip = (page - 1) * limit;
-        const paginatedSuppliers = suppliers.slice(skip, skip + limit);
-
-        // Fetch balances for the paginated suppliers
+        // Fetch balances for all filtered suppliers
         const { getSupplierBalance } = await import('@/lib/ledger-balance');
         const suppliersWithBalances = await Promise.all(
-            paginatedSuppliers.map(async (s) => {
+            filteredSuppliers.map(async (s) => {
                 const balance = await getSupplierBalance(s.name);
                 return { ...s, balance };
             })
@@ -40,12 +37,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             suppliers: suppliersWithBalances,
-            pagination: {
-                total,
-                pages: Math.ceil(total / limit),
-                page,
-                limit,
-            },
+            total: suppliersWithBalances.length,
         });
     } catch (error) {
         console.error("Error fetching suppliers:", error);

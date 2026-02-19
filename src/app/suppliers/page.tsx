@@ -25,8 +25,6 @@ export default function SuppliersPage() {
     const { showConfirm } = useAlert();
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [search, setSearch] = useState("");
-    const [page, setPage] = useState(1);
-    const limit = 10;
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -41,12 +39,10 @@ export default function SuppliersPage() {
         try {
             const params = new URLSearchParams();
             if (search.trim()) params.set("search", search.trim());
-            params.set("page", String(page));
-            params.set("limit", String(limit));
 
             const res = await fetch(`/api/suppliers?${params.toString()}`);
             if (!res.ok) throw new Error("Failed to fetch suppliers");
-            const data = (await res.json()) as SuppliersResponse;
+            const data = (await res.json()) as { suppliers: Supplier[]; total: number };
             setSuppliers(data.suppliers);
         } catch (e: any) {
             setError(e.message || "Failed to fetch suppliers");
@@ -58,12 +54,11 @@ export default function SuppliersPage() {
     useEffect(() => {
         fetchSuppliers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page]);
+    }, []);
 
-    // Debounce search (reset to page 1)
+    // Debounce search
     useEffect(() => {
         const t = setTimeout(() => {
-            setPage(1);
             fetchSuppliers();
         }, 300);
         return () => clearTimeout(t);
@@ -234,9 +229,6 @@ export default function SuppliersPage() {
                             </span>
                         )}
                     </div>
-                    <div className="text-sm text-gray-500">
-                        Page {page}
-                    </div>
                 </div>
 
                 {loading ? (
@@ -244,30 +236,12 @@ export default function SuppliersPage() {
                         <LoadingSpinner />
                     </div>
                 ) : (
-                    <>
-                        <Table
-                            data={suppliers}
-                            columns={columns}
-                            emptyMessage="No suppliers found."
-                            renderSubComponent={(row) => <LedgerHistoryDropdown type="supplier" name={row.name} />}
-                        />
-                        <div className="flex justify-end gap-2 mt-4">
-                            <Button
-                                variant="secondary"
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                disabled={page === 1 || loading}
-                            >
-                                Prev
-                            </Button>
-                            <Button
-                                variant="secondary"
-                                onClick={() => setPage((p) => p + 1)}
-                                disabled={loading || suppliers.length < limit}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    </>
+                    <Table
+                        data={suppliers}
+                        columns={columns}
+                        emptyMessage="No suppliers found."
+                        renderSubComponent={(row) => <LedgerHistoryDropdown type="supplier" name={row.name} />}
+                    />
                 )}
             </div>
         </div>
