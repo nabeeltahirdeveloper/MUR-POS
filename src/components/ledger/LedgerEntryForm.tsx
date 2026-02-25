@@ -438,11 +438,14 @@ export default function LedgerEntryForm({
     // Fetch Supplier Transaction History - only when a supplier is selected
     useEffect(() => {
         const delayDebounceFn = setTimeout(async () => {
-            // Only fetch history for suppliers (debit/cash-out transactions) when a supplier is selected
-            if (type === 'debit' && selectedSupplierForHistory && !isNewParty) {
+            // Use partyName as a fallback if selectedSupplierForHistory is not set (e.g. manually typed)
+            const nameToFetch = (selectedSupplierForHistory || (partyName.length > 2 ? partyName : null))?.trim();
+
+            // Only fetch history for suppliers (debit/cash-out transactions) when a name is available
+            if (type === 'debit' && nameToFetch && !isNewParty) {
                 setLoadingHistory(true);
                 try {
-                    const res = await fetch(`/api/ledger/supplier-history?supplierName=${encodeURIComponent(selectedSupplierForHistory)}`);
+                    const res = await fetch(`/api/ledger/supplier-history?supplierName=${encodeURIComponent(nameToFetch)}`);
                     if (res.ok) {
                         const data = await res.json();
                         setSupplierHistory(data.transactions || []);
@@ -461,7 +464,7 @@ export default function LedgerEntryForm({
         }, 300);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [selectedSupplierForHistory, type, isNewParty]);
+    }, [selectedSupplierForHistory, partyName, type, isNewParty]);
 
     // --- Price Logic ---
     useEffect(() => {
@@ -760,6 +763,47 @@ export default function LedgerEntryForm({
         } catch (error) {
             console.error("Error deleting transaction:", error);
             await showAlert("Error deleting transaction", { variant: "danger", title: "Error" });
+        }
+    };
+
+    const handleDeleteOrder = async (orderIdOrNumber: string) => {
+        if (!orderIdOrNumber || orderIdOrNumber === '-') return;
+
+        // Determine if it's a single entry ID or a batch order number
+        const isSingleEntry = orderIdOrNumber.startsWith('single-');
+        const displayId = isSingleEntry ? orderIdOrNumber.replace('single-', '') : orderIdOrNumber;
+        const confirmMsg = isSingleEntry
+            ? `Are you sure you want to delete this entry?`
+            : `Are you sure you want to delete Order #${orderIdOrNumber}? `;
+
+        if (!await showConfirm(confirmMsg, { variant: "danger" })) return;
+
+        setLoading(true);
+        try {
+            const url = `/api/ledger/${displayId}`;
+
+            const res = await fetch(url, { method: "DELETE" });
+            const data = await res.json();
+
+            if (res.ok) {
+                showAlert(data.message || (isSingleEntry ? "Entry deleted successfully." : `Order #${orderIdOrNumber} deleted successfully.`), { variant: "success", title: "Success" });
+                // Refresh supplier history
+                const nameToFetch = (selectedSupplierForHistory || partyName)?.trim();
+                if (nameToFetch) {
+                    const historyRes = await fetch(`/api/ledger/supplier-history?supplierName=${encodeURIComponent(nameToFetch)}`);
+                    if (historyRes.ok) {
+                        const historyData = await historyRes.json();
+                        setSupplierHistory(historyData.transactions || []);
+                    }
+                }
+            } else {
+                await showAlert(data.error || "Failed to delete", { variant: "danger", title: "Error" });
+            }
+        } catch (error) {
+            console.error("Error deleting:", error);
+            await showAlert("Error connecting to server", { variant: "danger", title: "Error" });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -1580,8 +1624,8 @@ export default function LedgerEntryForm({
                                         Showing {supplierHistory.length} transaction{supplierHistory.length !== 1 ? 's' : ''}
                                     </span>
                                 </div>
-                                <div className="border border-gray-100 rounded-xl overflow-hidden overflow-x-auto max-h-96">
-                                    <table className="w-full text-sm text-left min-w-[700px]">
+                                <div className="border border-gray-100 rounded-xl overflow-auto max-h-96 shadow-inner bg-gray-50/30">
+                                    <table className="w-full text-sm text-left min-w-[800px] border-collapse">
                                         <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100 sticky top-0">
                                             <tr>
                                                 <th className="px-4 py-3">#</th>
@@ -1591,6 +1635,7 @@ export default function LedgerEntryForm({
                                                 <th className="px-4 py-3">Items</th>
                                                 <th className="px-4 py-3 text-right">Debit</th>
                                                 <th className="px-4 py-3 text-right">Credit</th>
+                                                <th className="px-4 py-3 text-center">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-50">
@@ -1635,6 +1680,20 @@ export default function LedgerEntryForm({
                                                         </td>
                                                         <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700">
                                                             {creditAmount > 0 ? `Rs. ${creditAmount.toLocaleString()}` : "-"}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            {transaction.orderNumber && transaction.orderNumber !== '-' && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteOrder(transaction.id)}
+                                                                    className="text-red-500 hover:text-red-700 p-1.5 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                                                    title="Delete Order"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 );
@@ -1732,8 +1791,8 @@ export default function LedgerEntryForm({
                             <span className="text-xs font-medium text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200">Session History</span>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                        <div className="overflow-x-auto overflow-y-hidden">
+                            <table className="w-full text-sm text-left min-w-[900px]">
                                 <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100 uppercase text-xs tracking-wider">
                                     <tr>
                                         <th className="px-6 py-3">#</th>

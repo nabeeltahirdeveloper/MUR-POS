@@ -14,17 +14,27 @@ const parseTransactionNote = (note: string) => {
     let quantity = "";
 
     lines.forEach(line => {
-        if (line.startsWith("Order #")) orderNumber = line.replace("Order #", "").trim();
-        else if (line.startsWith("Payment: ")) paymentType = line.replace("Payment: ", "").trim();
-        else if (line.startsWith("Advance: ")) advance = Number(line.replace("Advance: ", "").trim());
-        else if (line.startsWith("Remaining: ")) remaining = Number(line.replace("Remaining: ", "").trim());
-        else if (line.startsWith("Item: ")) {
-            const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (.*?)\)/);
+        const trimmed = line.trim();
+        if (trimmed.startsWith("Order #")) orderNumber = trimmed.replace("Order #", "").trim();
+        else if (trimmed.startsWith("Payment: ")) {
+            const val = trimmed.replace("Payment: ", "").trim();
+            // If it's a number, it's the payment amount (common in debit entries)
+            if (!isNaN(Number(val)) && val !== "") {
+                advance = Number(val);
+            } else {
+                paymentType = val;
+            }
+        }
+        else if (trimmed.startsWith("Advance: ")) advance = Number(trimmed.replace("Advance: ", "").trim());
+        else if (trimmed.startsWith("Remaining: ")) remaining = Number(trimmed.replace("Remaining: ", "").trim());
+        else if (trimmed.startsWith("Item: ")) {
+            // Item: [Type] Name (Qty: X @ Y)
+            const match = trimmed.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (.*?)\)/);
             if (match) {
                 itemName = match[2];
-                // Extract only quantity part before "@" if present
-                const fullQty = match[3] || "";
-                quantity = fullQty.split('@')[0].trim();
+                // Extract only quantity part before "@" or " " if present
+                const fullQty = (match[3] || "").trim();
+                quantity = fullQty.split(/[\s@]/)[0].trim();
             }
         }
     });
@@ -40,7 +50,7 @@ export async function GET(req: NextRequest) {
         }
 
         const { searchParams } = new URL(req.url);
-        const supplierName = searchParams.get("supplierName");
+        const supplierName = searchParams.get("supplierName")?.trim();
 
         if (!supplierName) {
             return NextResponse.json(
@@ -58,11 +68,12 @@ export async function GET(req: NextRequest) {
                 if (entry.type !== 'debit') return false;
                 if (!entry.note) return false;
 
-                // Check if note contains "Supplier: {supplierName}"
-                const supplierMatch = entry.note.match(/Supplier:\s*([^\n]+)/);
+                // Check if note contains "Supplier: {supplierName}" (case-insensitive)
+                const supplierMatch = entry.note.match(/Supplier:\s*([^\n]+)/i);
                 if (!supplierMatch) return false;
 
-                return supplierMatch[1].trim().toLowerCase() === supplierName.toLowerCase();
+                const matchName = supplierMatch[1].trim();
+                return matchName.toLowerCase() === supplierName.toLowerCase();
             })
             .sort((a, b) => {
                 // Sort by date descending

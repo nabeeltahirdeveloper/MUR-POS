@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDownIcon, ChevronRightIcon, PrinterIcon, LockClosedIcon, LockOpenIcon, MinusIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, ChevronRightIcon, PrinterIcon, LockClosedIcon, LockOpenIcon, MinusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useAlert } from "@/contexts/AlertContext";
@@ -283,6 +283,41 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
         }
     };
 
+    const handleDeleteEntry = async (entry: LedgerEntry) => {
+        const p = parseLedgerNote(entry.note);
+        const ordNum = entry.orderNumber || (p.orderNumber !== '-' ? p.orderNumber : 'Unknown');
+        
+        if (!await showConfirm(`Delete transaction #${ordNum}? This will revert any stock changes and cannot be undone.`, { variant: "danger" })) return;
+
+        try {
+            const res = await fetch(`/api/ledger/${entry.id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to delete transaction");
+            }
+
+            showAlert(`Transaction #${ordNum} deleted successfully`, { variant: "success" });
+            
+            // Add a small delay to ensure database is updated, then refresh
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Reset view levels and refresh all entries
+            setViewLevel('years');
+            setSelectedYear(null);
+            setSelectedMonth(null);
+            setExpandedDates(new Set());
+            
+            fetchEntries();
+        } catch (error: any) {
+            console.error("Failed to delete transaction:", error);
+            showAlert(error.message || "Failed to delete transaction", { variant: "danger" });
+        }
+    };
+
     const months = [
         { value: null, label: "All Months" },
         { value: 1, label: "January" },
@@ -502,37 +537,46 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
                                                                     {formatCurrency(entry.amount)}
                                                                 </td>
                                                                 <td className="px-4 py-3 text-center">
-                                                                    {entry.status !== 'closed' && p.itemName !== '-' && p.qty !== '-' && (
+                                                                    <div className="flex items-center justify-center gap-2">
+                                                                        {entry.status !== 'closed' && p.itemName !== '-' && p.qty !== '-' && (
+                                                                            <button
+                                                                                onClick={async () => {
+                                                                                    try {
+                                                                                        // Calculate actual rate from this specific transaction
+                                                                                        // This is important because same item from different suppliers has different rates
+                                                                                       const transactionRate =
+                                                                                            entry.quantity != null && entry.amount != null
+                                                                                                ? Number(entry.amount) / Number(entry.quantity)
+                                                                                                : 0;
+                                                                                        
+                                                                                        setSelectedItemForRemoval({
+                                                                                            ledgerId: entry.id,
+                                                                                            item: {
+                                                                                                name: p.itemName,
+                                                                                                qty: p.qty,
+                                                                                                rate: p.qty
+                                                                                            },
+                                                                                            purchasePrice: transactionRate
+                                                                                        });
+                                                                                        setShowRemoveModal(true);
+                                                                                    } catch (err) {
+                                                                                        console.error("Failed to open removal modal:", err);
+                                                                                    }
+                                                                                }}
+                                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-all"
+                                                                                title="Remove items from transaction"
+                                                                            >
+                                                                                <MinusIcon className="h-4 w-4" />
+                                                                            </button>
+                                                                        )}
                                                                         <button
-                                                                            onClick={async () => {
-                                                                                try {
-                                                                                    // Calculate actual rate from this specific transaction
-                                                                                    // This is important because same item from different suppliers has different rates
-                                                                                   const transactionRate =
-                                                                                        entry.quantity != null && entry.amount != null
-                                                                                            ? Number(entry.amount) / Number(entry.quantity)
-                                                                                            : 0;
-                                                                                    
-                                                                                    setSelectedItemForRemoval({
-                                                                                        ledgerId: entry.id,
-                                                                                        item: {
-                                                                                            name: p.itemName,
-                                                                                            qty: p.qty,
-                                                                                            rate: p.qty
-                                                                                        },
-                                                                                        purchasePrice: transactionRate
-                                                                                    });
-                                                                                    setShowRemoveModal(true);
-                                                                                } catch (err) {
-                                                                                    console.error("Failed to open removal modal:", err);
-                                                                                }
-                                                                            }}
-                                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-all"
-                                                                            title="Remove from transaction"
+                                                                            onClick={() => handleDeleteEntry(entry)}
+                                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-all"
+                                                                            title="Delete entire transaction"
                                                                         >
-                                                                            <MinusIcon className="h-4 w-4" />
+                                                                            <TrashIcon className="h-4 w-4" />
                                                                         </button>
-                                                                    )}
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         );
