@@ -1469,24 +1469,22 @@ export default function LedgerEntryForm({
                                         </select>
                                     </div>
 
-                                    {/* Rate (Unit Price) */}
-                                    {itemType === 'Customize' && (
-                                        <div className="w-full md:w-32">
-                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Rate</label>
-                                            <input
-                                                type="number"
-                                                value={unitPrice || ""}
-                                                onChange={(e) => {
-                                                    const val = Number(e.target.value);
-                                                    setUnitPrice(val);
-                                                    const qty = Number(quantity) || 0;
-                                                    setLineAmount((val * qty).toString());
-                                                }}
-                                                placeholder="0"
-                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
-                                            />
-                                        </div>
-                                    )}
+                                    {/* Per-piece price (unit price) */}
+                                    <div className="w-full md:w-32">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Per Piece</label>
+                                        <input
+                                            type="number"
+                                            value={unitPrice || ""}
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value) || 0;
+                                                setUnitPrice(val);
+                                                const qty = parseFloat(quantity) || 0;
+                                                setLineAmount((val * qty).toFixed(2));
+                                            }}
+                                            placeholder="0"
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
+                                        />
+                                    </div>
 
                                     <div className="w-full md:w-32">
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
@@ -1496,9 +1494,8 @@ export default function LedgerEntryForm({
                                             onChange={(e) => {
                                                 const val = e.target.value;
                                                 setQuantity(val);
-                                                if (unitPrice) {
-                                                    setLineAmount((unitPrice * (Number(val) || 0)).toString());
-                                                }
+                                                const qtyNum = Number(val) || 0;
+                                                setLineAmount((unitPrice * qtyNum).toFixed(2));
                                             }}
                                             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-semibold text-center text-gray-900"
                                         />
@@ -1539,23 +1536,17 @@ export default function LedgerEntryForm({
                                                 type="number"
                                                 value={lineAmount}
                                                 disabled={isEdit}
-                                                onChange={(e) => setLineAmount(e.target.value)}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setLineAmount(val);
+                                                    const qtyNum = Number(quantity) || 0;
+                                                    if (qtyNum > 0) {
+                                                        const per = parseFloat(val) / qtyNum;
+                                                        setUnitPrice(isNaN(per) ? 0 : per);
+                                                    }
+                                                }}
                                                 className={`w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none focus:bg-white transition-all shadow-sm font-bold text-lg text-gray-800 ${isEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 placeholder="0.00"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Remaining - For Cash-In */}
-                                    <div className="w-full md:w-48">
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Remaining</label>
-                                        <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rs.</span>
-                                            <input
-                                                type="number"
-                                                value={remainingAmount}
-                                                readOnly
-                                                className="w-full pl-12 pr-4 py-3 bg-gray-100 border border-transparent rounded-xl font-bold text-lg text-red-500 cursor-not-allowed shadow-sm"
                                             />
                                         </div>
                                     </div>
