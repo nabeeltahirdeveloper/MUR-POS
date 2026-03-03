@@ -766,7 +766,7 @@ export default function LedgerEntryForm({
         }
     };
 
-    const handleDeleteOrder = async (orderIdOrNumber: string) => {
+    const handleDeleteOrder = async (orderIdOrNumber: string, entryIds?: string[]) => {
         if (!orderIdOrNumber || orderIdOrNumber === '-') return;
 
         // Determine if it's a single entry ID or a batch order number
@@ -780,24 +780,50 @@ export default function LedgerEntryForm({
 
         setLoading(true);
         try {
-            const url = `/api/ledger/${displayId}`;
-
-            const res = await fetch(url, { method: "DELETE" });
-            const data = await res.json();
-
-            if (res.ok) {
-                showAlert(data.message || (isSingleEntry ? "Entry deleted successfully." : `Order #${orderIdOrNumber} deleted successfully.`), { variant: "success", title: "Success" });
-                // Refresh supplier history
-                const nameToFetch = (selectedSupplierForHistory || partyName)?.trim();
-                if (nameToFetch) {
-                    const historyRes = await fetch(`/api/ledger/supplier-history?supplierName=${encodeURIComponent(nameToFetch)}`);
-                    if (historyRes.ok) {
-                        const historyData = await historyRes.json();
-                        setSupplierHistory(historyData.transactions || []);
+            // If we have actual Firestore doc IDs, delete them directly (most reliable)
+            if (entryIds && entryIds.length > 0) {
+                let allOk = true;
+                for (const docId of entryIds) {
+                    const res = await fetch(`/api/ledger/${docId}`, { method: "DELETE" });
+                    if (!res.ok) {
+                        allOk = false;
+                        const data = await res.json();
+                        await showAlert(data.error || "Failed to delete one or more entries", { variant: "danger", title: "Error" });
+                        break;
+                    }
+                }
+                if (allOk) {
+                    showAlert(isSingleEntry ? "Entry deleted successfully." : `Order #${orderIdOrNumber} deleted successfully.`, { variant: "success", title: "Success" });
+                    // Refresh supplier history
+                    const nameToFetch = (selectedSupplierForHistory || partyName)?.trim();
+                    if (nameToFetch) {
+                        const historyRes = await fetch(`/api/ledger/supplier-history?supplierName=${encodeURIComponent(nameToFetch)}`);
+                        if (historyRes.ok) {
+                            const historyData = await historyRes.json();
+                            setSupplierHistory(historyData.transactions || []);
+                        }
                     }
                 }
             } else {
-                await showAlert(data.error || "Failed to delete", { variant: "danger", title: "Error" });
+                // Fallback: delete by displayId (order number or single entry ID)
+                const url = `/api/ledger/${displayId}`;
+                const res = await fetch(url, { method: "DELETE" });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showAlert(data.message || (isSingleEntry ? "Entry deleted successfully." : `Order #${orderIdOrNumber} deleted successfully.`), { variant: "success", title: "Success" });
+                    // Refresh supplier history
+                    const nameToFetch = (selectedSupplierForHistory || partyName)?.trim();
+                    if (nameToFetch) {
+                        const historyRes = await fetch(`/api/ledger/supplier-history?supplierName=${encodeURIComponent(nameToFetch)}`);
+                        if (historyRes.ok) {
+                            const historyData = await historyRes.json();
+                            setSupplierHistory(historyData.transactions || []);
+                        }
+                    }
+                } else {
+                    await showAlert(data.error || "Failed to delete", { variant: "danger", title: "Error" });
+                }
             }
         } catch (error) {
             console.error("Error deleting:", error);
@@ -1685,7 +1711,7 @@ export default function LedgerEntryForm({
                                                             {transaction.orderNumber && transaction.orderNumber !== '-' && (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => handleDeleteOrder(transaction.id)}
+                                                                    onClick={() => handleDeleteOrder(transaction.id, transaction.entryIds)}
                                                                     className="text-red-500 hover:text-red-700 p-1.5 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                                                     title="Delete Order"
                                                                 >

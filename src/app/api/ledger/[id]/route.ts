@@ -289,18 +289,39 @@ export async function DELETE(
         const { id } = await params;
         const { deleteDoc, getDocById, queryDocs, createDoc } = await import('@/lib/firestore-helpers');
 
+        // 1. Identify entries to delete (either by direct ID or by Order Number)
+        let entriesToDelete: (FirestoreLedger & { id: string })[] = [];
+
+        // Try direct ID first
+        const directEntry = await getDocById<FirestoreLedger>('ledger', id);
+        if (directEntry) {
+            entriesToDelete = [directEntry];
+        } else if (/^\d+$/.test(id)) {
+            // If not found by ID and ID is numeric, treat as Order Number
+            const orderNum = parseInt(id, 10);
+            entriesToDelete = await queryDocs<FirestoreLedger>('ledger', [
+                { field: 'orderNumber', operator: '==', value: orderNum }
+            ]);
+        }
+
+        if (entriesToDelete.length === 0) {
+            // Return success even if not found to avoid UI errors, but log it
+            console.warn(`[DELETE] No ledger entries found for ID/Order #${id}`);
+            return NextResponse.json({ message: "Deleted successfully (no target found)" });
+        }
+
         // --- Stock Reconciliation (On Delete) ---
-        // Before deleting, find and revert any stock logs created for this entry
+        // Before deleting, find and revert any stock logs created for these entries
         try {
-            const currentEntry = await getDocById<FirestoreLedger>('ledger', id);
-            if (currentEntry) {
-                // Find all logs related to this entry
+            for (const currentEntry of entriesToDelete) {
+                const entryId = currentEntry.id;
+                // Find all logs related to this specific entry ID
                 const logs = await queryDocs<any>('stock_logs', [
                     { field: 'description', operator: '>=', value: `Auto-generated from Ledger` },
                 ]);
 
                 // Filter strictly for this specific ID
-                const relevantLogs = logs.filter(l => l.description.includes(`#${id}`));
+                const relevantLogs = logs.filter(l => l.description.includes(`#${entryId}`));
 
                 for (const log of relevantLogs) {
                     // Revert the effect: if log was 'in', we 'out'
@@ -309,19 +330,34 @@ export async function DELETE(
                         itemId: log.itemId,
                         type: revertType,
                         quantityBaseUnit: log.quantityBaseUnit,
-                        description: `Reversion of ${log.type} for DELETED Ledger #${id}`,
+                        description: `Reversion of ${log.type} for DELETED Ledger #${entryId} (Batch)`,
                         createdAt: new Date()
                     });
                 }
             }
         } catch (err) {
-            console.error("Failed to revert stock for deleted ledger entry", err);
-            // We continue with deletion even if stock reversion fails to avoid stuck records,
-            // but the error is logged.
+            console.error("Failed to revert stock for deleted ledger entries", err);
         }
-        // ----------------------------------------
 
-        await deleteDoc('ledger', id);
+        // --- Debt Deletion (Sync) ---
+        try {
+            // Extract potential order number
+            const orderNum = entriesToDelete[0]?.orderNumber;
+            if (orderNum) {
+                const debts = await queryDocs<any>('debts', []);
+                const relevantDebts = debts.filter(d => d.note?.includes(`Order #${orderNum}`));
+                for (const debt of relevantDebts) {
+                    await deleteDoc('debts', debt.id);
+                }
+            }
+        } catch (debtErr) {
+            console.error("Failed to sync debt deletion:", debtErr);
+        }
+
+        // 2. Perform Deletions
+        for (const entry of entriesToDelete) {
+            await deleteDoc('ledger', entry.id);
+        }
 
         return NextResponse.json({ message: "Deleted successfully" });
     } catch (error) {

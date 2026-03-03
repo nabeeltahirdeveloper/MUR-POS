@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
 
         // Group entries by order number
         const orderMap = new Map<string, {
-            entries: FirestoreLedger[];
+            entries: (FirestoreLedger & { id: string })[];
             totalAmount: number;
             date: Date;
             orderNumber: string;
@@ -137,6 +137,7 @@ export async function GET(req: NextRequest) {
 
                 return {
                     id: order.orderNumber,
+                    entryIds: order.entries.map(e => e.id), // actual Firestore doc IDs
                     date: order.date.toISOString(),
                     orderNumber: order.orderNumber.startsWith('single-') ? "-" : order.orderNumber,
                     type: firstEntry.type,
