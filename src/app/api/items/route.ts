@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firestore";
-import { queryDocs, getAllDocs, getDocById } from "@/lib/firestore-helpers";
+import { getAllDocs, createDoc, queryDocs, getDocById } from "@/lib/firestore-helpers";
+import { isSystemLocked } from "@/lib/lock";
 import { calculateCurrentStock, checkLowStock } from "@/lib/inventory";
 import { getReminderById, reminderDocId, upsertReminder } from "@/lib/reminders";
 import type { FirestoreItem, FirestoreCategory, FirestoreUnit } from "@/types/firestore";
@@ -97,6 +97,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    if (await isSystemLocked()) {
+        return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
+    }
     try {
         const body = await request.json();
         const {

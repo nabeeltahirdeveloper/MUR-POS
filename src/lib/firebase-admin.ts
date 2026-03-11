@@ -17,7 +17,7 @@ if (!admin.apps.length) {
         (privateKey.startsWith("'") && privateKey.endsWith("'"))) {
         privateKey = privateKey.slice(1, -1);
     }
-    privateKey = privateKey.replace(/\\n/g, '\n').trim();
+    privateKey = privateKey.replace(/\\n/g, '\n').replace(/\\n/g, '\n').trim();
 
     try {
         admin.initializeApp({

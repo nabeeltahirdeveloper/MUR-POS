@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllDocs, createDoc } from "@/lib/firestore-helpers";
+import { isSystemLocked } from "@/lib/lock";
 import type { FirestoreCustomer } from "@/types/firestore";
 
 export const runtime = "nodejs";
@@ -54,6 +55,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    if (await isSystemLocked()) {
+        return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
+    }
     try {
         const body = await request.json();
         const { name, phone, address } = body;
