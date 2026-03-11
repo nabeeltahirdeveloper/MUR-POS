@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById } from "@/lib/firestore-helpers";
-import type { FirestoreLedger, FirestoreItems } from "@/types/firestore";
+import type { FirestoreLedger, FirestoreItem } from "@/types/firestore";
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
                 { field: 'date', operator: '>=', value: Timestamp.fromDate(today) },
                 { field: 'date', operator: '<', value: Timestamp.fromDate(tomorrow) },
             ]),
-            queryDocs<FirestoreItems>('items', []),
+            queryDocs<FirestoreItem>('items', []),
             queryDocs<any>('utilities', [{ field: 'status', operator: '==', value: 'unpaid' }]),
             queryDocs<any>('other-expenses', [{ field: 'status', operator: '==', value: 'unpaid' }]),
             queryDocs<any>('debts', [{ field: 'status', operator: '==', value: 'active' }])

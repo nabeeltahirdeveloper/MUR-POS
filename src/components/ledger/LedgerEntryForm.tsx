@@ -32,6 +32,7 @@ type Party = {
     name: string;
     phone?: string;
     address?: string;
+    balance?: number | string | null;
 };
 
 type CartItem = {

@@ -83,6 +83,7 @@ export async function GET(req: NextRequest) {
     const upcomingUtilities = (Array.isArray(utilities) ? utilities : [])
       .filter((u) => u?.status === "unpaid")
       .filter((u) => {
+        if (!u.dueDate) return false;
         const d = new Date(u.dueDate);
         d.setHours(0, 0, 0, 0);
         const diff = d.getTime() - now.getTime();
@@ -92,8 +93,8 @@ export async function GET(req: NextRequest) {
       .slice(0, 5);
 
     const upcomingExpenses = (Array.isArray(expenses) ? expenses : [])
-      .filter((e) => e?.status === "unpaid")
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      .filter((e) => e?.status === "unpaid" && e?.dueDate)
+      .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
       .slice(0, 5);
 
     const debtSummary = (Array.isArray(debts) ? debts : []).filter((d) => d?.status === "active").slice(0, 5);
@@ -107,7 +108,7 @@ export async function GET(req: NextRequest) {
           .map((s) => ({
             personName: s.name,
             remaining: s.balance,
-            type: "debit",
+            type: "debit" as const,
             date: s.lastEntryDate,
           })),
       ];
@@ -120,7 +121,7 @@ export async function GET(req: NextRequest) {
           .map((c) => ({
             personName: c.name,
             remaining: c.balance,
-            type: "credit",
+            type: "credit" as const,
             date: c.lastEntryDate,
           })),
       ];
