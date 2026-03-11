@@ -39,44 +39,25 @@ function DashboardContent() {
     const fetcher = (url: string) => fetch(url).then(res => res.json());
 
     const todayStr = new Date().toISOString().split("T")[0];
-    const { data: overviewData } = useSWR(() => `/api/dashboard/overview?date=${todayStr}`, fetcher);
-
-    useEffect(() => {
-        if (overviewData?.currency) {
-            setCurrency(overviewData.currency);
+    const { data: overviewData } = useSWR(
+        () => `/api/dashboard/overview?date=${todayStr}`,
+        fetcher,
+        {
+            revalidateOnFocus: false, // Prevent extra queries when switching tabs
+            dedupingInterval: 60000,  // Deduplicate requests within 60 seconds
         }
-    }, [overviewData]);
+    );
 
     useEffect(() => {
-        if (overviewData?.dailySummary) setDailySummary(overviewData.dailySummary);
-    }, [overviewData]);
-
-    useEffect(() => {
-        if (overviewData?.totalSummary) setTotalSummary(overviewData.totalSummary);
-    }, [overviewData]);
-
-    useEffect(() => {
-        if (Array.isArray(overviewData?.upcomingUtilities)) {
-            setUpcomingUtilities(overviewData.upcomingUtilities);
-        }
-    }, [overviewData]);
-
-    useEffect(() => {
-        if (Array.isArray(overviewData?.upcomingExpenses)) {
-            setUpcomingExpenses(overviewData.upcomingExpenses);
-        }
-    }, [overviewData]);
-
-    useEffect(() => {
-        if (Array.isArray(overviewData?.debtSummary)) {
-            setDebtSummary(overviewData.debtSummary);
-        }
-    }, [overviewData]);
-
-    useEffect(() => {
-        if (Array.isArray(overviewData?.pendingLedger)) {
-            setPendingLedger(overviewData.pendingLedger);
-        }
+        if (!overviewData) return;
+        
+        if (overviewData.currency) setCurrency(overviewData.currency);
+        if (overviewData.dailySummary) setDailySummary(overviewData.dailySummary);
+        if (overviewData.totalSummary) setTotalSummary(overviewData.totalSummary);
+        if (Array.isArray(overviewData.upcomingUtilities)) setUpcomingUtilities(overviewData.upcomingUtilities);
+        if (Array.isArray(overviewData.upcomingExpenses)) setUpcomingExpenses(overviewData.upcomingExpenses);
+        if (Array.isArray(overviewData.debtSummary)) setDebtSummary(overviewData.debtSummary);
+        if (Array.isArray(overviewData.pendingLedger)) setPendingLedger(overviewData.pendingLedger);
     }, [overviewData]);
 
     const formatCurr = (val: number | string) => {

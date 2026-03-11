@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { getDocById } from "@/lib/firestore-helpers";
 import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreItem } from "@/types/firestore";
 import { isSystemLocked } from "@/lib/lock";
+import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
+import { invalidateCache } from "@/lib/server-cache";
 
 export async function GET(
     req: NextRequest,
@@ -271,6 +273,11 @@ export async function PUT(
             return NextResponse.json({ error: "Entry not found" }, { status: 404 });
         }
 
+        // Refresh dashboard stats after edit (non-blocking)
+        const todayStr = new Date().toISOString().split("T")[0];
+        invalidateCache(`daily-summary:${todayStr}`);
+        triggerDashboardStatsRefresh();
+
         return NextResponse.json(updatedEntry);
     } catch (error) {
         console.error("Error updating ledger entry:", error);
@@ -367,6 +374,11 @@ export async function DELETE(
         for (const entry of entriesToDelete) {
             await deleteDoc('ledger', entry.id);
         }
+
+        // Refresh dashboard stats after delete (non-blocking)
+        const todayStr = new Date().toISOString().split("T")[0];
+        invalidateCache(`daily-summary:${todayStr}`);
+        triggerDashboardStatsRefresh();
 
         return NextResponse.json({ message: "Deleted successfully" });
     } catch (error) {

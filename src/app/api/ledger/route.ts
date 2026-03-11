@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById, getAllDocs } from "@/lib/firestore-helpers";
+import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
+import { invalidateCache } from "@/lib/server-cache";
 import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility, FirestoreExpense, FirestoreItem } from "@/types/firestore";
 import { isSystemLocked } from "@/lib/lock";
 
@@ -438,6 +440,11 @@ export async function POST(req: NextRequest) {
         // --------------------------
 
         const entry = await getDocById<FirestoreLedger>('ledger', entryId);
+
+        // Invalidate daily cache and refresh dashboard stats (non-blocking)
+        const todayStr = new Date().toISOString().split("T")[0];
+        invalidateCache(`daily-summary:${todayStr}`);
+        triggerDashboardStatsRefresh();
 
         return NextResponse.json(entry, { status: 201 });
     } catch (error) {

@@ -25,3 +25,22 @@ export async function getOrSetCache<T>(
   return value;
 }
 
+/**
+ * Explicitly evict a cache key so the next call re-computes it.
+ * Call this from write-path handlers after data mutations.
+ */
+export function invalidateCache(key: string): void {
+  cache.delete(key);
+}
+
+/**
+ * Evict all cache keys that start with the given prefix.
+ * Useful when you want to bust all daily-summary:* keys, etc.
+ */
+export function invalidateCacheByPrefix(prefix: string): void {
+  for (const key of cache.keys()) {
+    if (key.startsWith(prefix)) {
+      cache.delete(key);
+    }
+  }
+}

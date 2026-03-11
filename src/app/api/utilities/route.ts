@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllDocs, createDoc } from "@/lib/firestore-helpers";
 import type { FirestoreUtility } from "@/types/firestore";
+import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 
 export const runtime = "nodejs";
 
@@ -49,6 +50,8 @@ export async function POST(request: NextRequest) {
         await syncUtilityReminders(utilityId).catch(err => {
             console.error("Failed to sync reminders for new utility:", err);
         });
+
+        triggerDashboardStatsRefresh();
 
         return NextResponse.json({ id: utilityId, ...utilityData }, { status: 201 });
     } catch (error) {

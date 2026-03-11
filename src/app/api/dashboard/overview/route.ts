@@ -1,40 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getDocById, queryDocs } from "@/lib/firestore-helpers";
-import { getCustomersSummaries, getSuppliersSummaries } from "@/lib/ledger-balance";
-import type { FirestoreSettings } from "@/types/firestore";
+import { getSettings } from "@/lib/firestore-helpers";
+import { getDashboardStats } from "@/lib/dashboard-stats";
+import { getDailySummary } from "@/lib/daily-summary";
 
 export const dynamic = "force-dynamic";
-
-type UpcomingRecord = {
-  status?: string;
-  dueDate?: string | Date;
-  amount?: number;
-  category?: string;
-  [key: string]: unknown;
-};
-
-type DebtRecord = {
-  status?: string;
-  amount?: number;
-  personName?: string;
-  type?: string;
-  dueDate?: string | Date;
-  [key: string]: unknown;
-};
-
-type PartySummaryLike = {
-  name: string;
-  balance: number;
-  lastEntryDate: string | Date;
-};
-
-type PendingLedgerEntry = {
-  personName: string;
-  remaining: number;
-  type: "debit" | "credit";
-  date: string | Date;
-};
 
 function ymd(d: Date) {
   return d.toISOString().split("T")[0];
@@ -45,7 +15,6 @@ export async function GET(req: NextRequest) {
     const session = await auth();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const origin = new URL(req.url).origin;
     const { searchParams } = new URL(req.url);
     const dateStr = searchParams.get("date") || ymd(new Date());
     const date = new Date(dateStr);
@@ -53,96 +22,28 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
     }
 
-    const [
-      settings,
-      dailySummary,
-      totalSummary,
-      utilities,
-      expenses,
-      debts,
-      suppliers,
-      customers,
-    ] = await Promise.all([
-      getDocById<FirestoreSettings>("settings", "global"),
-      fetch(`${origin}/api/ledger/summary/daily?date=${encodeURIComponent(dateStr)}`).then(
-        async (r) => (r.ok ? r.json() : null)
-      ),
-      fetch(`${origin}/api/ledger/summary/total`).then(async (r) => (r.ok ? r.json() : null)),
-      queryDocs<UpcomingRecord>("utilities", []),
-      queryDocs<UpcomingRecord>("other-expenses", []),
-      queryDocs<DebtRecord>("debts", []),
-      getSuppliersSummaries(),
-      getCustomersSummaries(),
+    // === Read 1 precomputed doc + settings (usually cached) + daily summary (cached 5min) ===
+    // Total: 1-3 Firestore reads instead of 20-25
+    const [stats, settings, dailySummary] = await Promise.all([
+      getDashboardStats(),
+      getSettings(),
+      getDailySummary(dateStr),
     ]);
 
-    const currency = settings?.currency ?? { symbol: "Rs.", position: "prefix" };
-
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
-    const upcomingUtilities = (Array.isArray(utilities) ? utilities : [])
-      .filter((u) => u?.status === "unpaid")
-      .filter((u) => {
-        if (!u.dueDate) return false;
-        const d = new Date(u.dueDate);
-        d.setHours(0, 0, 0, 0);
-        const diff = d.getTime() - now.getTime();
-        const days = diff / (1000 * 60 * 60 * 24);
-        return days <= 7;
-      })
-      .slice(0, 5);
-
-    const upcomingExpenses = (Array.isArray(expenses) ? expenses : [])
-      .filter((e) => e?.status === "unpaid" && e?.dueDate)
-      .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
-      .slice(0, 5);
-
-    const debtSummary = (Array.isArray(debts) ? debts : []).filter((d) => d?.status === "active").slice(0, 5);
-
-    let pendingLedger: PendingLedgerEntry[] = [];
-    if (Array.isArray(suppliers)) {
-      pendingLedger = [
-        ...pendingLedger,
-        ...(suppliers as PartySummaryLike[])
-          .filter((s) => s.balance > 0)
-          .map((s) => ({
-            personName: s.name,
-            remaining: s.balance,
-            type: "debit" as const,
-            date: s.lastEntryDate,
-          })),
-      ];
-    }
-    if (Array.isArray(customers)) {
-      pendingLedger = [
-        ...pendingLedger,
-        ...(customers as PartySummaryLike[])
-          .filter((c) => c.balance > 0)
-          .map((c) => ({
-            personName: c.name,
-            remaining: c.balance,
-            type: "credit" as const,
-            date: c.lastEntryDate,
-          })),
-      ];
-    }
-    pendingLedger = pendingLedger
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5);
+    const currency = (settings as any)?.currency ?? { symbol: "Rs.", position: "prefix" };
 
     return NextResponse.json({
       date: dateStr,
       currency,
       dailySummary,
-      totalSummary,
-      upcomingUtilities,
-      upcomingExpenses,
-      debtSummary,
-      pendingLedger,
+      totalSummary: stats?.totalSummary ? { summary: stats.totalSummary } : null,
+      upcomingUtilities: stats?.pendingUtilities ?? [],
+      upcomingExpenses: stats?.pendingExpenses ?? [],
+      debtSummary: stats?.debtSummary ?? [],
+      pendingLedger: stats?.pendingLedgerEntries ?? [],
     });
   } catch (error) {
     console.error("Dashboard overview API error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-
