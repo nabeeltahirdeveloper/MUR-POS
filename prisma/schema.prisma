@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // User & Auth Tables
@@ -270,4 +271,12 @@ model Reminder {
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("reminders")
+}
+// System Settings Table
+model SystemSetting {
+  id    Int     @id @default(autoincrement())
+  key   String  @unique
+  value String
+
+  @@map("system_settings")
 }

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { Timestamp } from "@/lib/firestore";
 import { queryDocs, getDocById, getAllDocs } from "@/lib/firestore-helpers";
 import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility, FirestoreExpense, FirestoreItem } from "@/types/firestore";
+import { isSystemLocked } from "@/lib/lock";
 
 export async function GET(req: NextRequest) {
     try {
@@ -308,6 +309,10 @@ export async function POST(req: NextRequest) {
         const session = await auth();
         if (!session) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        if (await isSystemLocked()) {
+            return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
         }
 
         const body = await req.json();

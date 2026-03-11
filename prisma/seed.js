@@ -49,6 +49,22 @@ async function main() {
         console.log('Seeded suppliers');
     }
 
+    // System Settings
+    // Using property access to avoid TS casting issues in JS file
+    const systemSettingClient = prisma.systemSetting || prisma['systemSetting'];
+    if (systemSettingClient) {
+        const lockSetting = await systemSettingClient.findUnique({ where: { key: 'isLocked' } });
+        if (!lockSetting) {
+            await systemSettingClient.create({
+                data: {
+                    key: 'isLocked',
+                    value: 'false', // Default to unlocked for now
+                },
+            });
+            console.log('Seeded system lock setting');
+        }
+    }
+
     console.log('Seeding finished.');
 }
 

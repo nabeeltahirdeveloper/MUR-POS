@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDocById } from "@/lib/firestore-helpers";
 import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreItem } from "@/types/firestore";
+import { isSystemLocked } from "@/lib/lock";
 
 export async function GET(
     req: NextRequest,
@@ -45,6 +46,10 @@ export async function PUT(
         const session = await auth();
         if (!session) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        if (await isSystemLocked()) {
+            return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
         }
 
         const { id } = await params;
@@ -284,6 +289,10 @@ export async function DELETE(
         const session = await auth();
         if (!session) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        if (await isSystemLocked()) {
+            return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
         }
 
         const { id } = await params;

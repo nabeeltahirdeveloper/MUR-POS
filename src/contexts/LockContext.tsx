@@ -1,34 +1,46 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { usePathname } from "next/navigation";
 
 interface LockContextType {
     isLocked: boolean;
     unlock: (password: string) => Promise<boolean>;
-    lock: () => void;
+    lock: () => Promise<void>;
     isLoading: boolean;
+    refreshStatus: () => Promise<void>;
 }
 
 const LockContext = createContext<LockContextType | undefined>(undefined);
 
-const LOCK_STATE_KEY = "jbc_lock_state";
-
 export function LockProvider({ children }: { children: ReactNode }) {
     const [isLocked, setIsLocked] = useState(true);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const pathname = usePathname();
 
-    // Load lock state from localStorage on mount
-    useEffect(() => {
-        const stored = localStorage.getItem(LOCK_STATE_KEY);
-        if (stored === "unlocked") {
-            setIsLocked(false);
+    const refreshStatus = useCallback(async () => {
+        try {
+            const response = await fetch("/api/lock/status");
+            const data = await response.json();
+            if (typeof data.isLocked === 'boolean') {
+                setIsLocked(data.isLocked);
+            }
+        } catch (error) {
+            console.error("Failed to fetch lock status:", error);
+        } finally {
+            setIsLoading(false);
         }
     }, []);
+
+    // Load lock state from backend on mount and route changes
+    useEffect(() => {
+        refreshStatus();
+    }, [refreshStatus, pathname]);
 
     const unlock = async (password: string): Promise<boolean> => {
         setIsLoading(true);
         try {
-            const response = await fetch("/api/unlock", {
+            const response = await fetch("/api/lock/unlock", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ password }),
@@ -38,7 +50,6 @@ export function LockProvider({ children }: { children: ReactNode }) {
 
             if (data.success) {
                 setIsLocked(false);
-                localStorage.setItem(LOCK_STATE_KEY, "unlocked");
                 return true;
             }
 
@@ -51,13 +62,20 @@ export function LockProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const lock = () => {
-        setIsLocked(true);
-        localStorage.setItem(LOCK_STATE_KEY, "locked");
+    const lock = async () => {
+        setIsLoading(true);
+        try {
+            await fetch("/api/lock/lock", { method: "POST" });
+            setIsLocked(true);
+        } catch (error) {
+            console.error("Lock error:", error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
-        <LockContext.Provider value={{ isLocked, unlock, lock, isLoading }}>
+        <LockContext.Provider value={{ isLocked, unlock, lock, isLoading, refreshStatus }}>
             {children}
         </LockContext.Provider>
     );
