@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import { usePathname } from "next/navigation";
 
 interface LockContextType {
     isLocked: boolean;
@@ -16,7 +15,6 @@ const LockContext = createContext<LockContextType | undefined>(undefined);
 export function LockProvider({ children }: { children: ReactNode }) {
     const [isLocked, setIsLocked] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
-    const pathname = usePathname();
 
     const refreshStatus = useCallback(async () => {
         try {
@@ -32,10 +30,14 @@ export function LockProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // Load lock state from backend on mount and route changes
+    // Load lock state from backend on mount (and occasionally to stay fresh).
     useEffect(() => {
         refreshStatus();
-    }, [refreshStatus, pathname]);
+        const t = setInterval(() => {
+            refreshStatus();
+        }, 5 * 60_000);
+        return () => clearInterval(t);
+    }, [refreshStatus]);
 
     const unlock = async (password: string): Promise<boolean> => {
         setIsLoading(true);

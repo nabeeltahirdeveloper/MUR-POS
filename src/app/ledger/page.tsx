@@ -55,8 +55,10 @@ function LedgerPageContent() {
     }, []);
 
     useEffect(() => {
-        fetchEntries();
-    }, [filters]);
+        if (view === "entries" || view === "pending") {
+            fetchEntries();
+        }
+    }, [filters, view]);
 
     const fetchCategories = async () => {
         try {

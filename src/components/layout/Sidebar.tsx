@@ -70,9 +70,24 @@ export default function Sidebar({
     useEffect(() => {
         const fetchSettings = async () => {
             try {
+                // Avoid repeated requests (dev remounts / navigation) by caching in sessionStorage.
+                const cached = typeof window !== "undefined" ? sessionStorage.getItem("mt_settings_cache_v1") : null;
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    if (data?.businessProfile?.name) {
+                        const name = String(data.businessProfile.name).trim();
+                        const oldNameRegex = /(jb\s*&?\s*company|jb\s*&?\s*cmpany|jb\s*&?\s*co\.?|jbc)/i;
+                        setBusinessName(oldNameRegex.test(name) ? "Moon Traders" : name);
+                    }
+                    return;
+                }
+
                 const res = await fetch("/api/settings");
                 if (res.ok) {
                     const data = await res.json();
+                    try {
+                        sessionStorage.setItem("mt_settings_cache_v1", JSON.stringify(data));
+                    } catch { }
                     if (data?.businessProfile?.name) {
                         const name = String(data.businessProfile.name).trim();
 
@@ -147,6 +162,7 @@ export default function Sidebar({
                             ) : (
                                 <Link
                                     href={item.href}
+                                    prefetch={false}
                                     onClick={() => setSidebarOpen(false)}
                                     className={`group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
                                         ? "bg-primary/10 text-primary border-l-2 border-primary"
@@ -182,6 +198,7 @@ export default function Sidebar({
                                             <Link
                                                 key={child.href}
                                                 href={child.href}
+                                                prefetch={false}
                                                 onClick={() => setSidebarOpen(false)}
                                                 className={`group flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ${childActive
                                                     ? "bg-primary/10 text-primary"

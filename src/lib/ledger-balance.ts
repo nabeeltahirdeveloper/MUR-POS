@@ -1,5 +1,7 @@
 import { getAllDocs } from "@/lib/firestore-helpers";
 import type { FirestoreLedger, FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import { getOrSetCache } from "@/lib/server-cache";
+import { getOrComputeStats } from "@/lib/stats-cache";
 
 export interface PartySummary {
     name: string;
@@ -22,20 +24,22 @@ export interface PartySummary {
  * - We also integrate Loans and Payments for a full picture.
  */
 export async function getSuppliersSummaries(): Promise<PartySummary[]> {
-    const [ledgerEntries, debts, payments] = await Promise.all([
-        getAllDocs<FirestoreLedger>('ledger'),
-        getAllDocs<FirestoreDebt>('debts'),
-        getAllDocs<FirestoreDebtPayment>('debt_payments')
-    ]);
+    return getOrSetCache("ledger-balance:suppliers:v2", 30_000, async () => {
+        return getOrComputeStats("ledger_balance_suppliers_v1", 60_000, async () => {
+        const [ledgerEntries, debts, payments] = await Promise.all([
+            getAllDocs<FirestoreLedger>('ledger'),
+            getAllDocs<FirestoreDebt>('debts'),
+            getAllDocs<FirestoreDebtPayment>('debt_payments')
+        ]);
 
-    const supplierMap: Record<string, {
-        name: string;
-        totalCredit: number; // What we paid
-        totalDebit: number;  // What we bought
-        latestRemaining: number;
-        lastEntryDate: Date;
-        lastRemainingDate: Date;
-    }> = {};
+        const supplierMap: Record<string, {
+            name: string;
+            totalCredit: number; // What we paid
+            totalDebit: number;  // What we bought
+            latestRemaining: number;
+            lastEntryDate: Date;
+            lastRemainingDate: Date;
+        }> = {};
 
     const getPartyData = (name: string) => {
         const normalized = name.trim();
@@ -160,18 +164,20 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
     // - totalCredit (Cash-In) = 0 (we don't receive money from suppliers)
     // - totalDebit (Cash-Out) = actual payments made (total amount - remaining)
     // - balance = what we still owe them
-    return Object.values(supplierMap).map(s => {
-        const stillOwed = s.latestRemaining;
-        const actualPaid = s.totalDebit;
+        return Object.values(supplierMap).map(s => {
+            const stillOwed = s.latestRemaining;
+            const actualPaid = s.totalDebit;
 
-        return {
-            name: s.name,
-            balance: stillOwed,
-            lastEntryDate: s.lastEntryDate,
-            totalCredit: 0,
-            totalDebit: actualPaid
-        };
-    }).sort((a, b) => b.lastEntryDate.getTime() - a.lastEntryDate.getTime());
+            return {
+                name: s.name,
+                balance: stillOwed,
+                lastEntryDate: s.lastEntryDate,
+                totalCredit: 0,
+                totalDebit: actualPaid
+            };
+        }).sort((a, b) => b.lastEntryDate.getTime() - a.lastEntryDate.getTime());
+        });
+    });
 }
 
 /**
@@ -181,11 +187,13 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
  * - Extract "Remaining: X" snapshot.
  */
 export async function getCustomersSummaries(): Promise<PartySummary[]> {
-    const [ledgerEntries, debts, payments] = await Promise.all([
-        getAllDocs<FirestoreLedger>('ledger'),
-        getAllDocs<FirestoreDebt>('debts'),
-        getAllDocs<FirestoreDebtPayment>('debt_payments')
-    ]);
+    return getOrSetCache("ledger-balance:customers:v2", 30_000, async () => {
+        return getOrComputeStats("ledger_balance_customers_v1", 60_000, async () => {
+        const [ledgerEntries, debts, payments] = await Promise.all([
+            getAllDocs<FirestoreLedger>('ledger'),
+            getAllDocs<FirestoreDebt>('debts'),
+            getAllDocs<FirestoreDebtPayment>('debt_payments')
+        ]);
 
     const customerMap: Record<string, {
         name: string;
@@ -303,7 +311,9 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
         };
     }).sort((a, b) => b.lastEntryDate.getTime() - a.lastEntryDate.getTime());
 
-    return result;
+        return result;
+        });
+    });
 }
 
 export async function getSupplierBalance(name: string): Promise<number> {

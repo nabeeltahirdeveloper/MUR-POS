@@ -1,13 +1,10 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import useSWR from "swr";
 import { ClipboardDocumentListIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
-import { useAlert } from "@/contexts/AlertContext";
 import { useRouter } from "next/navigation";
 
 interface CustomOrder {
-    id: string; // Ledger ID covers this
+    id: string;
     date: string;
     itemName: string;
     quantity: number;
@@ -19,48 +16,33 @@ interface CustomOrder {
 export default function PendingCustomOrders() {
     const [orders, setOrders] = useState<CustomOrder[]>([]);
     const [loading, setLoading] = useState(true);
-    const { showAlert } = useAlert();
     const router = useRouter();
 
-    const fetchOrders = async () => {
-        setLoading(true);
-        try {
-            // Search for [Customize] tag in notes
-            const res = await fetch("/api/ledger?search=[Customize]&limit=100");
-            if (res.ok) {
-                const data = await res.json();
-                if (data.data && Array.isArray(data.data)) {
-                    // Filter and Parse
-                    const parsed = data.data.map((entry: any) => {
-                        // Regex to capture name: Item: [Customize] (.*?) (Qty:
-                        const match = entry.note?.match(/Item: \[Customize\]\s*(.*?)\s*\(Qty: (\d+)/);
-                        if (match) {
-                            return {
-                                id: entry.id,
-                                date: entry.date,
-                                itemName: match[1],
-                                quantity: Number(match[2]),
-                                price: entry.amount, // Approximate line amount
-                                partyName: entry.note?.match(/Customer: (.*?)(?:\n|$)/)?.[1] || "Unknown",
-                                originalNote: entry.note
-                            };
-                        }
-                        return null;
-                    }).filter((item: any) => item !== null);
-
-                    setOrders(parsed);
-                }
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const fetcher = (url: string) => fetch(url).then((res) => res.json());
+    const { data } = useSWR("/api/ledger?search=[Customize]&limit=100", fetcher);
 
     useEffect(() => {
-        fetchOrders();
-    }, []);
+        if (data?.data && Array.isArray(data.data)) {
+            const parsed = data.data.map((entry: any) => {
+                const match = entry.note?.match(/Item: \[Customize\]\s*(.*?)\s*\(Qty: (\d+)/);
+                if (match) {
+                    return {
+                        id: entry.id,
+                        date: entry.date,
+                        itemName: match[1],
+                        quantity: Number(match[2]),
+                        price: entry.amount,
+                        partyName: entry.note?.match(/Customer: (.*?)(?:\n|$)/)?.[1] || "Unknown",
+                        originalNote: entry.note
+                    };
+                }
+                return null;
+            }).filter((item: any) => item !== null);
+
+            setOrders(parsed);
+            setLoading(false);
+        }
+    }, [data]);
 
     const handleReceive = (order: CustomOrder) => {
         // Navigate to a receive page or open modal?

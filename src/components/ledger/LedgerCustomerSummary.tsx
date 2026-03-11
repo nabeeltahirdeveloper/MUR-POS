@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import useSWR from "swr";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 
@@ -25,35 +26,25 @@ export default function LedgerCustomerSummary({ onViewEntries, filters }: Ledger
     const [customers, setCustomers] = useState<CustomerSummary[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const fetcher = (url: string) => fetch(url).then(res => res.json());
+    
+    const query = new URLSearchParams();
+    if (filters?.from) query.append("from", filters.from);
+    if (filters?.to) query.append("to", filters.to);
+    
+    const { data: rawData, isLoading: swrLoading } = useSWR(`/api/ledger/customers?${query.toString()}`, fetcher);
+
     useEffect(() => {
-        fetchCustomers();
-    }, [filters]);
-
-    const fetchCustomers = async () => {
-        setLoading(true);
-        try {
-            const query = new URLSearchParams();
-            if (filters?.from) query.append("from", filters.from);
-            if (filters?.to) query.append("to", filters.to);
-
-            const res = await fetch(`/api/ledger/customers?${query.toString()}`);
-            if (res.ok) {
-                let data = await res.json();
-
-                // Client-side search for name (since API only does date)
-                if (filters?.search) {
-                    const term = filters.search.toLowerCase();
-                    data = data.filter((c: CustomerSummary) => c.name.toLowerCase().includes(term));
-                }
-
-                setCustomers(data);
+        if (rawData) {
+            let filtered = rawData;
+            if (filters?.search) {
+                const term = filters.search.toLowerCase();
+                filtered = filtered.filter((c: CustomerSummary) => c.name.toLowerCase().includes(term));
             }
-        } catch (error) {
-            console.error("Failed to fetch customers:", error);
-        } finally {
+            setCustomers(filtered);
             setLoading(false);
         }
-    };
+    }, [rawData, filters?.search]);
 
     const columns = [
         {
