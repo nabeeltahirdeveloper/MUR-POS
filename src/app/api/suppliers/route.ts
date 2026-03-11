@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
         const { getSupplierBalance } = await import('@/lib/ledger-balance');
         const suppliersWithBalances = await Promise.all(
             filteredSuppliers.map(async (s) => {
-                const balance = await getSupplierBalance(s.name);
+                // trim stored supplier name just in case it contains extra whitespace
+                const balance = await getSupplierBalance(s.name.trim());
                 return { ...s, balance };
             })
         );
