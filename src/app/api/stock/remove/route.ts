@@ -73,10 +73,8 @@ export async function POST(request: NextRequest) {
                 if (item.supplierId) {
                     const sup = await getDocById<any>('suppliers', item.supplierId);
                     if (sup) personName = sup.name;
-                    currentBalance = await getSupplierBalance(personName);
+                    currentBalance = await getSupplierBalance(personName.trim());
                 }
-
-                const cumulativeBalance = currentBalance - totalAmount; // For credit, balance reduces liability or increases receivable
 
                 // Determine Next Order Number
                 const recentEntries = await getAllDocs<FirestoreLedger>('ledger', {
@@ -102,7 +100,7 @@ export async function POST(request: NextRequest) {
                     `Customer: ${personName}`,
                     `Item: [Stock] ${item.name} (Qty: ${qtyToRemove} ${unitLabel} @ ${price})`,
                     `Advance: 0`,
-                    `Remaining: ${cumulativeBalance}`
+                    `Remaining: ${currentBalance}`
                 ].join('\n');
 
                 const ledgerData: Omit<FirestoreLedger, 'id'> = {

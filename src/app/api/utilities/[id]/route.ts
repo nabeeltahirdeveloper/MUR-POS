@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateDoc, deleteDoc, getDocById } from "@/lib/firestore-helpers";
 import type { FirestoreUtility } from "@/types/firestore";
+import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 
 export const runtime = "nodejs";
 
@@ -60,6 +61,7 @@ export async function PATCH(
         });
 
         const updated = await getDocById<FirestoreUtility>('utilities', id);
+        triggerDashboardStatsRefresh();
         return NextResponse.json(updated);
     } catch (error) {
         console.error("Error updating utility:", error);
@@ -83,6 +85,7 @@ export async function DELETE(
         });
 
         await deleteDoc('utilities', id);
+        triggerDashboardStatsRefresh();
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Error deleting utility:", error);

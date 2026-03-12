@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllDocs, createDoc } from "@/lib/firestore-helpers";
 import type { FirestoreExpense } from "@/types/firestore";
+import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 
 export const runtime = "nodejs";
 
@@ -47,6 +48,8 @@ export async function POST(request: NextRequest) {
         // We can add reminders logic later if needed, mirroring utilities
         // const { syncExpenseReminders } = await import("@/lib/reminders");
         // await syncExpenseReminders(expenseId)...
+
+        triggerDashboardStatsRefresh();
 
         return NextResponse.json({ id: expenseId, ...expenseData }, { status: 201 });
     } catch (error) {

@@ -1,25 +1,22 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import useSWR from "swr";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
 export default function LowStockWidget() {
     const [lowStockItems, setLowStockItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const fetcher = (url: string) => fetch(url).then((res) => res.json());
+    const { data } = useSWR("/api/items", fetcher);
+
     useEffect(() => {
-        fetch("/api/items")
-            .then((res) => res.json())
-            .then((data) => {
-                if (Array.isArray(data)) {
-                    const low = data.filter((item: any) => item.isLowStock);
-                    setLowStockItems(low.slice(0, 5));
-                }
-            })
-            .catch((err) => console.error(err))
-            .finally(() => setLoading(false));
-    }, []);
+        if (Array.isArray(data)) {
+            const low = data.filter((item: any) => item.isLowStock);
+            setLowStockItems(low.slice(0, 5));
+            setLoading(false);
+        }
+    }, [data]);
 
     if (loading) return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-pulse">

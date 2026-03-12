@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateDoc, deleteDoc, getDocById, queryDocs } from "@/lib/firestore-helpers";
 import type { FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 
 export const runtime = "nodejs";
 
@@ -57,6 +58,7 @@ export async function PATCH(
         });
 
         const updated = await getDocById<FirestoreDebt>('debts', id);
+        triggerDashboardStatsRefresh();
         return NextResponse.json(updated);
     } catch (error) {
         console.error("Error updating debt:", error);
@@ -89,6 +91,7 @@ export async function DELETE(
         });
 
         await deleteDoc('debts', id);
+        triggerDashboardStatsRefresh();
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Error deleting debt:", error);

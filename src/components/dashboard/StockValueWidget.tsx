@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { BanknotesIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { useLock } from "@/contexts/LockContext";
 
@@ -9,22 +10,20 @@ export default function StockValueWidget() {
     const [stats, setStats] = useState({ totalValue: 0, totalItems: 0 });
     const [loading, setLoading] = useState(true);
 
+    const fetcher = (url: string) => fetch(url).then((res) => res.json());
+    const { data, error, isLoading } = useSWR("/api/items", fetcher);
+
     useEffect(() => {
-        fetch("/api/items")
-            .then((res) => res.json())
-            .then((data) => {
-                if (Array.isArray(data)) {
-                    const totalValue = data.reduce((acc: number, item: any) => {
-                        const stock = item.currentStock || 0;
-                        const price = item.secondPurchasePrice || 0;
-                        return acc + (stock * price);
-                    }, 0);
-                    setStats({ totalValue, totalItems: data.length });
-                }
-            })
-            .catch((err) => console.error(err))
-            .finally(() => setLoading(false));
-    }, []);
+        if (Array.isArray(data)) {
+            const totalValue = data.reduce((acc: number, item: any) => {
+                const stock = item.currentStock || 0;
+                const price = item.secondPurchasePrice || 0;
+                return acc + (stock * price);
+            }, 0);
+            setStats({ totalValue, totalItems: data.length });
+            setLoading(false);
+        }
+    }, [data]);
 
     if (isLocked) return null;
 

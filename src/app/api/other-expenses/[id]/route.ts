@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateDoc, deleteDoc, getDocById } from "@/lib/firestore-helpers";
 import type { FirestoreExpense } from "@/types/firestore";
+import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 
 export const runtime = "nodejs";
 
@@ -32,6 +33,7 @@ export async function PATCH(
         await updateDoc('other_expenses', id, updateData);
 
         const updated = await getDocById<FirestoreExpense>('other_expenses', id);
+        triggerDashboardStatsRefresh();
         return NextResponse.json(updated);
     } catch (error) {
         console.error("Error updating other expense:", error);
@@ -49,6 +51,7 @@ export async function DELETE(
     const { id } = await params;
     try {
         await deleteDoc('other_expenses', id);
+        triggerDashboardStatsRefresh();
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Error deleting other expense:", error);

@@ -1,5 +1,7 @@
 import { getAllDocs } from "@/lib/firestore-helpers";
 import type { FirestoreLedger, FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import { getOrSetCache } from "@/lib/server-cache";
+import { getOrComputeStats } from "@/lib/stats-cache";
 
 export interface PartySummary {
     name: string;
@@ -22,20 +24,22 @@ export interface PartySummary {
  * - We also integrate Loans and Payments for a full picture.
  */
 export async function getSuppliersSummaries(): Promise<PartySummary[]> {
-    const [ledgerEntries, debts, payments] = await Promise.all([
-        getAllDocs<FirestoreLedger>('ledger'),
-        getAllDocs<FirestoreDebt>('debts'),
-        getAllDocs<FirestoreDebtPayment>('debt_payments')
-    ]);
+    return getOrSetCache("ledger-balance:suppliers:v2", 30_000, async () => {
+        return getOrComputeStats("ledger_balance_suppliers_v1", 60_000, async () => {
+        const [ledgerEntries, debts, payments] = await Promise.all([
+            getAllDocs<FirestoreLedger>('ledger'),
+            getAllDocs<FirestoreDebt>('debts'),
+            getAllDocs<FirestoreDebtPayment>('debt_payments')
+        ]);
 
-    const supplierMap: Record<string, {
-        name: string;
-        totalCredit: number; // What we paid
-        totalDebit: number;  // What we bought
-        latestRemaining: number;
-        lastEntryDate: Date;
-        lastRemainingDate: Date;
-    }> = {};
+        const supplierMap: Record<string, {
+            name: string;
+            totalCredit: number; // What we paid
+            totalDebit: number;  // What we bought
+            latestRemaining: number;
+            lastEntryDate: Date;
+            lastRemainingDate: Date;
+        }> = {};
 
     const getPartyData = (name: string) => {
         const normalized = name.trim();
@@ -85,12 +89,12 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
             let hasAdvanceOrPayment = false;
             let hasRemainingLabel = false;
             let remainingValueFromNote = 0;
+            let hasItems = false;
 
             lines.forEach(line => {
                 const trimmed = line.trim();
 
-                // Robust regex check
-                const advMatch = trimmed.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+                const advMatch = trimmed.match(/^(Advance|Payment|Paid):\s*(\d+(\.\d+)?)/i);
                 if (advMatch) {
                     cashMoved = Number(advMatch[2]) || 0;
                     hasAdvanceOrPayment = true;
@@ -101,23 +105,31 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
                     hasRemainingLabel = true;
                     remainingValueFromNote = Number(remMatch[1]) || 0;
                 }
+
+                if (trimmed.toLowerCase().includes("item:")) {
+                    hasItems = true;
+                }
             });
 
-            // Fallback: If no label, check if fully paid
-            if (!hasAdvanceOrPayment) {
-                if (!hasRemainingLabel || remainingValueFromNote === 0) {
-                    cashMoved = totalAmount;
-                } else {
-                    cashMoved = 0;
+            // LOGIC FIX:
+            // If it has items, it's a purchase. totalAmount is the item price.
+            // If it has NO items, it's a payment-only entry. totalAmount is the cash paid.
+            
+            if (hasItems) {
+                // It's a purchase entry
+                party.totalCredit += totalAmount; // We owe them more
+                if (!isDuplicateOrder) {
+                    party.totalDebit += hasAdvanceOrPayment ? cashMoved : 0; // Only add the advance once
+                    if (orderKey) processedSupplierOrders.add(orderKey);
                 }
-            }
-
-            // If it's a duplicate order, we only add the item amount (totalCredit internal), 
-            // but NOT the cashMoved (totalDebit internal) which represents the fixed Advance/Payment.
-            party.totalCredit += totalAmount;
-            if (!isDuplicateOrder) {
-                party.totalDebit += cashMoved;
-                if (orderKey) processedSupplierOrders.add(orderKey);
+            } else {
+                // It's a payment-only entry (no items)
+                // In payment entries, totalAmount IS the cash moved.
+                // We don't add to totalCredit because we didn't buy anything.
+                if (!isDuplicateOrder) {
+                    party.totalDebit += totalAmount;
+                    if (orderKey) processedSupplierOrders.add(orderKey);
+                }
             }
 
             // Use the reported remaining from the LATEST entry as the definitive balance
@@ -160,18 +172,21 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
     // - totalCredit (Cash-In) = 0 (we don't receive money from suppliers)
     // - totalDebit (Cash-Out) = actual payments made (total amount - remaining)
     // - balance = what we still owe them
-    return Object.values(supplierMap).map(s => {
-        const stillOwed = s.latestRemaining;
-        const actualPaid = s.totalDebit;
+        return Object.values(supplierMap).map(s => {
+            // Use Computed balance as the absolute truth (Purchases - Payments)
+            const computedBalance = s.totalCredit - s.totalDebit;
+            const stillOwed = Math.max(0, computedBalance);
 
-        return {
-            name: s.name,
-            balance: stillOwed,
-            lastEntryDate: s.lastEntryDate,
-            totalCredit: 0,
-            totalDebit: actualPaid
-        };
-    }).sort((a, b) => b.lastEntryDate.getTime() - a.lastEntryDate.getTime());
+            return {
+                name: s.name,
+                balance: stillOwed,
+                lastEntryDate: s.lastEntryDate,
+                totalCredit: s.totalCredit,
+                totalDebit: s.totalDebit
+            };
+        }).sort((a, b) => b.lastEntryDate.getTime() - a.lastEntryDate.getTime());
+        });
+    });
 }
 
 /**
@@ -181,11 +196,13 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
  * - Extract "Remaining: X" snapshot.
  */
 export async function getCustomersSummaries(): Promise<PartySummary[]> {
-    const [ledgerEntries, debts, payments] = await Promise.all([
-        getAllDocs<FirestoreLedger>('ledger'),
-        getAllDocs<FirestoreDebt>('debts'),
-        getAllDocs<FirestoreDebtPayment>('debt_payments')
-    ]);
+    return getOrSetCache("ledger-balance:customers:v2", 30_000, async () => {
+        return getOrComputeStats("ledger_balance_customers_v1", 60_000, async () => {
+        const [ledgerEntries, debts, payments] = await Promise.all([
+            getAllDocs<FirestoreLedger>('ledger'),
+            getAllDocs<FirestoreDebt>('debts'),
+            getAllDocs<FirestoreDebtPayment>('debt_payments')
+        ]);
 
     const customerMap: Record<string, {
         name: string;
@@ -243,12 +260,12 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
             let hasAdvanceOrPayment = false;
             let hasRemainingLabel = false;
             let remainingValueFromNote = 0;
+            let hasItems = false;
 
             lines.forEach(line => {
                 const trimmed = line.trim();
 
-                // Robust regex check
-                const advMatch = trimmed.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+                const advMatch = trimmed.match(/^(Advance|Payment|Paid):\s*(\d+(\.\d+)?)/i);
                 if (advMatch) {
                     cashMoved = Number(advMatch[2]) || 0;
                     hasAdvanceOrPayment = true;
@@ -259,21 +276,25 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
                     hasRemainingLabel = true;
                     remainingValueFromNote = Number(remMatch[1]) || 0;
                 }
+                
+                if (trimmed.toLowerCase().includes("item:")) {
+                    hasItems = true;
+                }
             });
 
-            // Fallback
-            if (!hasAdvanceOrPayment) {
-                if (!hasRemainingLabel || remainingValueFromNote === 0) {
-                    cashMoved = totalAmount;
-                } else {
-                    cashMoved = 0;
+            if (hasItems) {
+                // It's a sale
+                party.totalDebit += totalAmount; // They owe us more
+                if (!isDuplicateOrder) {
+                    party.totalCredit += hasAdvanceOrPayment ? cashMoved : 0; // They paid us this much now
+                    if (orderKey) processedCustomerOrders.add(orderKey);
                 }
-            }
-
-
-            if (!isDuplicateOrder) {
-                party.totalCredit += cashMoved; // Total Paid (Cash-In for customers)
-                if (orderKey) processedCustomerOrders.add(orderKey);
+            } else {
+                // It's a payment-only entry
+                if (!isDuplicateOrder) {
+                    party.totalCredit += totalAmount;
+                    if (orderKey) processedCustomerOrders.add(orderKey);
+                }
             }
 
             // Update last entry date
@@ -291,29 +312,39 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
     });
 
     const result = Object.values(customerMap).map(c => {
-        const stillOwed = c.latestRemaining; // Cumulative balance
-        const actualReceived = c.totalCredit; // Total actual cash received
+        // Use Computed balance as the absolute truth (Sales - Payments)
+        const computedBalance = c.totalDebit - c.totalCredit;
+        const stillOwed = Math.max(0, computedBalance);
 
         return {
             name: c.name,
             balance: stillOwed,
             lastEntryDate: c.lastEntryDate,
-            totalCredit: actualReceived, // Total Cash-In
-            totalDebit: 0
+            totalCredit: c.totalCredit,
+            totalDebit: c.totalDebit
         };
     }).sort((a, b) => b.lastEntryDate.getTime() - a.lastEntryDate.getTime());
 
-    return result;
+        return result;
+        });
+    });
 }
 
 export async function getSupplierBalance(name: string): Promise<number> {
+    // normalize the incoming name to avoid mismatches due to spacing/case
+    const normalizedName = name.trim().toLowerCase();
     const summaries = await getSuppliersSummaries();
-    const summary = summaries.find(s => s.name.toLowerCase() === name.toLowerCase());
+    const summary = summaries.find(
+        s => s.name.trim().toLowerCase() === normalizedName
+    );
     return summary ? summary.balance : 0;
 }
 
 export async function getCustomerBalance(name: string): Promise<number> {
+    const normalizedName = name.trim().toLowerCase();
     const summaries = await getCustomersSummaries();
-    const summary = summaries.find(s => s.name.toLowerCase() === name.toLowerCase());
+    const summary = summaries.find(
+        s => s.name.trim().toLowerCase() === normalizedName
+    );
     return summary ? summary.balance : 0;
 }

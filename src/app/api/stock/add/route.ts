@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
                 const totalAmount = qty * price;
 
                 // Calculate Cumulative Balance for this Specific Supplier
-                const currentBalance = await getSupplierBalance(supplierName);
+                const currentBalance = await getSupplierBalance(supplierName.trim());
                 const cumulativeBalance = currentBalance + totalAmount;
 
                 // Determine Next Order Number

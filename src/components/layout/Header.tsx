@@ -95,11 +95,9 @@ export default function Header({
     useEffect(() => {
         if (status !== "authenticated") return;
 
-        refreshReminders();
         refreshRemindersCount();
 
         const t = setInterval(() => {
-            refreshReminders();
             refreshRemindersCount();
         }, 60_000);
 

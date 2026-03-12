@@ -32,6 +32,7 @@ type Party = {
     name: string;
     phone?: string;
     address?: string;
+    balance?: number | string | null;
 };
 
 type CartItem = {
@@ -187,9 +188,10 @@ export default function LedgerEntryForm({
 
     // Fetch Party Balance
     useEffect(() => {
+        let isCurrent = true;
         const fetchBalance = async () => {
             if (!partyName) {
-                setPartyBalance(null);
+                if (isCurrent) setPartyBalance(null);
                 return;
             }
             try {
@@ -200,11 +202,12 @@ export default function LedgerEntryForm({
 
                 // We fetch all (or searchable) and find the exact match
                 const res = await fetch(`${endpoint}?search=${encodeURIComponent(partyName)}`);
-                if (res.ok) {
+                if (res.ok && isCurrent) {
                     const data = await res.json();
                     // API returns array of summaries. Find exact name match.
-                    // The API search is typically partial, so we filter strictly.
-                    const match = data.find((p: any) => p.name.toLowerCase() === partyName.toLowerCase());
+                    // Use trim() to avoid issues with trailing/leading spaces.
+                    const searchName = partyName.trim().toLowerCase();
+                    const match = data.find((p: any) => p.name.trim().toLowerCase() === searchName);
                     if (match) {
                         setPartyBalance(match.balance);
                     } else {
@@ -212,12 +215,15 @@ export default function LedgerEntryForm({
                     }
                 }
             } catch (err) {
-                console.error("Failed to fetch party balance", err);
+                if (isCurrent) console.error("Failed to fetch party balance", err);
             }
         };
 
         const timeoutId = setTimeout(fetchBalance, 500); // Debounce
-        return () => clearTimeout(timeoutId);
+        return () => {
+            isCurrent = false;
+            clearTimeout(timeoutId);
+        };
     }, [partyName, type]);
 
 
@@ -526,21 +532,16 @@ export default function LedgerEntryForm({
     const displayTotal = cartItems.reduce((acc, curr) => acc + curr.amount, 0); // Keep for Table Footer
 
     useEffect(() => {
-        if (type === 'debit') {
-            // Cash-Out mode: Remaining = Current Balance - Entered Amount
-            // Use advanceAmount as the primary payment field for Cash-Out as requested
-            const currentAmount = parseFloat(advanceAmount) || 0;
-            const balance = partyBalance || 0;
-            // Balance is the current debt. Remaining = balance - payment.
-            setRemainingAmount(Math.max(0, balance - currentAmount));
-        } else {
-            // Cash-In mode: Original logic
-            if (advanceAmount === "") {
-                setRemainingAmount(effectiveTotal - paidLaterAmount);
-            } else {
-                setRemainingAmount(effectiveTotal - Number(advanceAmount) - paidLaterAmount);
-            }
-        }
+        const balance = partyBalance || 0;
+        const currentBill = effectiveTotal;
+        const payment = parseFloat(advanceAmount) || 0;
+        const paidLater = paidLaterAmount || 0;
+
+        // Unified Net Balance Logic: 
+        // Remaining = (What they already owed) + (New Purchases/Sales) - (What was paid now or later)
+        const net = balance + currentBill - payment - paidLater;
+        
+        setRemainingAmount(Math.max(0, net));
     }, [type, partyBalance, advanceAmount, effectiveTotal, paidLaterAmount]);
 
     // --- Handlers --- (skipped for brevity)
@@ -586,6 +587,13 @@ export default function LedgerEntryForm({
         setPartyName(party.name);
         setPartyPhone(party.phone || "");
         setPartyAddress(party.address || "");
+        // if the search result included a balance, use it immediately rather than
+        // waiting for the debounced fetchBalance effect to run. this avoids the
+        // blank/zero problem when the API response comes back later or a stale
+        // request overwrites the value.
+        if (party.balance != null) {
+            setPartyBalance(Number(party.balance));
+        }
         // Trigger history fetch for suppliers
         if (type === 'debit') {
             setSelectedSupplierForHistory(party.name);
@@ -1738,7 +1746,7 @@ export default function LedgerEntryForm({
                                     <label className="text-xs font-bold text-gray-500 uppercase">{type === 'debit' ? 'Paid' : 'Advance'}</label>
                                     <button
                                         type="button"
-                                        onClick={() => setAdvanceAmount((type === 'debit' ? (partyBalance || 0) : effectiveTotal).toString())}
+                                        onClick={() => setAdvanceAmount(((partyBalance || 0) + effectiveTotal - paidLaterAmount).toString())}
                                         className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
                                     >
                                         Full

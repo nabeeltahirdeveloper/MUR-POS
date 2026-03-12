@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllDocs, createDoc } from "@/lib/firestore-helpers";
 import type { FirestoreDebt } from "@/types/firestore";
+import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 
 export const runtime = "nodejs";
 
@@ -52,6 +53,8 @@ export async function POST(request: NextRequest) {
                 console.error("Failed to sync reminders for new debt:", err);
             });
         }
+
+        triggerDashboardStatsRefresh();
 
         return NextResponse.json({ id: debtId, ...debtData }, { status: 201 });
     } catch (error) {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import useSWR from "swr";
 import { DashboardLayout } from "@/components/layout";
 import { useLock } from "@/contexts/LockContext";
 import {
@@ -35,109 +36,29 @@ function DashboardContent() {
     const [showTransactionModal, setShowTransactionModal] = useState(false);
     const [currency, setCurrency] = useState({ symbol: "Rs.", position: "prefix" });
 
+    const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    const { data: overviewData } = useSWR(
+        () => `/api/dashboard/overview?date=${todayStr}`,
+        fetcher,
+        {
+            revalidateOnFocus: false, // Prevent extra queries when switching tabs
+            dedupingInterval: 60000,  // Deduplicate requests within 60 seconds
+        }
+    );
+
     useEffect(() => {
-        const fetchSettingsAndData = async () => {
-            try {
-                // Fetch settings
-                const settingsRes = await fetch("/api/settings");
-                if (settingsRes.ok) {
-                    const settingsData = await settingsRes.json();
-                    if (settingsData?.currency) {
-                        setCurrency(settingsData.currency);
-                    }
-                }
-
-                const today = new Date().toISOString().split("T")[0];
-                const resDaily = await fetch(`/api/ledger/summary/daily?date=${today}`);
-                if (resDaily.ok) setDailySummary(await resDaily.json());
-
-                const resTotal = await fetch('/api/ledger/summary/total');
-                if (resTotal.ok) setTotalSummary(await resTotal.json());
-
-                const resUtils = await fetch('/api/utilities');
-                if (resUtils.ok) {
-                    const data = await resUtils.json();
-                    if (Array.isArray(data)) {
-                        const now = new Date();
-                        now.setHours(0, 0, 0, 0);
-                        const upcoming = data
-                            .filter((u: any) => u.status === 'unpaid')
-                            .filter((u: any) => {
-                                const d = new Date(u.dueDate);
-                                d.setHours(0, 0, 0, 0);
-                                const diff = d.getTime() - now.getTime();
-                                const days = diff / (1000 * 60 * 60 * 24);
-                                return days <= 7;
-                            })
-                            .slice(0, 5);
-                        setUpcomingUtilities(upcoming);
-                    }
-                }
-
-                const resExpenses = await fetch('/api/other-expenses');
-                if (resExpenses.ok) {
-                    const data = await resExpenses.json();
-                    if (Array.isArray(data)) {
-                        const now = new Date();
-                        now.setHours(0, 0, 0, 0);
-                        const upcoming = data
-                            .filter((e: any) => e.status === 'unpaid')
-                            .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-                            .slice(0, 5);
-                        setUpcomingExpenses(upcoming);
-                    }
-                }
-
-                const resDebts = await fetch('/api/debts');
-                if (resDebts.ok) {
-                    const data = await resDebts.json();
-                    if (Array.isArray(data)) {
-                        const active = data.filter((d: any) => d.status === 'active').slice(0, 5);
-                        setDebtSummary(active);
-                    }
-                }
-
-                const [resSuppliers, resCustomers] = await Promise.all([
-                    fetch('/api/ledger/suppliers'),
-                    fetch('/api/ledger/customers')
-                ]);
-
-                let allPending: any[] = [];
-
-                if (resSuppliers.ok) {
-                    const suppliers = await resSuppliers.json();
-                    if (Array.isArray(suppliers)) {
-                        allPending = [...allPending, ...suppliers.filter(s => s.balance > 0).map(s => ({
-                            personName: s.name,
-                            remaining: s.balance,
-                            type: 'debit', // Supplier debt is debit in ledger logic
-                            date: s.lastEntryDate
-                        }))];
-                    }
-                }
-
-                if (resCustomers.ok) {
-                    const customers = await resCustomers.json();
-                    if (Array.isArray(customers)) {
-                        allPending = [...allPending, ...customers.filter(c => c.balance > 0).map(c => ({
-                            personName: c.name,
-                            remaining: c.balance,
-                            type: 'credit', // Customer debt is credit in ledger logic
-                            date: c.lastEntryDate
-                        }))];
-                    }
-                }
-
-                // Sort by date descending and take top 5
-                const sortedPending = allPending.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                setPendingLedger(sortedPending.slice(0, 5));
-            } catch (err) {
-                console.error(err);
-            }
-        };
-
-        fetchSettingsAndData();
-    }, []);
+        if (!overviewData) return;
+        
+        if (overviewData.currency) setCurrency(overviewData.currency);
+        if (overviewData.dailySummary) setDailySummary(overviewData.dailySummary);
+        if (overviewData.totalSummary) setTotalSummary(overviewData.totalSummary);
+        if (Array.isArray(overviewData.upcomingUtilities)) setUpcomingUtilities(overviewData.upcomingUtilities);
+        if (Array.isArray(overviewData.upcomingExpenses)) setUpcomingExpenses(overviewData.upcomingExpenses);
+        if (Array.isArray(overviewData.debtSummary)) setDebtSummary(overviewData.debtSummary);
+        if (Array.isArray(overviewData.pendingLedger)) setPendingLedger(overviewData.pendingLedger);
+    }, [overviewData]);
 
     const formatCurr = (val: number | string) => {
         const num = Number(val).toLocaleString(undefined, { minimumFractionDigits: 2 });
