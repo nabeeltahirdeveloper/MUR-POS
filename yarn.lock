@@ -4569,7 +4569,7 @@ supports-preserve-symlinks-flag@^1.0.0:
 
 swr@^2.4.1:
   version "2.4.1"
-  resolved "https://registry.npmjs.org/swr/-/swr-2.4.1.tgz"
+  resolved "https://registry.yarnpkg.com/swr/-/swr-2.4.1.tgz#c9e48abff6bf4b04846342e2f1f6be108a078cf6"
   integrity sha512-2CC6CiKQtEwaEeNiqWTAw9PGykW8SR5zZX8MZk6TeAvEAnVS7Visz8WzphqgtQ8v2xz/4Q5K+j+SeMaKXeeQIA==
   dependencies:
     dequal "^2.0.3"
