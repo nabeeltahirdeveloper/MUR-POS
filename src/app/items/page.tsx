@@ -8,7 +8,7 @@ import { Item } from "@/types/inventory";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 import { DashboardLayout } from "@/components/layout";
-import { PlusIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, LockClosedIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useAlert } from "@/contexts/AlertContext";
 import { useLock } from "@/contexts/LockContext";
 
@@ -18,6 +18,7 @@ export default function ItemsPage() {
     const { isLocked } = useLock();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
 
     const fetchItems = async () => {
         try {
@@ -57,6 +58,10 @@ export default function ItemsPage() {
         }
     };
 
+    const filteredItems = items.filter((item) =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
         <DashboardLayout>
             <div className="space-y-6">
@@ -67,14 +72,26 @@ export default function ItemsPage() {
                             Manage your inventory items and stock levels.
                         </p>
                     </div>
-                    {!isLocked && (
-                        <Link href="/items/new">
-                            <Button>
-                                <PlusIcon className="h-5 w-5 mr-2" />
-                                Add
-                            </Button>
-                        </Link>
-                    )}
+                    <div className="flex items-center gap-2">
+                        <div className="relative">
+                            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search items..."
+                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm text-gray-900"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        {!isLocked && (
+                            <Link href="/items/new">
+                                <Button>
+                                    <PlusIcon className="h-5 w-5 mr-2" />
+                                    Add
+                                </Button>
+                            </Link>
+                        )}
+                    </div>
                 </div>
 
                 {loading ? (
@@ -85,7 +102,7 @@ export default function ItemsPage() {
                     <ErrorDisplay message={error} onRetry={fetchItems} />
                 ) : (
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                        <ItemTable items={items} onDelete={handleDelete} onUpdate={fetchItems} isLocked={isLocked} />
+                        <ItemTable items={filteredItems} onDelete={handleDelete} onUpdate={fetchItems} isLocked={isLocked} />
                     </div>
                 )}
             </div>
