@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getAllDocs, createDoc, queryDocs } from "@/lib/firestore-helpers";
+import { getAllDocs, createDoc, queryDocs } from "@/lib/prisma-helpers";
 import type { FirestoreLedgerCategory } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
             name: trimmedName,
         });
 
-        const category = await import('@/lib/firestore-helpers').then(m => m.getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
+        const category = await import('@/lib/prisma-helpers').then(m => m.getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
 
         return NextResponse.json(category, { status: 201 });
     } catch (error) {

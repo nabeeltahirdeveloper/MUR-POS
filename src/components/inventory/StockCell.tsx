@@ -8,6 +8,7 @@ import {
     PencilIcon
 } from "@heroicons/react/24/outline";
 import { RemovalReasonModal } from "./RemovalReasonModal";
+import { useAlert } from "@/contexts/AlertContext";
 
 interface StockCellProps {
     item: Item;
@@ -15,6 +16,7 @@ interface StockCellProps {
 }
 
 export function StockCell({ item, onUpdate }: StockCellProps) {
+    const { showAlert } = useAlert();
     const [isEditing, setIsEditing] = useState(false);
     const [isSelecting, setIsSelecting] = useState(false);
     const [adjType, setAdjType] = useState<"add" | "remove">("add");
@@ -26,7 +28,7 @@ export function StockCell({ item, onUpdate }: StockCellProps) {
         const qty = parseFloat(quantity);
 
         if (isNaN(qty) || qty <= 0) {
-            alert("Please enter a valid quantity greater than 0");
+            showAlert("Please enter a valid quantity greater than 0", { variant: "danger" });
             return;
         }
 
@@ -64,7 +66,7 @@ export function StockCell({ item, onUpdate }: StockCellProps) {
             setQuantity("0");
         } catch (error: any) {
             console.error("Failed to update stock:", error);
-            alert(error.message || "Failed to update stock");
+            showAlert(error.message || "Failed to update stock", { variant: "danger" });
         } finally {
             setLoading(false);
         }
@@ -100,7 +102,7 @@ export function StockCell({ item, onUpdate }: StockCellProps) {
             setShowRemovalModal(false);
         } catch (error: any) {
             console.error("Failed to remove stock:", error);
-            alert(error.message || "Failed to remove stock");
+            showAlert(error.message || "Failed to remove stock", { variant: "danger" });
         } finally {
             setLoading(false);
         }

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getDocById } from "@/lib/firestore-helpers";
+import { getDocById } from "@/lib/prisma-helpers";
 import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreItem } from "@/types/firestore";
 import { isSystemLocked } from "@/lib/lock";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
-import { invalidateCache } from "@/lib/server-cache";
+import { invalidateCache, invalidateCacheByPrefix } from "@/lib/server-cache";
 
 export async function GET(
     req: NextRequest,
@@ -83,6 +83,13 @@ export async function PUT(
             if (type !== "debit" && type !== "credit") {
                 return NextResponse.json({ error: "Invalid type" }, { status: 400 });
             }
+            // Warn if type is being changed on an entry with items (reverses stock flow)
+            if (type !== currentEntry.type && currentEntry.itemId && !body.confirmTypeChange) {
+                return NextResponse.json(
+                    { error: "Changing type will reverse the stock flow for this entry. Send confirmTypeChange: true to proceed.", requiresConfirmation: true },
+                    { status: 409 }
+                );
+            }
             updateData.type = type;
         }
 
@@ -94,28 +101,13 @@ export async function PUT(
         }
 
         if (categoryId !== undefined) {
-            let categoryExists: boolean = false;
             if (categoryId) {
-                // Check Ledger Categories
-                categoryExists = !!(await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
-                if (!categoryExists) {
-                    // Check Inventory Categories
-                    const { getDocById } = await import('@/lib/firestore-helpers');
-                    // Note: getDocById is already imported top-level but ensuring type safety/scope
-                    // Actually better to use the top level import.
-                    // Re-using Top Level import for checking 'categories'
-                    const invCat = await getDocById('categories', categoryId);
-                    categoryExists = !!invCat;
-                }
+                // Only set categoryId if it exists in ledger_categories (FK constraint)
+                const isLedgerCategory = !!(await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
+                updateData.categoryId = isLedgerCategory ? categoryId : null;
             } else {
-                // categoryId is null/empty, valid as 'no category'
-                categoryExists = true;
+                updateData.categoryId = null;
             }
-
-            if (!categoryExists) {
-                return NextResponse.json({ error: "Invalid Category" }, { status: 400 });
-            }
-            updateData.categoryId = categoryId || null;
         }
 
         if (note !== undefined) updateData.note = note || null;
@@ -124,7 +116,7 @@ export async function PUT(
         if (itemId !== undefined) updateData.itemId = itemId || null;
         if (quantity !== undefined) updateData.quantity = quantity ? Number(quantity) : null;
 
-        const { updateDoc, createDoc, queryDocs, getDocById: getDoc } = await import('@/lib/firestore-helpers');
+        const { updateDoc, createDoc, queryDocs, getDocById: getDoc } = await import('@/lib/prisma-helpers');
 
         // --- Stock Reconciliation (On Edit) ---
         // If Item, Quantity, or Type has changed, we must adjust stock
@@ -133,16 +125,15 @@ export async function PUT(
         const isTypeChanged = type && type !== currentEntry.type;
 
         if (isItemChanged || isQtyChanged || isTypeChanged) {
-            console.log(`[Ledger Update] Stock change detected for #${id}`);
 
             // 1. Revert Old Stock Effect
             // Find all logs related to this entry
             const logs = await queryDocs<any>('stock_logs', [
-                { field: 'description', operator: '>=', value: `Auto-generated from Ledger` }, // Broad search then filter
+                { field: 'description', operator: '>=', value: `Auto-generated from Ledger` },
             ]);
-            // Filter strictly in JS due to Firestore limitation on 'starting with' + other filters sometimes
-            // actually we can use the ID check
-            const relevantLogs = logs.filter(l => l.description.includes(`#${id}`));
+            // Use regex with word boundary to avoid #1 matching #10, #11, etc.
+            const entryIdPattern = new RegExp(`#${id}\\b`);
+            const relevantLogs = logs.filter((l: any) => entryIdPattern.test(l.description));
 
             for (const log of relevantLogs) {
                 // Determine reversion type (if log was 'in', we 'out')
@@ -258,7 +249,6 @@ export async function PUT(
                                 description: `Auto-generated from Ledger ${currentEntry.type} entry #${id}`,
                                 createdAt: new Date()
                             });
-                            console.log(`[MarkPaid] Late stock deduction for ${itemId}: ${contentQty}`);
                         }
                     }
                 }
@@ -276,6 +266,7 @@ export async function PUT(
         // Refresh dashboard stats after edit (non-blocking)
         const todayStr = new Date().toISOString().split("T")[0];
         invalidateCache(`daily-summary:${todayStr}`);
+        invalidateCacheByPrefix("ledger-balance:");
         triggerDashboardStatsRefresh();
 
         return NextResponse.json(updatedEntry);
@@ -303,7 +294,7 @@ export async function DELETE(
         }
 
         const { id } = await params;
-        const { deleteDoc, getDocById, queryDocs, createDoc } = await import('@/lib/firestore-helpers');
+        const { deleteDoc, getDocById, queryDocs, createDoc } = await import('@/lib/prisma-helpers');
 
         // 1. Identify entries to delete (either by direct ID or by Order Number)
         let entriesToDelete: (FirestoreLedger & { id: string })[] = [];
@@ -312,18 +303,10 @@ export async function DELETE(
         const directEntry = await getDocById<FirestoreLedger>('ledger', id);
         if (directEntry) {
             entriesToDelete = [directEntry];
-        } else if (/^\d+$/.test(id)) {
-            // If not found by ID and ID is numeric, treat as Order Number
-            const orderNum = parseInt(id, 10);
-            entriesToDelete = await queryDocs<FirestoreLedger>('ledger', [
-                { field: 'orderNumber', operator: '==', value: orderNum }
-            ]);
         }
 
         if (entriesToDelete.length === 0) {
-            // Return success even if not found to avoid UI errors, but log it
-            console.warn(`[DELETE] No ledger entries found for ID/Order #${id}`);
-            return NextResponse.json({ message: "Deleted successfully (no target found)" });
+            return NextResponse.json({ error: "Entry not found" }, { status: 404 });
         }
 
         // --- Stock Reconciliation (On Delete) ---
@@ -336,8 +319,9 @@ export async function DELETE(
                     { field: 'description', operator: '>=', value: `Auto-generated from Ledger` },
                 ]);
 
-                // Filter strictly for this specific ID
-                const relevantLogs = logs.filter(l => l.description.includes(`#${entryId}`));
+                // Use regex with word boundary to avoid #1 matching #10, #11, etc.
+                const idPattern = new RegExp(`#${entryId}\\b`);
+                const relevantLogs = logs.filter((l: any) => idPattern.test(l.description));
 
                 for (const log of relevantLogs) {
                     // Revert the effect: if log was 'in', we 'out'
@@ -378,6 +362,7 @@ export async function DELETE(
         // Refresh dashboard stats after delete (non-blocking)
         const todayStr = new Date().toISOString().split("T")[0];
         invalidateCache(`daily-summary:${todayStr}`);
+        invalidateCacheByPrefix("ledger-balance:");
         triggerDashboardStatsRefresh();
 
         return NextResponse.json({ message: "Deleted successfully" });

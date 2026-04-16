@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getSettings } from "@/lib/firestore-helpers";
+import { getSettings } from "@/lib/prisma-helpers";
 import { getDashboardStats } from "@/lib/dashboard-stats";
 import { getDailySummary } from "@/lib/daily-summary";
 

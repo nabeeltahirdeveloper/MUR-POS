@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateDoc, getDocById, deleteDoc } from "@/lib/firestore-helpers";
-import { db } from "@/lib/firestore";
+import { updateDoc, getDocById, deleteDoc } from "@/lib/prisma-helpers";
 import type { FirestoreCustomer } from "@/types/firestore";
 
 export async function GET(

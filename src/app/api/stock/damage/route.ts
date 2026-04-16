@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createDoc, getDocById, getAllDocs } from "@/lib/firestore-helpers";
+import { createDoc, getDocById, getAllDocs } from "@/lib/prisma-helpers";
 import { calculateCurrentStock } from "@/lib/inventory";
 import { syncLowStockReminderForItem } from "@/lib/reminders";
 import { getSupplierBalance, getCustomerBalance } from "@/lib/ledger-balance";
+import { isSystemLocked } from "@/lib/lock";
 import type { FirestoreStockLog, FirestoreItem, FirestoreUnit, FirestoreLedger } from "@/types/firestore";
 
 export async function POST(request: NextRequest) {
     try {
+        if (await isSystemLocked()) {
+            return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
+        }
+
         const body = await request.json();
         const { itemId, quantity, reason, notes } = body;
 
@@ -91,7 +96,7 @@ export async function POST(request: NextRequest) {
                     await createDoc<Omit<FirestoreLedger, 'id'>>('ledger', ledgerData);
                 }
             } catch (err) {
-                console.log("Optional ledger entry creation failed:", err);
+                console.error("Optional ledger entry creation failed:", err);
                 // Don't fail the whole request if ledger entry fails
             }
         }

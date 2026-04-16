@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firestore";
-import { getAllDocs } from "@/lib/firestore-helpers";
+import { getAllDocs, getSettings, createDoc } from "@/lib/prisma-helpers";
 import { calculateCurrentStock } from "@/lib/inventory";
 import type { FirestoreDebt, FirestoreItem, FirestoreUtility } from "@/types/firestore";
 import {
@@ -132,9 +131,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Fetch global settings
-    const settingsColl = "settings";
-    const settingsDoc = await db.collection(settingsColl).doc("global").get();
-    const settings = settingsDoc.exists ? settingsDoc.data() : null;
+    const settings = await getSettings();
 
     const [items, utilities, debts] = await Promise.all([
       getAllDocs<FirestoreItem>("items", { orderBy: "name", orderDirection: "asc" }),
@@ -203,14 +200,14 @@ export async function GET(req: NextRequest) {
     });
 
     // Optional run log for debugging
-    await db.collection("cron_runs").add({
+    await createDoc("cron_runs", {
       type: "reminders",
       createdAt: now,
-      results: {
+      results: JSON.stringify({
         lowStock: itemsResult,
         utilities: utilitiesResult,
         debts: debtsResult,
-      },
+      }),
     });
 
     return NextResponse.json({

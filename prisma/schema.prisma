@@ -108,25 +108,33 @@ model Category {
 }
 
 model Item {
-  id               Int      @id @default(autoincrement())
-  name             String
-  categoryId       Int?     @map("category_id")
-  baseUnitId       Int?     @map("base_unit_id")
-  saleUnitId       Int?     @map("sale_unit_id")
-  conversionFactor Decimal? @default(1) @map("conversion_factor")
-  minStockLevel    Decimal? @default(0) @map("min_stock_level")
-  createdAt        DateTime @default(now()) @map("created_at")
+  id                  Int      @id @default(autoincrement())
+  name                String
+  categoryId          Int?     @map("category_id")
+  baseUnitId          Int?     @map("base_unit_id")
+  saleUnitId          Int?     @map("sale_unit_id")
+  conversionFactor    Decimal? @default(1) @map("conversion_factor")
+  minStockLevel       Decimal? @default(0) @map("min_stock_level")
+  firstSalePrice      Decimal? @map("first_sale_price")
+  secondPurchasePrice Decimal? @map("second_purchase_price")
+  supplierId          Int?     @map("supplier_id")
+  orderNumber         Int?     @map("order_number")
+  image               String?
+  description         String?
+  createdAt           DateTime @default(now()) @map("created_at")
 
   category Category? @relation(fields: [categoryId], references: [id])
   baseUnit Unit?     @relation("BaseUnit", fields: [baseUnitId], references: [id])
   saleUnit Unit?     @relation("SaleUnit", fields: [saleUnitId], references: [id])
-  
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+
   stockLogs StockLog[]
   purchaseOrderItems PurchaseOrderItem[]
 
   @@index([categoryId])
   @@index([baseUnitId])
   @@index([saleUnitId])
+  @@index([supplierId])
   @@map("items")
 }
 
@@ -155,17 +163,22 @@ model LedgerCategory {
 }
 
 model Ledger {
-  id         Int      @id @default(autoincrement())
-  type       String   // debit/credit
-  amount     Decimal
-  categoryId Int?     @map("category_id")
-  note       String?
-  date       DateTime @default(now()) @db.Date
-  createdAt  DateTime @default(now()) @map("created_at")
+  id          Int      @id @default(autoincrement())
+  type        String   // debit/credit
+  amount      Decimal
+  categoryId  Int?     @map("category_id")
+  itemId      Int?     @map("item_id")
+  quantity    Decimal?
+  note        String?
+  orderNumber Int?     @map("order_number")
+  status      String?  @default("open")
+  date        DateTime @default(now()) @db.Date
+  createdAt   DateTime @default(now()) @map("created_at")
 
   category LedgerCategory? @relation(fields: [categoryId], references: [id])
 
   @@index([categoryId])
+  @@index([orderNumber])
   @@map("ledger")
 }
 
@@ -177,6 +190,7 @@ model Supplier {
   address String?
 
   purchaseOrders PurchaseOrder[]
+  items          Item[]
 
   @@map("suppliers")
 }
@@ -223,26 +237,28 @@ model PurchaseOrderItem {
 
 // Utilities Table
 model Utility {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
   amount    Decimal
-  dueDate   DateTime @map("due_date") @db.Date
+  dueDate   DateTime  @map("due_date") @db.Date
+  paidAt    DateTime? @map("paid_at")
   category  String?
-  status    String?  @default("pending")
-  createdAt DateTime @default(now()) @map("created_at")
+  status    String?   @default("pending")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   @@map("utilities")
 }
 
 // Loan & Debt Tables
 model Debt {
-  id         Int      @id @default(autoincrement())
-  personName String   @map("person_name")
-  type       String   // loaned_out / loaned_in
+  id         Int       @id @default(autoincrement())
+  personName String    @map("person_name")
+  type       String    // loaned_out / loaned_in
   amount     Decimal
   dueDate    DateTime? @map("due_date") @db.Date
   note       String?
-  createdAt  DateTime @default(now()) @map("created_at")
+  status     String    @default("active")
+  createdAt  DateTime  @default(now()) @map("created_at")
 
   payments DebtPayment[]
 
@@ -254,6 +270,7 @@ model DebtPayment {
   debtId Int      @map("debt_id")
   amount Decimal
   date   DateTime @default(now()) @db.Date
+  note   String?
 
   debt Debt @relation(fields: [debtId], references: [id])
 
@@ -263,20 +280,50 @@ model DebtPayment {
 
 // Reminders Table
 model Reminder {
-  id          Int      @id @default(autoincrement())
-  type        String   // low_stock, bill_due, debt_due
-  referenceId Int?     @map("reference_id")
+  id          String    @id
+  type        String    // low_stock, bill_due, debt_due
+  referenceId String?   @map("reference_id")
+  title       String?
+  source      String?
   message     String?
-  triggered   Boolean? @default(false)
-  createdAt   DateTime @default(now()) @map("created_at")
+  triggered   Boolean?  @default(false)
+  triggerAt   DateTime? @map("trigger_at")
+  resolvedAt  DateTime? @map("resolved_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
 
   @@map("reminders")
 }
+
+// Other Expenses Table
+model OtherExpense {
+  id        Int       @id @default(autoincrement())
+  name      String
+  amount    Decimal
+  dueDate   DateTime  @map("due_date") @db.Date
+  paidAt    DateTime? @map("paid_at")
+  category  String?
+  status    String    @default("unpaid")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("other_expenses")
+}
+
+// Cron Runs Table
+model CronRun {
+  id        Int      @id @default(autoincrement())
+  type      String?
+  results   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("cron_runs")
+}
+
 // System Settings Table
 model SystemSetting {
   id    Int     @id @default(autoincrement())
   key   String  @unique
-  value String
+  value String  @db.Text
 
   @@map("system_settings")
 }

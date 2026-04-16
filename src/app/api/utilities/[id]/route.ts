@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateDoc, deleteDoc, getDocById } from "@/lib/firestore-helpers";
+import { updateDoc, deleteDoc, getDocById } from "@/lib/prisma-helpers";
 import type { FirestoreUtility } from "@/types/firestore";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
+import { invalidateCacheByPrefix } from "@/lib/server-cache";
+import { isSystemLocked } from "@/lib/lock";
 
 export const runtime = "nodejs";
 
@@ -11,6 +13,10 @@ export async function PATCH(
 ) {
     const { id } = await params;
     try {
+        if (await isSystemLocked()) {
+            return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
+        }
+
         const body = await request.json();
         const { name, amount, dueDate, category, status } = body;
 
@@ -37,7 +43,7 @@ export async function PATCH(
         // Creating a physical ledger entry here causes duplicates.
         // if (isPayment && existingUtility) {
         //     try {
-        //         const { createDoc } = await import('@/lib/firestore-helpers');
+        //         const { createDoc } = await import('@/lib/prisma-helpers');
         //         const ledgerEntry = {
         //             type: 'debit' as const,
         //             amount: existingUtility.amount,
@@ -61,6 +67,7 @@ export async function PATCH(
         });
 
         const updated = await getDocById<FirestoreUtility>('utilities', id);
+        invalidateCacheByPrefix("daily-summary:");
         triggerDashboardStatsRefresh();
         return NextResponse.json(updated);
     } catch (error) {
@@ -85,6 +92,7 @@ export async function DELETE(
         });
 
         await deleteDoc('utilities', id);
+        invalidateCacheByPrefix("daily-summary:");
         triggerDashboardStatsRefresh();
         return NextResponse.json({ success: true });
     } catch (error) {

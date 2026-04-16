@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createDoc, getDocById, getAllDocs } from "@/lib/firestore-helpers";
+import { createDoc, getDocById, getAllDocs } from "@/lib/prisma-helpers";
 import { calculateCurrentStock } from "@/lib/inventory";
 import { syncLowStockReminderForItem } from "@/lib/reminders";
-import { getSupplierBalance, getCustomerBalance } from "@/lib/ledger-balance";
+import { isSystemLocked } from "@/lib/lock";
+import { invalidateCacheByPrefix } from "@/lib/server-cache";
+import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import type { FirestoreStockLog, FirestoreItem, FirestoreUnit, FirestoreLedger } from "@/types/firestore";
 
 export async function POST(request: NextRequest) {
     try {
+        if (await isSystemLocked()) {
+            return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
+        }
+
         const body = await request.json();
         const { itemId, quantity, description } = body;
 
@@ -64,17 +70,10 @@ export async function POST(request: NextRequest) {
                 const price = item.firstSalePrice || 0;
                 const totalAmount = qtyToRemove * price;
 
-                // Determine Display Name and Cumulative Balance
+                // Determine Customer Name and Balance
+                // Stock removal is a sale — track customer balance, not supplier
                 let personName = "-";
-                let currentBalance = 0;
-
-                // If it's a removal, it might be a Customer Sale or return to Supplier
-                // For now we check if there's a supplier linked to item
-                if (item.supplierId) {
-                    const sup = await getDocById<any>('suppliers', item.supplierId);
-                    if (sup) personName = sup.name;
-                    currentBalance = await getSupplierBalance(personName.trim());
-                }
+                let currentBalance = totalAmount; // Default: full amount owed since no advance
 
                 // Determine Next Order Number
                 const recentEntries = await getAllDocs<FirestoreLedger>('ledger', {
@@ -127,6 +126,11 @@ export async function POST(request: NextRequest) {
 
         // Sync low-stock reminder immediately (so notifications show without waiting for cron)
         await syncLowStockReminderForItem(id);
+
+        // Invalidate caches so balance calculations are fresh
+        invalidateCacheByPrefix("ledger-balance:");
+        invalidateCacheByPrefix("daily-summary:");
+        triggerDashboardStatsRefresh();
 
         return NextResponse.json({
             message: "Stock removed successfully",

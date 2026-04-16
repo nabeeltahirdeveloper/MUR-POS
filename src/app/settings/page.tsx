@@ -26,16 +26,28 @@ export default function SettingsPage() {
         fetchSettings();
     }, []);
 
+    const defaultSettings: FirestoreSettings = {
+        businessName: "Moon Traders",
+        phone: "",
+        address: "",
+        currency: { symbol: "Rs.", code: "PKR", position: "prefix" },
+        inventory: { globalMinStockLevel: 10, enableLowStockAlerts: true },
+        notifications: { enableReminders: true, reminderDaysBefore: 3 },
+    } as any;
+
     const fetchSettings = async () => {
         try {
             setLoading(true);
             const res = await fetch("/api/settings");
             if (res.ok) {
                 const data = await res.json();
-                setSettings(data);
+                setSettings(data || defaultSettings);
+            } else {
+                setSettings(defaultSettings);
             }
         } catch (error) {
             console.error("Failed to fetch settings", error);
+            setSettings(defaultSettings);
         } finally {
             setLoading(false);
         }

@@ -1,0 +1,36 @@
+[
+  {
+    "id": "global",
+    "businessProfile": {
+      "name": "Moon Traders",
+      "address": null,
+      "phone": null,
+      "email": null,
+      "logoUrl": "/favicon.jpg",
+      "tagline": null
+    },
+    "currency": {
+      "symbol": "Rs.",
+      "code": "PKR",
+      "position": "prefix"
+    },
+    "inventory": {
+      "globalMinStockLevel": 5,
+      "enableLowStockAlerts": true
+    },
+    "notifications": {
+      "emailEnabled": false,
+      "alertTypes": [
+        "low_stock",
+        "bill_due",
+        "debt_due"
+      ]
+    },
+    "updatedAt": "2026-01-20T16:30:37.341Z"
+  },
+  {
+    "id": "lock",
+    "isLocked": false,
+    "updatedAt": "2026-03-16T11:26:51.029Z"
+  }
+]

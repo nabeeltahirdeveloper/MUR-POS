@@ -5,66 +5,7 @@ import { useSearchParams } from "next/navigation";
 import ThermalReceipt from "@/components/ledger/ThermalReceipt";
 import { DashboardLayout } from "@/components/layout";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-
-// Helper to parse transaction notes
-// Helper to parse transaction notes
-const parseTransactionNote = (note: string) => {
-    const lines = note.split('\n');
-    let orderNumber = "";
-    let partyName = "";
-    let customerPhone = "";
-    let customerAddress = "";
-    let paymentType = "Cash";
-    let itemName = "Item";
-    let itemType = "Stock";
-    let quantity = 1;
-    let unitPrice = 0;
-    let advance = undefined;
-    let remaining = undefined;
-
-    lines.forEach(line => {
-        const trimmed = line.trim();
-        if (trimmed.startsWith("Order #")) orderNumber = trimmed.replace("Order #", "").trim();
-        else if (trimmed.startsWith("Customer: ")) partyName = trimmed.replace("Customer: ", "").trim();
-        else if (trimmed.startsWith("Supplier: ")) partyName = trimmed.replace("Supplier: ", "").trim();
-        else if (trimmed.startsWith("Phone: ")) customerPhone = trimmed.replace("Phone: ", "").trim();
-        else if (trimmed.startsWith("Address: ")) customerAddress = trimmed.replace("Address: ", "").trim();
-
-        const amountMatch = trimmed.match(/^(Advance|Payment|Adjustment):\s*([\d\.]+(?!\s*[a-zA-Z]))/i);
-        if (amountMatch) {
-            advance = Number(amountMatch[2]);
-        }
-
-        const methodMatch = trimmed.match(/^Payment:\s*([a-zA-Z\s]+)$/i);
-        if (methodMatch) {
-            paymentType = methodMatch[1].trim();
-        }
-
-        if (trimmed.startsWith("Remaining: ")) remaining = Number(trimmed.replace("Remaining: ", "").trim());
-        else if (line.startsWith("Item: ")) {
-            // Robust Regex matching LedgerTable logic (updated for units)
-            // Matches: [Type] Name (Qty: 1 unit @ Price)
-            const match = line.match(/Item: (?:\[(.*?)\]\s*)?(.*?)\s*\(Qty: (.*?)\s*@\s*(.*)\)/);
-            if (match) {
-                itemType = match[1] || "Stock";
-                itemName = match[2].trim();
-                // If quantity has units (e.g. "1 m"), parseFloat will take "1"
-                quantity = parseFloat(match[3]) || 1;
-                unitPrice = Number(match[4]);
-            } else {
-                itemName = line.replace("Item: ", "").trim();
-                // Fallback cleanup if regex fails but format is similar
-                itemName = itemName.replace(/^\[.*?\]\s*/, ""); // Remove [Stock] etc
-                itemName = itemName.replace(/\(Qty:.*\)$/, ""); // Remove (Qty: ...) tail
-            }
-        }
-        else if (line.startsWith("Details: ")) {
-            itemName = line.replace("Details: ", "").trim();
-        }
-    });
-
-    return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining };
-};
+import { parseReceiptNote } from "@/lib/transaction-parser";
 
 function BatchReceiptContent() {
     const searchParams = useSearchParams();
@@ -95,33 +36,35 @@ function BatchReceiptContent() {
 
                 // Use the first entry for header info (party, date, etc)
                 const first = results[0];
-                const meta = parseTransactionNote(first.note || "");
+                const meta = parseReceiptNote(first.note || "");
 
                 // Combine all items
                 const combinedItems = results.map(entry => {
-                    const parsed = parseTransactionNote(entry.note || "");
+                    const parsed = parseReceiptNote(entry.note || "");
                     return {
                         name: parsed.itemName,
                         itemType: parsed.itemType,
                         quantity: parsed.quantity,
-                        unitPrice: parsed.unitPrice || Number(entry.amount) / parsed.quantity || 0,
+                        unitPrice: parsed.unitPrice || Number(entry.amount) / (parsed.quantity || 1) || 0,
                         amount: Number(entry.amount)
                     };
                 });
 
                 const total = combinedItems.reduce((acc, it) => acc + it.amount, 0);
-                const advance = meta.advance; // undefined if not present
-                // Recalculate remaining to ensure it matches the items displayed
+
+                // Use the note's Remaining value — it includes the overall customer balance
+                // (partyBalance + itemTotal - advance), computed correctly by the form
+                let advance: number | undefined = meta.advance;
                 let remaining: number | undefined = meta.remaining;
 
                 if (advance !== undefined && remaining === undefined) {
-                    remaining = total - advance;
+                    remaining = Math.max(0, total - advance);
                 }
 
                 // FETCH HISTORY for the receipt
                 let history: any[] = [];
                 try {
-                    const hRes = await fetch(`/api/ledger?search=${encodeURIComponent(meta.partyName)}&limit=100`);
+                    const hRes = await fetch(`/api/ledger?search=${encodeURIComponent(meta.title)}&limit=100`);
                     if (hRes.ok) {
                         const hData = await hRes.json();
                         history = (hData.data || [])
@@ -137,7 +80,7 @@ function BatchReceiptContent() {
                     id: first.id, // Primary ID for QR
                     date: first.date,
                     status: meta.paymentType,
-                    customerName: meta.partyName,
+                    customerName: meta.title,
                     customerPhone: meta.customerPhone,
                     customerAddress: meta.customerAddress,
                     items: combinedItems,

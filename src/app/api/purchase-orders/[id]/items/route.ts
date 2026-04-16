@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firestore";
-import { getDocById, queryDocs, createDoc, updateDoc, deleteDoc } from "@/lib/firestore-helpers";
+import { getDocById, queryDocs, createDoc, updateDoc, deleteDoc } from "@/lib/prisma-helpers";
 import type { FirestorePurchaseOrder, FirestorePurchaseOrderItem, FirestoreSupplier, FirestoreItem, FirestoreUnit } from "@/types/firestore";
 
 export async function PUT(

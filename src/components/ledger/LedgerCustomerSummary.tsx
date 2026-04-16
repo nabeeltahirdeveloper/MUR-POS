@@ -53,19 +53,19 @@ export default function LedgerCustomerSummary({ onViewEntries, filters }: Ledger
             render: (value: any) => <span className="font-medium text-gray-900">{value}</span>,
         },
         {
-            key: "totalCredit",
-            header: "Total Cash-In",
+            key: "totalDebit",
+            header: "Total Sales",
             render: (value: any) => (
-                <span className="text-green-600 font-mono">
+                <span className="text-red-600 font-mono">
                     Rs. {Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
             ),
         },
         {
-            key: "totalDebit",
-            header: "Total Cash-Out",
+            key: "totalCredit",
+            header: "Total Received",
             render: (value: any) => (
-                <span className="text-red-600 font-mono">
+                <span className="text-green-600 font-mono">
                     Rs. {Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
             ),

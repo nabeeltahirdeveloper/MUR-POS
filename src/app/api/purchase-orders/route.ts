@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, Timestamp } from "@/lib/firestore";
-import { queryDocs, getAllDocs, getDocById, createDoc } from "@/lib/firestore-helpers";
+import { Timestamp } from "@/lib/prisma-helpers";
+import { queryDocs, getAllDocs, getDocById, createDoc } from "@/lib/prisma-helpers";
 import type { FirestorePurchaseOrder, FirestoreSupplier } from "@/types/firestore";
 
 

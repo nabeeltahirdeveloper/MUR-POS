@@ -1,4 +1,4 @@
-import { queryDocs, getDocById, getSettings } from "./firestore-helpers";
+import { queryDocs, getDocById, getSettings } from "./prisma-helpers";
 import type { FirestoreStockLog, FirestoreItem } from "@/types/firestore";
 
 // Cache for items to reduce reads during repeated checks
@@ -40,8 +40,6 @@ export async function getCachedLedgerCategory(id: string): Promise<any> {
 /**
  * Calculates current stock for an item by summing up all stock logs.
  * Returns the quantity in BASE unit.
- * TODO: Use Firestore Aggregations or a snapshot field to avoid reading all logs.
- * Currently getting capped at 50 reads which may yield incorrect totals for items with many logs.
  */
 export async function calculateCurrentStock(itemId: string | number): Promise<number> {
     const logs = await queryDocs<FirestoreStockLog>('stock_logs', [

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDocById, queryDocs, updateDoc, createDoc } from "@/lib/firestore-helpers";
-import { db } from "@/lib/firestore";
+import { getDocById, queryDocs, updateDoc, createDoc } from "@/lib/prisma-helpers";
 import type { FirestorePurchaseOrder, FirestorePurchaseOrderItem, FirestoreStockLog } from "@/types/firestore";
 import { syncLowStockReminderForItem } from "@/lib/reminders";
 
@@ -10,9 +9,6 @@ export async function POST(
 ) {
     try {
         const { id } = await params;
-
-        // Use Firestore batch for atomicity
-        const batch = db.batch();
 
         const po = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
 
@@ -40,26 +36,21 @@ export async function POST(
             throw new Error("Cannot receive a Purchase Order with no items");
         }
 
-        // Update Status
-        const poRef = db.collection('purchase_orders').doc(id);
-        batch.update(poRef, { status: "received" });
+        // Update PO status
+        await updateDoc('purchase_orders', id, { status: "received" });
 
-        // Create Stock Logs
+        // Create Stock Logs for each item
         for (const item of poItems) {
-            const logRef = db.collection('stock_logs').doc();
-            const logData: Omit<FirestoreStockLog, 'id'> = {
-                itemId: item.itemId,
+            await createDoc('stock_logs', {
+                itemId: parseInt(item.itemId, 10),
                 type: "in",
-                quantityBaseUnit: item.qty, // Assuming PO qty is in base unit
+                quantityBaseUnit: item.qty,
                 description: `Received PO #${id}`,
                 createdAt: new Date(),
-            };
-            batch.set(logRef, logData);
+            });
         }
 
-        await batch.commit();
-
-        // Sync low-stock reminders for affected items (in case the receive changes low-stock status).
+        // Sync low-stock reminders for affected items
         const uniqueItemIds = Array.from(new Set(poItems.map((i) => String(i.itemId))));
         await Promise.all(uniqueItemIds.map((itemId) => syncLowStockReminderForItem(itemId)));
 
@@ -70,7 +61,7 @@ export async function POST(
         console.error("Error receiving purchase order:", error);
         return NextResponse.json(
             { error: error.message || "Failed to receive purchase order" },
-            { status: 400 } // Using 400 as mostly it's logic error
+            { status: 400 }
         );
     }
 }

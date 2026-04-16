@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { Timestamp } from "@/lib/firestore";
-import { queryDocs, getDocById } from "@/lib/firestore-helpers";
-import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreUtility } from "@/types/firestore";
+import { Timestamp } from "@/lib/prisma-helpers";
+import { queryDocs, getDocById } from "@/lib/prisma-helpers";
+import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreUtility, FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
 
 export async function GET(req: NextRequest) {
     try {
@@ -38,10 +38,7 @@ export async function GET(req: NextRequest) {
         endDate.setHours(23, 59, 59, 999);
 
         // Fetch all entries for the month
-        // Hybrid query for Utilities:
-        // 1. Get items physically paid this month (Cash Basis - New Data) - Single Field Index
-        // 2. Get items due this month that are paid (Fallback for Legacy Data) - Composite Index matching current schema
-        const results = await Promise.all([
+        const [entries, paidByDate, allDueThisMonth, debtsThisMonth, paymentsThisMonth] = await Promise.all([
             queryDocs<FirestoreLedger>('ledger', [
                 { field: 'date', operator: '>=', value: Timestamp.fromDate(startDate) },
                 { field: 'date', operator: '<=', value: Timestamp.fromDate(endDate) },
@@ -56,15 +53,16 @@ export async function GET(req: NextRequest) {
             queryDocs<FirestoreUtility>('utilities', [
                 { field: 'dueDate', operator: '>=', value: Timestamp.fromDate(startDate) },
                 { field: 'dueDate', operator: '<=', value: Timestamp.fromDate(endDate) },
-            ])
+            ]),
+            queryDocs<FirestoreDebt>('debts', [
+                { field: 'createdAt', operator: '>=', value: Timestamp.fromDate(startDate) },
+                { field: 'createdAt', operator: '<=', value: Timestamp.fromDate(endDate) },
+            ]),
+            queryDocs<FirestoreDebtPayment>('debt_payments', [
+                { field: 'date', operator: '>=', value: Timestamp.fromDate(startDate) },
+                { field: 'date', operator: '<=', value: Timestamp.fromDate(endDate) },
+            ]),
         ]);
-
-        // Fixed syntax
-        const [entries, paidByDate, allDueThisMonth] = [
-            results[0] as FirestoreLedger[],
-            results[1] as FirestoreUtility[],
-            results[2] as FirestoreUtility[]
-        ];
 
         // Filter legacy in memory
         const paidByDue = allDueThisMonth.filter(u => u.status === 'paid');
@@ -125,7 +123,7 @@ export async function GET(req: NextRequest) {
                     const trimmed = line.trim();
 
                     // Robust regex check
-                    const advMatch = trimmed.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+                    const advMatch = trimmed.match(/^(Advance|Payment|Paid):\s*(\d+(\.\d+)?)/i);
                     if (advMatch) {
                         cashMoved = Number(advMatch[2]) || 0;
                         hasAdvanceOrPayment = true;
@@ -210,6 +208,65 @@ export async function GET(req: NextRequest) {
                 dailyBreakdown[dateKey] = { date: dateKey, credit: 0, debit: 0, net: 0 };
             }
             dailyBreakdown[dateKey].debit += amount;
+        }
+
+        // 3. Process New Loans created this month
+        for (const debt of debtsThisMonth) {
+            const amount = Number(debt.amount);
+            const debtDate = debt.createdAt instanceof Date ? debt.createdAt : (debt.createdAt as any).toDate ? (debt.createdAt as any).toDate() : new Date(debt.createdAt);
+            const dateKey = debtDate.toISOString().split("T")[0];
+
+            if (debt.type === "loaned_in") {
+                totalCredit += amount;
+                if (!categoryBreakdown["Loans"]) categoryBreakdown["Loans"] = { name: "Loans", credit: 0, debit: 0 };
+                categoryBreakdown["Loans"].credit += amount;
+                if (!dailyBreakdown[dateKey]) dailyBreakdown[dateKey] = { date: dateKey, credit: 0, debit: 0, net: 0 };
+                dailyBreakdown[dateKey].credit += amount;
+            } else {
+                totalDebit += amount;
+                if (!categoryBreakdown["Loans"]) categoryBreakdown["Loans"] = { name: "Loans", credit: 0, debit: 0 };
+                categoryBreakdown["Loans"].debit += amount;
+                if (!dailyBreakdown[dateKey]) dailyBreakdown[dateKey] = { date: dateKey, credit: 0, debit: 0, net: 0 };
+                dailyBreakdown[dateKey].debit += amount;
+            }
+        }
+
+        // 4. Process Debt Payments made this month
+        // Build debt lookup map for O(1) access
+        const debtMap = new Map<string, FirestoreDebt>();
+        for (const d of debtsThisMonth) debtMap.set(d.id, d);
+        // Also fetch debts referenced by payments that may have been created in a prior month
+        const missingDebtIds = paymentsThisMonth
+            .map(p => p.debtId)
+            .filter(id => !debtMap.has(id))
+            .filter((id, idx, arr) => arr.indexOf(id) === idx);
+        const missingDebts = await Promise.all(
+            missingDebtIds.map(id => getDocById<FirestoreDebt>('debts', id))
+        );
+        for (const d of missingDebts) {
+            if (d) debtMap.set(d.id, d);
+        }
+
+        for (const payment of paymentsThisMonth) {
+            const debt = debtMap.get(payment.debtId);
+            if (!debt) continue;
+            const amount = Number(payment.amount);
+            const payDate = payment.date instanceof Date ? payment.date : (payment.date as any).toDate ? (payment.date as any).toDate() : new Date(payment.date);
+            const dateKey = payDate.toISOString().split("T")[0];
+
+            if (debt.type === "loaned_in") {
+                totalDebit += amount;
+                if (!categoryBreakdown["Loan Payments"]) categoryBreakdown["Loan Payments"] = { name: "Loan Payments", credit: 0, debit: 0 };
+                categoryBreakdown["Loan Payments"].debit += amount;
+                if (!dailyBreakdown[dateKey]) dailyBreakdown[dateKey] = { date: dateKey, credit: 0, debit: 0, net: 0 };
+                dailyBreakdown[dateKey].debit += amount;
+            } else {
+                totalCredit += amount;
+                if (!categoryBreakdown["Loan Payments"]) categoryBreakdown["Loan Payments"] = { name: "Loan Payments", credit: 0, debit: 0 };
+                categoryBreakdown["Loan Payments"].credit += amount;
+                if (!dailyBreakdown[dateKey]) dailyBreakdown[dateKey] = { date: dateKey, credit: 0, debit: 0, net: 0 };
+                dailyBreakdown[dateKey].credit += amount;
+            }
         }
 
         // Calc nets for daily

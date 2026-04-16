@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDocById, updateDoc } from "@/lib/firestore-helpers";
+import { getDocById, updateDoc } from "@/lib/prisma-helpers";
 import type { FirestorePurchaseOrder } from "@/types/firestore";
 
 export async function POST(

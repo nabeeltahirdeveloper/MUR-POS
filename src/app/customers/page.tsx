@@ -14,6 +14,7 @@ interface Customer {
     name: string;
     phone?: string | null;
     address?: string | null;
+    balance?: number;
 }
 
 interface CustomersResponse {

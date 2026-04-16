@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { Timestamp } from "@/lib/firestore";
-import { queryDocs, getDocById } from "@/lib/firestore-helpers";
+import { Timestamp } from "@/lib/prisma-helpers";
+import { queryDocs, getDocById } from "@/lib/prisma-helpers";
 import type { FirestoreLedger, FirestoreItem } from "@/types/firestore";
 
 export const dynamic = 'force-dynamic';
@@ -64,12 +64,12 @@ export async function GET(req: NextRequest) {
                 let cashMoved = totalAmount; // Default fallback simplified for summary
                 
                 if (entry.note) {
-                    const advMatch = entry.note.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+                    const advMatch = entry.note.match(/^(Advance|Payment|Paid):\s*(\d+(\.\d+)?)/i);
                     if (advMatch) {
                         cashMoved = Number(advMatch[2]) || 0;
                     } else if (entry.note.match(/Remaining:\s*(\d+(\.\d+)?)/i)) {
                         // If it has remaining but no payment/advance line, it might be 0 cash moved
-                        if (!entry.note.match(/^(Advance|Payment):/i)) {
+                        if (!entry.note.match(/^(Advance|Payment|Paid):/i)) {
                             cashMoved = 0; 
                         }
                     }

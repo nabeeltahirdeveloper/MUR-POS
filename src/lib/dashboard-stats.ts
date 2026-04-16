@@ -12,10 +12,11 @@
  *  - A debounce prevents N refreshes during bulk operations
  */
 
-import { db } from "@/lib/firebase-admin";
-import { getAllDocs, queryDocs } from "@/lib/firestore-helpers";
+import { prisma } from "@/lib/prisma";
+import { getAllDocs } from "@/lib/prisma-helpers";
 import { getOrSetCache, invalidateCache } from "@/lib/server-cache";
 import type { FirestoreLedger, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility, FirestoreExpense } from "@/types/firestore";
+import { getSuppliersSummaries, getCustomersSummaries } from "@/lib/ledger-balance";
 
 export interface PendingLedgerEntry {
   personName: string;
@@ -56,7 +57,6 @@ export interface DashboardOverviewStats {
 }
 
 const STATS_DOC_ID = "dashboard-overview";
-const STATS_COLLECTION = "stats";
 const CACHE_KEY = "dashboard-stats:overview:v1";
 const CACHE_TTL_MS = 2 * 60_000; // 2 minutes in-memory cache on top of Firestore doc
 
@@ -91,7 +91,12 @@ export function triggerDashboardStatsRefresh(): void {
  */
 export async function refreshDashboardStats(): Promise<void> {
   const stats = await computeDashboardStats();
-  await db.collection(STATS_COLLECTION).doc(STATS_DOC_ID).set(stats, { merge: false });
+  const key = `stats:${STATS_DOC_ID}`;
+  await prisma.systemSetting.upsert({
+    where: { key },
+    create: { key, value: JSON.stringify(stats) },
+    update: { value: JSON.stringify(stats) },
+  });
   // Bust in-memory cache so next call to getDashboardStats() returns fresh data
   invalidateCache(CACHE_KEY);
 }
@@ -102,14 +107,15 @@ export async function refreshDashboardStats(): Promise<void> {
  */
 export async function getDashboardStats(): Promise<DashboardOverviewStats | null> {
   return getOrSetCache(CACHE_KEY, CACHE_TTL_MS, async () => {
-    const snap = await db.collection(STATS_COLLECTION).doc(STATS_DOC_ID).get();
-    if (!snap.exists) {
+    const key = `stats:${STATS_DOC_ID}`;
+    const existing = await prisma.systemSetting.findUnique({ where: { key } });
+    if (!existing) {
       // First-time: compute and save
       await refreshDashboardStats();
-      const fresh = await db.collection(STATS_COLLECTION).doc(STATS_DOC_ID).get();
-      return (fresh.data() as DashboardOverviewStats) ?? null;
+      const fresh = await prisma.systemSetting.findUnique({ where: { key } });
+      return fresh ? (JSON.parse(fresh.value) as DashboardOverviewStats) : null;
     }
-    const data = snap.data() as DashboardOverviewStats;
+    const data = JSON.parse(existing.value) as DashboardOverviewStats;
     // If data is stale by more than 1 hour, recompute in background
     if (data.updatedAt && Date.now() - data.updatedAt > 60 * 60_000) {
       triggerDashboardStatsRefresh(); // non-blocking
@@ -181,65 +187,28 @@ async function computeDashboardStats(): Promise<DashboardOverviewStats> {
     }));
 
   // --- Pending Ledger Balances (suppliers + customers) ---
-  // Build supplier/customer outstanding balances from ledger notes
-  const supplierMap = new Map<string, { balance: number; lastDate: Date; type: "debit" }>();
-  const customerMap = new Map<string, { balance: number; lastDate: Date; type: "credit" }>();
-  const processedOrders = new Set<string>();
-
-  for (const entry of ledgerEntries) {
-    if (!entry.note) continue;
-    const lines = entry.note.split("\n");
-    let supplierName = "";
-    let customerName = "";
-    let remaining: number | null = null;
-
-    for (const line of lines) {
-      const t = line.trim();
-      if (t.toLowerCase().startsWith("supplier:")) supplierName = t.substring(9).trim();
-      else if (t.toLowerCase().startsWith("customer:")) customerName = t.substring(9).trim();
-      else {
-        const m = t.match(/remaining:\s*(\d+(\.\d+)?)/i);
-        if (m) remaining = Number(m[1]);
-      }
-    }
-
-    const entryDate = toDate(entry.date ?? new Date());
-    const orderKey = entry.orderNumber
-      ? `${supplierName || customerName}_${entry.orderNumber}`
-      : null;
-    if (orderKey && processedOrders.has(orderKey)) continue;
-    if (orderKey) processedOrders.add(orderKey);
-
-    if (supplierName && entry.type === "debit" && remaining !== null) {
-      const cur = supplierMap.get(supplierName);
-      if (!cur || entryDate > cur.lastDate) {
-        supplierMap.set(supplierName, { balance: remaining, lastDate: entryDate, type: "debit" });
-      }
-    }
-    if (customerName && entry.type === "credit" && remaining !== null) {
-      const cur = customerMap.get(customerName);
-      if (!cur || entryDate > cur.lastDate) {
-        customerMap.set(customerName, { balance: remaining, lastDate: entryDate, type: "credit" });
-      }
-    }
-  }
+  // Use computed balances (source of truth) instead of note-based "Remaining:" values
+  const [supplierSummaries, customerSummaries] = await Promise.all([
+    getSuppliersSummaries(),
+    getCustomersSummaries(),
+  ]);
 
   const pendingLedgerEntries: PendingLedgerEntry[] = [
-    ...[...supplierMap.entries()]
-      .filter(([, v]) => v.balance > 0)
-      .map(([name, v]) => ({
-        personName: name,
-        remaining: v.balance,
+    ...supplierSummaries
+      .filter(s => s.balance > 0)
+      .map(s => ({
+        personName: s.name,
+        remaining: s.balance,
         type: "debit" as const,
-        date: v.lastDate.toISOString(),
+        date: s.lastEntryDate instanceof Date ? s.lastEntryDate.toISOString() : new Date(s.lastEntryDate).toISOString(),
       })),
-    ...[...customerMap.entries()]
-      .filter(([, v]) => v.balance > 0)
-      .map(([name, v]) => ({
-        personName: name,
-        remaining: v.balance,
+    ...customerSummaries
+      .filter(c => c.balance > 0)
+      .map(c => ({
+        personName: c.name,
+        remaining: c.balance,
         type: "credit" as const,
-        date: v.lastDate.toISOString(),
+        date: c.lastEntryDate instanceof Date ? c.lastEntryDate.toISOString() : new Date(c.lastEntryDate).toISOString(),
       })),
   ]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -268,7 +237,7 @@ async function computeDashboardStats(): Promise<DashboardOverviewStats> {
     if (entry.note) {
       for (const line of entry.note.split("\n")) {
         const t = line.trim();
-        const adv = t.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+        const adv = t.match(/^(Advance|Payment|Paid):\s*(\d+(\.\d+)?)/i);
         if (adv) { cashMoved = Number(adv[2]) || 0; hasAdvance = true; break; }
         const rem = t.match(/Remaining:\s*(\d+(\.\d+)?)/i);
         if (rem) { hasRemaining = true; remainingVal = Number(rem[1]) || 0; }

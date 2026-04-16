@@ -14,6 +14,7 @@ interface Supplier {
     name: string;
     phone?: string | null;
     address?: string | null;
+    balance?: number;
 }
 
 interface SuppliersResponse {

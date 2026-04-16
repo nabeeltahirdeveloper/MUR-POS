@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 // import { auth, db } from '@/lib/firebase-admin';
-// import { createDoc } from '@/lib/firestore-helpers';
+// import { createDoc } from '@/lib/prisma-helpers';
 // import type { FirestoreUser } from '@/types/firestore';
 
 /**

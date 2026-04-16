@@ -3,6 +3,7 @@
 import React from "react";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
+import { parseTransactionNote } from "@/lib/transaction-parser";
 
 type LedgerEntry = {
     id: string | number;
@@ -57,109 +58,11 @@ export default function LedgerTable({
         return currency.position === "prefix" ? `${currency.symbol} ${num}` : `${num} ${currency.symbol}`;
     };
 
-    // Helper to parse existing notes based on the standardized format
-    const parseTransactionNote = (note: string | null) => {
-        if (!note) return { orderNumber: "-", title: "-", itemName: "-", quantity: null, unitPrice: null, isStructured: false, itemType: null, advance: undefined as number | undefined, remaining: undefined as number | undefined };
-
-        const lines = note.split('\n');
-        let orderNumber = "";
-        let title = "";
-        let itemName = "";
-        let quantity: number | null = null;
-        let unitPrice: number | null = null;
-        let isStructured = false;
-        let itemType: string | null = null;
-        let advance: number | undefined = undefined;
-        let remaining: number | undefined = undefined;
-
-        lines.forEach(line => {
-            const trimmed = line.trim();
-            if (trimmed.startsWith("Order #")) {
-                orderNumber = trimmed.replace("Order #", "").trim();
-                isStructured = true;
-            }
-            else if (trimmed.startsWith("Customer: ")) {
-                title = trimmed.replace("Customer: ", "").trim();
-                isStructured = true;
-            }
-            else if (trimmed.startsWith("Supplier: ")) {
-                title = trimmed.replace("Supplier: ", "").trim();
-                isStructured = true;
-            }
-            else if (trimmed.startsWith("Item: ")) {
-                isStructured = true;
-                const match = trimmed.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+).*?@\s*([^)]*)\)/);
-                if (match) {
-                    itemType = match[1] || null;
-                    itemName = match[2].trim();
-                    quantity = Number(match[3]);
-                    unitPrice = Number(match[4]);
-                } else {
-                    itemName = trimmed.replace("Item: ", "").trim();
-                }
-            }
-            else if (trimmed.startsWith("Details: ")) {
-                isStructured = true;
-                itemName = trimmed.replace("Details: ", "").trim();
-            }
-
-            // Advance/Remaining labels
-            const advMatch = trimmed.match(/^(Advance|Payment|Adjustment):\s*([\d\.]+)/i);
-            if (advMatch) advance = Number(advMatch[2]);
-
-            const remMatch = trimmed.match(/Remaining:\s*([\d\.]+)/i);
-            if (remMatch) remaining = Number(remMatch[1]);
-        });
-
-        if (!isStructured) {
-            // ... keep existing fallback logic ...
-            if (note.startsWith("[Loan] ") || note.startsWith("[Payment] ")) {
-                const parts = note.split(":");
-                title = parts[0].trim();
-                const nameMatch = note.match(/^\[(Loan|Payment)\] (.*?):/);
-                if (nameMatch) {
-                    title = nameMatch[2].trim();
-                    itemName = note.replace(nameMatch[0], "").trim();
-                }
-                if (!itemName) itemName = note.startsWith("[Payment]") ? "Loan Repayment" : "Loan Given";
-                if (title.startsWith("[")) {
-                    const endBracket = title.indexOf("]");
-                    if (endBracket !== -1) title = title.substring(endBracket + 1).trim();
-                }
-            }
-            else if (note.startsWith("[Bill] ")) {
-                const content = note.replace("[Bill] ", "").trim();
-                const separatorIndex = content.lastIndexOf(" - ");
-                if (separatorIndex !== -1) {
-                    title = content.substring(0, separatorIndex).trim();
-                    itemName = content.substring(separatorIndex + 3).trim();
-                } else {
-                    title = content;
-                    itemName = "Utility Bill";
-                }
-            }
-            else {
-                title = "-";
-                itemName = note;
-            }
-        }
-
-        return {
-            orderNumber: orderNumber || "-",
-            title: title || "-",
-            itemName: itemName || "-",
-            quantity,
-            unitPrice,
-            isStructured,
-            itemType,
-            advance,
-            remaining
-        };
-    };
+    // parseTransactionNote imported from @/lib/transaction-parser
 
     const isVirtualEntry = (id: string | number): boolean => {
         const idStr = String(id);
-        return idStr.startsWith('debt_') || idStr.startsWith('pay_') || idStr.startsWith('util_');
+        return idStr.startsWith('debt_') || idStr.startsWith('pay_') || idStr.startsWith('util_') || idStr.startsWith('exp_');
     };
 
     const toggleSelection = (id: string | number) => {
@@ -312,9 +215,13 @@ export default function LedgerTable({
                     let manageText = '(Manage in Debts)';
 
                     if (idStr.startsWith('util_')) {
-                        redirectUrl = '/utilities'; // Assuming you have a utilities page
+                        redirectUrl = '/utilities';
                         label = 'View Bill';
                         manageText = '(Manage in Utilities)';
+                    } else if (idStr.startsWith('exp_')) {
+                        redirectUrl = '/other-expenses';
+                        label = 'View Expense';
+                        manageText = '(Manage in Expenses)';
                     }
 
                     return (

@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createDoc, getDocById, getAllDocs } from "@/lib/firestore-helpers";
+import { createDoc, getDocById, getAllDocs } from "@/lib/prisma-helpers";
 import { calculateCurrentStock } from "@/lib/inventory";
 import { syncLowStockReminderForItem } from "@/lib/reminders";
 import { getSupplierBalance } from "@/lib/ledger-balance";
+import { isSystemLocked } from "@/lib/lock";
+import { invalidateCacheByPrefix } from "@/lib/server-cache";
+import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import type { FirestoreStockLog, FirestoreItem, FirestoreUnit, FirestoreSupplier, FirestoreLedger } from "@/types/firestore";
 
 export async function POST(request: NextRequest) {
     try {
+        if (await isSystemLocked()) {
+            return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
+        }
+
         const body = await request.json();
         const { itemId, quantity, description } = body;
 
@@ -112,6 +119,11 @@ export async function POST(request: NextRequest) {
 
         // Sync low-stock reminder immediately (so notifications show without waiting for cron)
         await syncLowStockReminderForItem(String(itemId));
+
+        // Invalidate caches so balance calculations are fresh
+        invalidateCacheByPrefix("ledger-balance:");
+        invalidateCacheByPrefix("daily-summary:");
+        triggerDashboardStatsRefresh();
 
         return NextResponse.json({
             message: "Stock added successfully",

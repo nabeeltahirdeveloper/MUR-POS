@@ -1,0 +1,442 @@
+[
+  {
+    "id": "2DThTH1NegkR8Z0GdleN",
+    "itemId": "wnuD1wE6jwasUmN9EY1n",
+    "type": "out",
+    "quantityBaseUnit": 8,
+    "description": "Auto-generated from Ledger credit entry #uGAZz3zGflsf1LYCwJiB",
+    "createdAt": "2026-03-03T10:36:44.526Z"
+  },
+  {
+    "id": "2km3U4AlSpMip0041Rp6",
+    "itemId": "ONxwNihkPktEZQp9yM1a",
+    "type": "in",
+    "quantityBaseUnit": 5,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:37:29.365Z"
+  },
+  {
+    "id": "3EYxGXAQCMLhZsls321G",
+    "itemId": "giAl6xpQ7HBJvGl66thy",
+    "type": "in",
+    "quantityBaseUnit": 40,
+    "description": null,
+    "createdAt": "2026-03-14T11:45:25.616Z"
+  },
+  {
+    "id": "4DSC4Eu4EvGEmesXwk2g",
+    "itemId": "tXwuKyp7jJnNRsNxYBnH",
+    "type": "in",
+    "quantityBaseUnit": 10,
+    "description": "Manual add from table",
+    "createdAt": "2026-02-24T08:04:12.115Z"
+  },
+  {
+    "id": "51jyXJwCku3PQkuY1reg",
+    "itemId": "vDKNju9RDqAmb6R6h8jq",
+    "type": "in",
+    "quantityBaseUnit": 20,
+    "description": "Manual add from table",
+    "createdAt": "2026-02-24T07:27:35.832Z"
+  },
+  {
+    "id": "6tUgSkzD3NSeybNQILJw",
+    "itemId": "ot1UYkA8zWzlC6Ad04Tg",
+    "type": "out",
+    "quantityBaseUnit": 1,
+    "description": "Auto-generated from Ledger credit entry #8s9lDvjKcF8lBc0iKgtB",
+    "createdAt": "2026-03-03T09:43:17.185Z"
+  },
+  {
+    "id": "7oCvwXdB7dJqbHst0epR",
+    "itemId": "mTpqGHH1PJodg379ZPJj",
+    "type": "out",
+    "quantityBaseUnit": 3,
+    "description": "Auto-generated from Ledger credit entry #V0u3C0hhnJNB3T7ffKTl",
+    "createdAt": "2026-03-03T09:45:26.309Z"
+  },
+  {
+    "id": "8FMpmtLLCKVizeSb6QNg",
+    "itemId": "iU9GvK5PIyN0At1o63UH",
+    "type": "in",
+    "quantityBaseUnit": 2,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T10:01:34.999Z"
+  },
+  {
+    "id": "AQ5klSsAbGkXJTaRf4Fd",
+    "itemId": "qzCnkTJRPIXAtQfb6554",
+    "type": "in",
+    "quantityBaseUnit": 10,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:40:39.634Z"
+  },
+  {
+    "id": "AdbuYkJWwWKwBPPxmZsN",
+    "itemId": "zwlJwNTYKtFHmpbiB02p",
+    "type": "in",
+    "quantityBaseUnit": 3,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T10:02:28.400Z"
+  },
+  {
+    "id": "BNYgffj81XuOxVR7Knk1",
+    "itemId": "v2Cj0AhLhRVBhlfVbtW7",
+    "type": "in",
+    "quantityBaseUnit": 8,
+    "description": "Manual add from table",
+    "createdAt": "2026-02-24T07:55:39.212Z"
+  },
+  {
+    "id": "BUbMUHvMNxVbKkfF7QlB",
+    "itemId": "UJpyXluJIA3wl5t4D4VX",
+    "type": "in",
+    "quantityBaseUnit": 5,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:53:54.897Z"
+  },
+  {
+    "id": "E543LqaCIRHnWoWnZCpV",
+    "itemId": "MxUhBmhiV5OiXbUhqsV5",
+    "type": "in",
+    "quantityBaseUnit": 10,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:47:42.287Z"
+  },
+  {
+    "id": "ECc9bn18TAnCHKIQZFyh",
+    "itemId": "xFORqzTBzrNVhv2ODOuU",
+    "type": "in",
+    "quantityBaseUnit": 2,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:36:31.456Z"
+  },
+  {
+    "id": "Fk5R0dAfGX04RGoURz6b",
+    "itemId": "mTpqGHH1PJodg379ZPJj",
+    "type": "in",
+    "quantityBaseUnit": 26,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-03T09:39:15.788Z"
+  },
+  {
+    "id": "GW0zRVCwzhJgYOkB2JzC",
+    "itemId": "wnuD1wE6jwasUmN9EY1n",
+    "type": "out",
+    "quantityBaseUnit": 8,
+    "description": "Auto-generated from Ledger credit entry #2TIWozsyI39uuNcYfR0z",
+    "createdAt": "2026-03-03T10:32:06.442Z"
+  },
+  {
+    "id": "J4SsQiJMLXE23OG7QeiB",
+    "itemId": "payment",
+    "type": "in",
+    "quantityBaseUnit": 1,
+    "description": "Auto-generated from Ledger debit entry #IGtv57503wYqewHXzX2n",
+    "createdAt": "2026-01-24T15:03:17.968Z"
+  },
+  {
+    "id": "KO7i9M0eNJYlGwx2Zewk",
+    "itemId": "mTpqGHH1PJodg379ZPJj",
+    "type": "in",
+    "quantityBaseUnit": 3,
+    "description": "Reversion of out for DELETED Ledger #8ZmfaUGDPEP5nHVlC7rX (Batch)",
+    "createdAt": "2026-04-14T08:38:55.951Z"
+  },
+  {
+    "id": "KTFsaq1FJ1t0XiM0K1aF",
+    "itemId": "4Dj4ly7NlOPbcy2YyrH2",
+    "type": "in",
+    "quantityBaseUnit": 10,
+    "description": "Manual add from table",
+    "createdAt": "2026-02-24T07:46:09.096Z"
+  },
+  {
+    "id": "MMPQJTiL22OfBEeAEPOj",
+    "itemId": "mTpqGHH1PJodg379ZPJj",
+    "type": "in",
+    "quantityBaseUnit": 3,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-03T09:46:36.677Z"
+  },
+  {
+    "id": "MrtOY7GdmUWQza6KvuoF",
+    "itemId": "payment",
+    "type": "in",
+    "quantityBaseUnit": 1,
+    "description": "Auto-generated from Ledger debit entry #d8K7pShID9gyrUX9ze37",
+    "createdAt": "2026-01-24T14:41:18.131Z"
+  },
+  {
+    "id": "N4mmSmy40C2gytdPjE0y",
+    "itemId": "nGybFjA6UVwnf6QwuLzT",
+    "type": "in",
+    "quantityBaseUnit": 5,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:43:41.551Z"
+  },
+  {
+    "id": "NEiWa64KusIkVsRpWdQo",
+    "itemId": "wnuD1wE6jwasUmN9EY1n",
+    "type": "out",
+    "quantityBaseUnit": 10,
+    "description": "Auto-generated from Ledger credit entry #ipwohkU1lyPPRvIPDwLV",
+    "createdAt": "2026-03-03T10:38:48.046Z"
+  },
+  {
+    "id": "NnNmGg35oAC6Zy3D2ou9",
+    "itemId": "ot1UYkA8zWzlC6Ad04Tg",
+    "type": "in",
+    "quantityBaseUnit": 10,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-03T09:42:23.346Z"
+  },
+  {
+    "id": "OMMYJsXOtEPSpaOgw8Aw",
+    "itemId": "0bVTkRUDQIcJkxppxwGy",
+    "type": "in",
+    "quantityBaseUnit": 10,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:57:08.112Z"
+  },
+  {
+    "id": "P1ayslzkmraQryCwvRcO",
+    "itemId": "payment",
+    "type": "in",
+    "quantityBaseUnit": 1,
+    "description": "Auto-generated from Ledger debit entry #bnM3XKbYixIcQMIDzAGq",
+    "createdAt": "2026-01-23T13:30:58.180Z"
+  },
+  {
+    "id": "QU2v3mmSEDm9pSCVVsqd",
+    "itemId": "JaRrpDEzrq5ZaJcsbZxm",
+    "type": "in",
+    "quantityBaseUnit": 2,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:36:18.144Z"
+  },
+  {
+    "id": "QhGCKdjfDxCwlBE7gMiI",
+    "itemId": "IdILpFq5wM9L2BoFTCeN",
+    "type": "in",
+    "quantityBaseUnit": 5,
+    "description": "Manual add from table",
+    "createdAt": "2026-02-24T07:51:02.727Z"
+  },
+  {
+    "id": "RceuMEMDtomFmYP9Po9a",
+    "itemId": "CDRvJmPjOuN67VOzy3FI",
+    "type": "in",
+    "quantityBaseUnit": 5,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-03T10:43:49.461Z"
+  },
+  {
+    "id": "UvnibBrBy0cntF6m1t4E",
+    "itemId": "EjC9ysY5vnxdelaHey30",
+    "type": "in",
+    "quantityBaseUnit": 5,
+    "description": "Manual add from table",
+    "createdAt": "2026-02-24T07:48:26.880Z"
+  },
+  {
+    "id": "VEIH7MX0PmNBGmOkey6L",
+    "itemId": "M8wxEKmaLF8nnRe6riVH",
+    "type": "in",
+    "quantityBaseUnit": 5,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:42:03.068Z"
+  },
+  {
+    "id": "XCoLtPefoCgyIP81O6k7",
+    "itemId": "payment",
+    "type": "in",
+    "quantityBaseUnit": 1,
+    "description": "Auto-generated from Ledger debit entry #ja3FeY7n15XmdcDE4qVJ",
+    "createdAt": "2026-01-24T14:34:24.120Z"
+  },
+  {
+    "id": "ZKq38wtlsAOk1mqxp3dd",
+    "itemId": "wnuD1wE6jwasUmN9EY1n",
+    "type": "out",
+    "quantityBaseUnit": 8,
+    "description": "Auto-generated from Ledger credit entry #9tRa0N2wZzVUXXKGxSZS",
+    "createdAt": "2026-03-03T09:52:02.436Z"
+  },
+  {
+    "id": "ZQfmnCNXLxUfthdcqzcO",
+    "itemId": "ot1UYkA8zWzlC6Ad04Tg",
+    "type": "out",
+    "quantityBaseUnit": 1,
+    "description": "Auto-generated from Ledger credit entry #Ls9cduAIrZrYETrh2PhM",
+    "createdAt": "2026-03-03T09:45:26.340Z"
+  },
+  {
+    "id": "ZWrlAAYJUtwXjdt8x1nF",
+    "itemId": "mTpqGHH1PJodg379ZPJj",
+    "type": "in",
+    "quantityBaseUnit": 1,
+    "description": "Reversion of out for DELETED Ledger #8ZmvOkt4hGNbcQsUSMqh (Batch)",
+    "createdAt": "2026-04-14T08:38:53.615Z"
+  },
+  {
+    "id": "bqPy7HtgnrCjzUzeKSMG",
+    "itemId": "f4jHooB6dQyis8fK15Nt",
+    "type": "in",
+    "quantityBaseUnit": 5,
+    "description": "Manual add from table",
+    "createdAt": "2026-02-24T07:49:56.006Z"
+  },
+  {
+    "id": "d5wYdmakPhBSvUbigChH",
+    "itemId": "it8z4J57E44jy8yIQkSI",
+    "type": "in",
+    "quantityBaseUnit": 2,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T10:11:40.772Z"
+  },
+  {
+    "id": "iTaTjLeCSxjAM6ftQtU1",
+    "itemId": "wnuD1wE6jwasUmN9EY1n",
+    "type": "in",
+    "quantityBaseUnit": 8,
+    "description": "Reversion of out for DELETED Ledger #jZ1A8dex82U9fDjgVXPZ (Batch)",
+    "createdAt": "2026-03-03T09:51:29.391Z"
+  },
+  {
+    "id": "j4MqK8leVcU3sJKKWeSG",
+    "itemId": "wnuD1wE6jwasUmN9EY1n",
+    "type": "in",
+    "quantityBaseUnit": 39,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-03T09:48:27.627Z"
+  },
+  {
+    "id": "lJaNO9Iz4JgPboz5rVro",
+    "itemId": "wnuD1wE6jwasUmN9EY1n",
+    "type": "out",
+    "quantityBaseUnit": 8,
+    "description": "Auto-generated from Ledger credit entry #jZ1A8dex82U9fDjgVXPZ",
+    "createdAt": "2026-03-03T09:50:20.694Z"
+  },
+  {
+    "id": "o1YDaA4JZ9mVvE8okEC7",
+    "itemId": "TMEYRCJaBibHqPRViXuI",
+    "type": "in",
+    "quantityBaseUnit": 5,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:52:57.247Z"
+  },
+  {
+    "id": "omivcIXolckxYgHBiffE",
+    "itemId": "1dMdbCaHCSZkwko8zAOG",
+    "type": "in",
+    "quantityBaseUnit": 9,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:57:51.236Z"
+  },
+  {
+    "id": "oyE1I0KWMrLX7zKIlUrC",
+    "itemId": "1YchpNLnUAvxdFo5xwHM",
+    "type": "in",
+    "quantityBaseUnit": 6,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-03T10:44:57.472Z"
+  },
+  {
+    "id": "qSx48fKqqpcCVMONFj3s",
+    "itemId": "wnuD1wE6jwasUmN9EY1n",
+    "type": "out",
+    "quantityBaseUnit": 8,
+    "description": "Auto-generated from Ledger credit entry #0GgTkkRkjvJ22UeYugaR",
+    "createdAt": "2026-03-03T10:30:26.280Z"
+  },
+  {
+    "id": "rEfeO2i7iJ7S6FfNTAsu",
+    "itemId": "wnuD1wE6jwasUmN9EY1n",
+    "type": "out",
+    "quantityBaseUnit": 8,
+    "description": "Auto-generated from Ledger credit entry #hgsnADmjuQdqiHMhcR5a",
+    "createdAt": "2026-03-03T10:35:50.593Z"
+  },
+  {
+    "id": "sAZO5gVpuOKgQTrsw5R6",
+    "itemId": "wTR2bDQMg0aVf9KfdCdB",
+    "type": "in",
+    "quantityBaseUnit": 2,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:36:39.351Z"
+  },
+  {
+    "id": "tnm3mD5RGk0nYab87JB5",
+    "itemId": "eSXImK83NTlDHEGrCMV9",
+    "type": "in",
+    "quantityBaseUnit": 2,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T10:11:31.726Z"
+  },
+  {
+    "id": "u875uOAbslw4yFX5ZrBD",
+    "itemId": "mTpqGHH1PJodg379ZPJj",
+    "type": "out",
+    "quantityBaseUnit": 3,
+    "description": "Auto-generated from Ledger credit entry #8ZmfaUGDPEP5nHVlC7rX",
+    "createdAt": "2026-04-14T08:35:53.334Z"
+  },
+  {
+    "id": "uYJha4U1w0R9oEgeZywB",
+    "itemId": "xQG68YC4bCaNUMamaexh",
+    "type": "in",
+    "quantityBaseUnit": 5,
+    "description": "Manual add from table",
+    "createdAt": "2026-02-24T07:28:58.630Z"
+  },
+  {
+    "id": "umrCgouDBjKN78kNQ9qi",
+    "itemId": "Lm16lhs57AVUXWixPIGp",
+    "type": "in",
+    "quantityBaseUnit": 8,
+    "description": "Manual add from table",
+    "createdAt": "2026-02-24T07:56:37.254Z"
+  },
+  {
+    "id": "wQqKctbISIRpyIagQqGJ",
+    "itemId": "tgUqIx8LPqYlIiFQxecF",
+    "type": "in",
+    "quantityBaseUnit": 2,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:36:25.237Z"
+  },
+  {
+    "id": "wTyasM2r2dXSOQDuEVAI",
+    "itemId": "payment",
+    "type": "in",
+    "quantityBaseUnit": 1,
+    "description": "Auto-generated from Ledger debit entry #WYp5f8Duq2N9kPXu9U5h",
+    "createdAt": "2026-01-24T14:37:08.894Z"
+  },
+  {
+    "id": "wb6VccdsFSW9rJPPriAa",
+    "itemId": "mTpqGHH1PJodg379ZPJj",
+    "type": "out",
+    "quantityBaseUnit": 3,
+    "description": "Auto-generated from Ledger credit entry #FxDxJd56I2rsCAHAXQnU",
+    "createdAt": "2026-03-03T09:43:17.022Z"
+  },
+  {
+    "id": "wyGSL0AYRG86FR7PoJrO",
+    "itemId": "fmJyHUpTmlYMHzDniRhy",
+    "type": "in",
+    "quantityBaseUnit": 10,
+    "description": "Manual add from table",
+    "createdAt": "2026-03-04T09:49:43.645Z"
+  },
+  {
+    "id": "zhdGItXndrzBEtyG6zyo",
+    "itemId": "mTpqGHH1PJodg379ZPJj",
+    "type": "out",
+    "quantityBaseUnit": 1,
+    "description": "Auto-generated from Ledger credit entry #8ZmvOkt4hGNbcQsUSMqh",
+    "createdAt": "2026-04-14T08:35:53.124Z"
+  }
+]

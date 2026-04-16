@@ -4,6 +4,7 @@ import React from "react";
 import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { useAlert } from "@/contexts/AlertContext";
+import { parsePendingDetails } from "@/lib/transaction-parser";
 
 type LedgerEntry = {
     id: string | number;
@@ -13,6 +14,13 @@ type LedgerEntry = {
     note: string | null;
     date: string; // ISO string
 };
+
+interface PartySummary {
+    name: string;
+    balance: number;
+    totalCredit: number;
+    totalDebit: number;
+}
 
 interface LedgerPendingTableProps {
     data: LedgerEntry[];
@@ -35,6 +43,7 @@ export default function LedgerPendingTable({
     const [currency, setCurrency] = React.useState({ symbol: "Rs.", position: "prefix" });
     const [historyModal, setHistoryModal] = React.useState<{ isOpen: boolean, name: string, entries: any[] }>({ isOpen: false, name: '', entries: [] });
     const [historyLoading, setHistoryLoading] = React.useState(false);
+    const [balanceMap, setBalanceMap] = React.useState<Record<string, PartySummary>>({});
 
     React.useEffect(() => {
         const fetchSettings = async () => {
@@ -53,59 +62,39 @@ export default function LedgerPendingTable({
         fetchSettings();
     }, []);
 
+    // Fetch computed balances from the balance APIs (source of truth)
+    React.useEffect(() => {
+        const fetchBalances = async () => {
+            try {
+                const [supRes, custRes] = await Promise.all([
+                    fetch("/api/ledger/suppliers"),
+                    fetch("/api/ledger/customers")
+                ]);
+                const map: Record<string, PartySummary> = {};
+                if (supRes.ok) {
+                    const suppliers: PartySummary[] = await supRes.json();
+                    suppliers.forEach(s => { map[s.name.trim().toLowerCase()] = s; });
+                }
+                if (custRes.ok) {
+                    const customers: PartySummary[] = await custRes.json();
+                    customers.forEach(c => { map[c.name.trim().toLowerCase()] = c; });
+                }
+                setBalanceMap(map);
+            } catch (e) {
+                console.error("Failed to fetch balances", e);
+            }
+        };
+        fetchBalances();
+    }, [data]);
+
     const formatCurrency = (value: number | string) => {
         const num = Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         return currency.position === "prefix" ? `${currency.symbol} ${num}` : `${num} ${currency.symbol}`;
     };
 
-    // Helper to parse extended details including Advance and Remaining
-    const parsePendingDetails = (note: string | null) => {
-        if (!note) return { orderNumber: "-", title: "-", itemName: "-", advance: 0, remaining: 0 };
+    // parsePendingDetails imported from @/lib/transaction-parser
 
-        const lines = note.split('\n');
-        let orderNumber = "-";
-        let title = "-";
-        let itemName = "-";
-        let advance: number | undefined = undefined;
-        let remaining: number | undefined = undefined;
-
-        lines.forEach(line => {
-            const trimmed = line.trim();
-            if (trimmed.startsWith("Order #")) {
-                orderNumber = trimmed.replace("Order #", "").trim();
-            }
-            else if (trimmed.startsWith("Customer: ")) {
-                title = trimmed.replace("Customer: ", "").trim();
-            }
-            else if (trimmed.startsWith("Supplier: ")) {
-                title = trimmed.replace("Supplier: ", "").trim();
-            }
-            else if (trimmed.startsWith("Item: ")) {
-                const match = trimmed.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+).*?@\s*([^)]*)\)/);
-                if (match) {
-                    itemName = match[2].trim();
-                } else {
-                    itemName = trimmed.replace("Item: ", "").trim();
-                }
-            }
-            else if (trimmed.startsWith("Details: ")) {
-                itemName = trimmed.replace("Details: ", "").trim();
-            }
-
-            // Robust regex for Advance/Payment and Remaining
-            const advMatch = trimmed.match(/^(Advance|Payment|Adjustment):\s*([\d\.]+)/i);
-            if (advMatch) advance = Number(advMatch[2]) || 0;
-
-            const remMatch = trimmed.match(/Remaining:\s*([\d\.]+)/i);
-            if (remMatch) {
-                remaining = Number(remMatch[1]);
-            }
-        });
-
-        return { orderNumber, title, itemName, advance, remaining };
-    };
-
-    // Group data by Customer/Supplier Name to show only the latest remaining balance per person
+    // Group data by Customer/Supplier Name to show the correct remaining balance per person
     const groupedData = React.useMemo(() => {
         const groups: Record<string, {
             ids: (string | number)[];
@@ -113,20 +102,25 @@ export default function LedgerPendingTable({
             orderNumber: string;
             customerName: string;
             items: string[];
-            totalBill: number;
-            advance: number;
+            totalItemBill: number;
             remaining: number;
             rawNote: string;
             type: "debit" | "credit";
+            latestEntryId: number;
         }> = {};
 
-        // Sort data by date descending to ensure we start with the latest
-        const sortedData = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        // Sort data by date DESC, then by id DESC to break ties on same date
+        const sortedData = [...data].sort((a, b) => {
+            const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+            if (dateDiff !== 0) return dateDiff;
+            return Number(b.id) - Number(a.id);
+        });
 
         sortedData.forEach(entry => {
             const details = parsePendingDetails(entry.note);
-            // Unique Key: Person Name (title)
             const key = details.title !== "-" ? details.title : `UNKNOWN-${entry.id}`;
+            const isPaymentOnly = (entry.note || "").includes("Direct Payment");
+            const entryId = Number(entry.id) || 0;
 
             if (!groups[key]) {
                 groups[key] = {
@@ -135,11 +129,11 @@ export default function LedgerPendingTable({
                     orderNumber: details.orderNumber,
                     customerName: details.title,
                     items: [],
-                    totalBill: 0,
-                    advance: details.advance || 0,
+                    totalItemBill: 0,
                     remaining: details.remaining || 0,
                     rawNote: entry.note || "",
-                    type: entry.type
+                    type: entry.type,
+                    latestEntryId: entryId
                 };
             }
 
@@ -147,25 +141,42 @@ export default function LedgerPendingTable({
             if (details.itemName !== "-") {
                 groups[key].items.push(details.itemName);
             }
-            groups[key].totalBill += Number(entry.amount);
 
-            // If entry is newer than current group date, update meta-info (like Remaining)
-            if (new Date(entry.date).getTime() > new Date(groups[key].date).getTime()) {
+            // Only count item/purchase amounts toward total bill, not direct payment entries
+            if (!isPaymentOnly) {
+                groups[key].totalItemBill += Number(entry.amount);
+            }
+
+            // Update remaining from the most recent entry (by date + id)
+            if (entryId > groups[key].latestEntryId) {
                 groups[key].date = entry.date;
                 groups[key].orderNumber = details.orderNumber;
-                groups[key].advance = details.advance || 0;
                 groups[key].remaining = details.remaining || 0;
                 groups[key].rawNote = entry.note || "";
+                groups[key].latestEntryId = entryId;
             }
         });
 
-        // Convert to array
-        return Object.values(groups).map((g) => ({
-            ...g,
-            id: g.ids[0], // Use first ID as row key for Table
-            itemSummary: Array.from(new Set(g.items)).join(", ") // Deduplicate item names
-        }));
-    }, [data]);
+        // Convert to array — use computed balance from API (source of truth)
+        return Object.values(groups).map((g) => {
+            const lookupKey = g.customerName.trim().toLowerCase();
+            const computed = balanceMap[lookupKey];
+
+            // Use computed balance if available, else fall back to note-based
+            const remaining = computed ? computed.balance : g.remaining;
+            const totalBill = g.totalItemBill || (remaining > 0 ? remaining : 0);
+            const paid = Math.max(0, totalBill - remaining);
+
+            return {
+                ...g,
+                id: g.ids[0],
+                totalBill,
+                advance: paid,
+                remaining,
+                itemSummary: Array.from(new Set(g.items)).join(", ")
+            };
+        }).filter(g => g.remaining > 0); // Only show entries that actually have a pending balance
+    }, [data, balanceMap]);
 
     const handleGroupDelete = async (ids: (string | number)[]) => {
         if (onDeleteMultiple) {
@@ -238,11 +249,9 @@ export default function LedgerPendingTable({
             key: "amount",
             header: "Total Bill",
             render: (_: any, row: any) => {
-                // Math: Total Bill = Paid + Remaining (to show the account state as requested)
-                const stateTotal = row.advance + row.remaining;
                 return (
                     <span className="font-mono font-bold text-gray-900 block text-right">
-                        {formatCurrency(stateTotal > 0 ? stateTotal : row.totalBill)}
+                        {formatCurrency(row.totalBill)}
                     </span>
                 );
             },
@@ -390,20 +399,24 @@ export default function LedgerPendingTable({
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-100">
                                                     {historyModal.entries
-                                                        .map((h: any) => {
+                                                        .map((h: any, idx: number, arr: any[]) => {
                                                             const pParsed = parsePendingDetails(h.note);
-                                                            // Fallback logic: 
-                                                            // 1. If Advance is explicitly in the note (even 0), use it.
-                                                            // 2. If no Advance line but it's a structured note, default to 0 paid.
-                                                            // 3. If it's an old unstructured note, use the row amount.
                                                             const paid = pParsed.advance !== undefined ? pParsed.advance :
                                                                 (pParsed.orderNumber !== "-" ? 0 : (Number(h.amount) || 0));
-                                                            const remaining = pParsed.remaining || 0;
-                                                            const total = paid + remaining;
+                                                            let remaining = pParsed.remaining || 0;
 
+                                                            // For the LATEST entry (first in desc-sorted list), use computed balance
+                                                            const isLatest = idx === 0;
+                                                            if (isLatest) {
+                                                                const lookupKey = historyModal.name.trim().toLowerCase();
+                                                                const computed = balanceMap[lookupKey];
+                                                                if (computed) remaining = computed.balance;
+                                                            }
+
+                                                            const total = paid + remaining;
                                                             return { h, pParsed, paid, remaining, total };
                                                         })
-                                                        .filter(({ total }) => total > 0) // Filter out empty entries
+                                                        .filter(({ total }) => total > 0)
                                                         .map(({ h, pParsed, paid, remaining, total }) => (
                                                             <tr key={h.id} className="hover:bg-gray-50/80 transition-colors">
                                                                 <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{new Date(h.date).toLocaleDateString()}</td>

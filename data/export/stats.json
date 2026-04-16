@@ -1,0 +1,149 @@
+[
+  {
+    "id": "dashboard-overview",
+    "updatedAt": 1776324455543,
+    "pendingUtilities": [],
+    "pendingExpenses": [],
+    "debtSummary": [],
+    "pendingLedgerEntries": [
+      {
+        "personName": "ahsan bhai",
+        "remaining": 3200,
+        "type": "credit",
+        "date": "2026-04-13T10:39:00.000Z"
+      },
+      {
+        "personName": "m. javed",
+        "remaining": 50700,
+        "type": "credit",
+        "date": "2026-04-12T11:13:00.000Z"
+      },
+      {
+        "personName": "munawar bhai",
+        "remaining": 20055,
+        "type": "debit",
+        "date": "2026-03-16T11:30:00.000Z"
+      },
+      {
+        "personName": "shahbaz",
+        "remaining": 350000,
+        "type": "debit",
+        "date": "2026-03-14T11:54:00.000Z"
+      },
+      {
+        "personName": "allied automation",
+        "remaining": 9600,
+        "type": "credit",
+        "date": "2026-03-03T10:33:00.000Z"
+      }
+    ],
+    "totalSummary": {
+      "totalCredit": 7110,
+      "totalDebit": 235250,
+      "net": -228140
+    }
+  },
+  {
+    "id": "ledger_balance_customers_v1",
+    "value": [
+      {
+        "name": "ahsan bhai",
+        "balance": 3200,
+        "lastEntryDate": "2026-04-13T10:39:00.000Z",
+        "totalCredit": 2000,
+        "totalDebit": 5200
+      },
+      {
+        "name": "m. javed",
+        "balance": 19600,
+        "lastEntryDate": "2026-04-12T11:13:00.000Z",
+        "totalCredit": 5000,
+        "totalDebit": 24600
+      },
+      {
+        "name": "allied automation",
+        "balance": 20480,
+        "lastEntryDate": "2026-03-03T10:33:00.000Z",
+        "totalCredit": 0,
+        "totalDebit": 20480
+      },
+      {
+        "name": "MH traders",
+        "balance": 6000,
+        "lastEntryDate": "2026-03-03T09:51:00.000Z",
+        "totalCredit": 0,
+        "totalDebit": 6000
+      },
+      {
+        "name": "shahbaz",
+        "balance": 29000,
+        "lastEntryDate": "2026-03-03T09:17:23.589Z",
+        "totalCredit": 0,
+        "totalDebit": 29000
+      },
+      {
+        "name": "shahbaz shareef",
+        "balance": 220000,
+        "lastEntryDate": "2026-01-28T14:28:27.255Z",
+        "totalCredit": 0,
+        "totalDebit": 220000
+      },
+      {
+        "name": "nabeel",
+        "balance": 110,
+        "lastEntryDate": "2026-01-27T15:53:00.000Z",
+        "totalCredit": 110,
+        "totalDebit": 220
+      }
+    ],
+    "updatedAtMs": 1776239915395
+  },
+  {
+    "id": "ledger_balance_suppliers_v1",
+    "value": [
+      {
+        "name": "munawar bhai",
+        "balance": 20055,
+        "lastEntryDate": "2026-03-16T11:30:00.000Z",
+        "totalCredit": 70555,
+        "totalDebit": 50500
+      },
+      {
+        "name": "shahbaz",
+        "balance": 288600,
+        "lastEntryDate": "2026-03-14T11:54:00.000Z",
+        "totalCredit": 473300,
+        "totalDebit": 184700
+      },
+      {
+        "name": "saud Ahmad",
+        "balance": 27300,
+        "lastEntryDate": "2026-03-03T09:48:28.156Z",
+        "totalCredit": 27300,
+        "totalDebit": 0
+      },
+      {
+        "name": "shahbaz shareef",
+        "balance": 270500,
+        "lastEntryDate": "2026-01-28T14:28:17.817Z",
+        "totalCredit": 270500,
+        "totalDebit": 0
+      },
+      {
+        "name": "usman",
+        "balance": 0,
+        "lastEntryDate": "2026-01-27T15:46:00.000Z",
+        "totalCredit": 50,
+        "totalDebit": 50
+      },
+      {
+        "name": "naveed",
+        "balance": 50,
+        "lastEntryDate": "2026-01-27T15:40:32.620Z",
+        "totalCredit": 50,
+        "totalDebit": 0
+      }
+    ],
+    "updatedAtMs": 1776239919095
+  }
+]

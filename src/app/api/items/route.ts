@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllDocs, createDoc, queryDocs, getDocById } from "@/lib/firestore-helpers";
+import { getAllDocs, createDoc, queryDocs, getDocById } from "@/lib/prisma-helpers";
 import { isSystemLocked } from "@/lib/lock";
 import { calculateCurrentStock, checkLowStock } from "@/lib/inventory";
 import { getReminderById, reminderDocId, upsertReminder } from "@/lib/reminders";
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(),
         };
 
-        const { createDoc, getDocById } = await import('@/lib/firestore-helpers');
+        const { createDoc, getDocById } = await import('@/lib/prisma-helpers');
         const itemId = await createDoc<Omit<FirestoreItem, 'id'>>('items', itemData);
 
         // Fetch the created item with relations

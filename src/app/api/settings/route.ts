@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db } from "@/lib/firestore";
-import { getDocById } from "@/lib/firestore-helpers";
+import { prisma } from "@/lib/prisma";
 import { FirestoreSettings } from "@/types/firestore";
 
-const SETTINGS_COLLECTION = "settings";
-const GLOBAL_SETTINGS_ID = "global";
+const GLOBAL_SETTINGS_KEY = "global";
 
 const DEFAULT_SETTINGS: Omit<FirestoreSettings, "id"> = {
     businessProfile: {
@@ -36,25 +34,29 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
     try {
-        console.log("[API] GET /api/settings called");
         const session = await auth();
-        console.log("[API] GET /api/settings - Session:", session ? "Found" : "None");
         if (!session) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        let settings = await getDocById<FirestoreSettings>(SETTINGS_COLLECTION, GLOBAL_SETTINGS_ID);
+        const setting = await prisma.systemSetting.findUnique({
+            where: { key: GLOBAL_SETTINGS_KEY },
+        });
 
-        if (!settings) {
+        if (!setting) {
             // Initialize with default settings if not exists
-            await db.collection(SETTINGS_COLLECTION).doc(GLOBAL_SETTINGS_ID).set({
-                ...DEFAULT_SETTINGS,
-                updatedAt: new Date(),
+            const defaultWithDate = { ...DEFAULT_SETTINGS, updatedAt: new Date() };
+            await prisma.systemSetting.create({
+                data: {
+                    key: GLOBAL_SETTINGS_KEY,
+                    value: JSON.stringify(defaultWithDate),
+                },
             });
-            settings = { id: GLOBAL_SETTINGS_ID, ...DEFAULT_SETTINGS } as FirestoreSettings;
+            return NextResponse.json({ id: GLOBAL_SETTINGS_KEY, ...defaultWithDate });
         }
 
-        return NextResponse.json(settings);
+        const settings = JSON.parse(setting.value);
+        return NextResponse.json({ id: GLOBAL_SETTINGS_KEY, ...settings });
     } catch (error) {
         console.error("Error fetching settings:", error);
         return NextResponse.json({ error: "Failed to fetch settings" }, { status: 500 });
@@ -63,31 +65,40 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        console.log("[API] POST /api/settings called");
         const session = await auth();
 
-        console.log("[API] POST /api/settings - Session User:", session?.user ? { id: session.user.id, role: session.user.role } : "No User");
-
         if (!session || !session.user) {
-            console.log("[API] POST /api/settings - 401 Unauthorized (No Session)");
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-
-        // Allow admin or staff to update settings for now
-        // if (session.user.role !== "admin") { ... } 
 
         const body = await req.json();
         const { businessProfile, currency, inventory, notifications } = body;
 
+        // Read existing settings first for merge
+        const existing = await prisma.systemSetting.findUnique({
+            where: { key: GLOBAL_SETTINGS_KEY },
+        });
+        const currentSettings = existing ? JSON.parse(existing.value) : DEFAULT_SETTINGS;
+
         const updatedSettings = {
-            businessProfile: businessProfile || DEFAULT_SETTINGS.businessProfile,
-            currency: currency || DEFAULT_SETTINGS.currency,
-            inventory: inventory || DEFAULT_SETTINGS.inventory,
-            notifications: notifications || DEFAULT_SETTINGS.notifications,
-            updatedAt: new Date(),
+            ...currentSettings,
+            businessProfile: businessProfile || currentSettings.businessProfile,
+            currency: currency || currentSettings.currency,
+            inventory: inventory || currentSettings.inventory,
+            notifications: notifications || currentSettings.notifications,
+            updatedAt: new Date().toISOString(),
         };
 
-        await db.collection(SETTINGS_COLLECTION).doc(GLOBAL_SETTINGS_ID).set(updatedSettings, { merge: true });
+        await prisma.systemSetting.upsert({
+            where: { key: GLOBAL_SETTINGS_KEY },
+            create: {
+                key: GLOBAL_SETTINGS_KEY,
+                value: JSON.stringify(updatedSettings),
+            },
+            update: {
+                value: JSON.stringify(updatedSettings),
+            },
+        });
 
         return NextResponse.json({ message: "Settings updated successfully" });
     } catch (error) {

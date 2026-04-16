@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getDocById, updateDoc, createDoc } from "@/lib/firestore-helpers";
+import { getDocById, updateDoc, createDoc } from "@/lib/prisma-helpers";
 import { calculateCurrentStock } from "@/lib/inventory";
 import { syncLowStockReminderForItem } from "@/lib/reminders";
 import type { FirestoreLedger, FirestoreItem, FirestoreStockLog } from "@/types/firestore";
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
                 // Update low stock reminders
                 await syncLowStockReminderForItem(originalEntry.itemId);
             } catch (err) {
-                console.log("Optional stock removal failed:", err);
+                console.error("Optional stock removal failed:", err);
                 // Don't fail the whole request if stock removal fails
             }
         }

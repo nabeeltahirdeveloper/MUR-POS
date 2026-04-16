@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createDoc, getAllDocs } from "@/lib/firestore-helpers";
+import { createDoc, getAllDocs } from "@/lib/prisma-helpers";
 import type { FirestoreCategory } from "@/types/firestore";
 
 export async function POST() {

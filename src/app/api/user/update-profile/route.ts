@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { db } from '@/lib/firebase-admin';
-import { getDocById, updateDoc } from '@/lib/firestore-helpers';
+import { getDocById, updateDoc } from '@/lib/prisma-helpers';
 import type { FirestoreUser } from '@/types/firestore';
 
 export async function POST(req: Request) {
@@ -19,14 +18,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: 'Name is required' }, { status: 400 });
         }
 
-        // Update user in Firestore
+        // Update user in PostgreSQL
         await updateDoc<Partial<FirestoreUser>>('users', session.user.id, { name });
-
-        // Update display name in Firebase Auth
-        const { auth: firebaseAuth } = await import('@/lib/firebase-admin');
-        await firebaseAuth.updateUser(session.user.id, {
-            displayName: name,
-        });
 
         // Get updated user
         const updatedUser = await getDocById<FirestoreUser>('users', session.user.id);

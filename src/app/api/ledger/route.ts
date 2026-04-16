@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { Timestamp } from "@/lib/firestore";
-import { queryDocs, getDocById, getAllDocs } from "@/lib/firestore-helpers";
+import { Timestamp } from "@/lib/prisma-helpers";
+import { queryDocs, getDocById, getAllDocs } from "@/lib/prisma-helpers";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
-import { invalidateCache } from "@/lib/server-cache";
-import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility, FirestoreExpense, FirestoreItem } from "@/types/firestore";
+import { invalidateCache, invalidateCacheByPrefix } from "@/lib/server-cache";
+import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility, FirestoreExpense, FirestoreItem } from "@/types/firestore";
 import { isSystemLocked } from "@/lib/lock";
 
 export async function GET(req: NextRequest) {
@@ -26,8 +26,6 @@ export async function GET(req: NextRequest) {
         const to = searchParams.get("to");
         const partyName = searchParams.get("partyName");
 
-        // Debug: log incoming params to help diagnose intermittent filtering issues
-        console.debug('[ledger GET] params:', { page, limit, type, categoryId, search, from, to });
 
         // Build filters
         const filters: Array<{ field: string; operator: '<' | '<=' | '==' | '>' | '>=' | '!=' | 'array-contains' | 'in' | 'array-contains-any'; value: unknown }> = [];
@@ -52,10 +50,8 @@ export async function GET(req: NextRequest) {
             filters.push({ field: 'date', operator: '<=', value: Timestamp.fromDate(toDate) });
         }
 
-        // Get all entries. Prefer server-side queries, but if Firestore query fails
-        // (e.g. requires a composite index) fall back to fetching all and filtering in memory.
+        // Get all entries matching filters, then paginate in-memory after merging virtual entries.
         let entries: (any)[] = [];
-        let usedFallback = false;
 
         // Logic to support direct Order Number search
         let specificOrderEntries: FirestoreLedger[] = [];
@@ -68,14 +64,14 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        // Fetch everything relevant
+        // Fetch everything relevant — no limit here; pagination is applied after merging virtual entries
         const [rawLedger, rawDebts, rawPayments, rawUtilities] = await Promise.all([
             filters.length > 0
-                ? queryDocs<FirestoreLedger>('ledger', filters, { orderBy: 'date', orderDirection: 'desc', limit })
-                : getAllDocs<FirestoreLedger>('ledger', { orderBy: 'date', orderDirection: 'desc', limit }),
-            getAllDocs<FirestoreDebt>('debts', { orderBy: 'createdAt', orderDirection: 'desc', limit }),
-            getAllDocs<FirestoreDebtPayment>('debt_payments', { orderBy: 'date', orderDirection: 'desc', limit }),
-            getAllDocs<FirestoreUtility>('utilities', { orderBy: 'dueDate', orderDirection: 'desc', limit })
+                ? queryDocs<FirestoreLedger>('ledger', filters, { orderBy: 'date', orderDirection: 'desc' })
+                : getAllDocs<FirestoreLedger>('ledger', { orderBy: 'date', orderDirection: 'desc' }),
+            getAllDocs<FirestoreDebt>('debts', { orderBy: 'createdAt', orderDirection: 'desc' }),
+            getAllDocs<FirestoreDebtPayment>('debt_payments', { orderBy: 'date', orderDirection: 'desc' }),
+            getAllDocs<FirestoreUtility>('utilities', { orderBy: 'dueDate', orderDirection: 'desc' })
         ]);
 
         // Combine specific order search results with general results
@@ -83,26 +79,6 @@ export async function GET(req: NextRequest) {
         const combinedLedger = new Map();
         [...rawLedger, ...specificOrderEntries].forEach(item => combinedLedger.set(item.id, item));
         entries = Array.from(combinedLedger.values());
-
-        // Apply fallback filtering if needed for ledger
-        if (usedFallback && filters.length > 0) {
-            entries = entries.filter((entry) => {
-                for (const f of filters) {
-                    const field = f.field;
-                    const op = f.operator;
-                    const val = f.value;
-                    if (field === 'date') {
-                        const entryDate = entry.date instanceof Date ? entry.date : (entry.date?.toDate ? entry.date.toDate() : new Date(entry.date));
-                        const compDate = (val as any).toDate ? (val as any).toDate() : new Date(val as any);
-                        if (op === '>=' && entryDate < compDate) return false;
-                        if (op === '<=' && entryDate > compDate) return false;
-                    } else if (op === '==') {
-                        if (String(entry[field]) !== String(val)) return false;
-                    }
-                }
-                return true;
-            });
-        }
 
         // Filter out physical legacy utility entries to avoid double counting
         // (Since we now inject them as virtual entries from the Utilities collection)
@@ -188,7 +164,7 @@ export async function GET(req: NextRequest) {
         });
 
         // 4. Process Other Expenses (Paid)
-        const rawOtherExpenses = await getAllDocs<FirestoreExpense>('other_expenses', { orderBy: 'dueDate', orderDirection: 'desc', limit });
+        const rawOtherExpenses = await getAllDocs<FirestoreExpense>('other_expenses', { orderBy: 'dueDate', orderDirection: 'desc' });
 
         rawOtherExpenses.forEach(expense => {
             if (expense.status !== 'paid') return;
@@ -244,25 +220,27 @@ export async function GET(req: NextRequest) {
         const skip = (page - 1) * limit;
         const paginatedEntries = entries.slice(skip, skip + limit);
 
-        // Fetch categories for entries (only for raw ledger entries that don't have it yet)
-        const entriesWithCategories = await Promise.all(
-            paginatedEntries.map(async (entry) => {
-                if (entry.category) return entry; // Already has virtual category
+        // Batch-fetch categories for all entries (avoids N+1 queries)
+        const uniqueCatIds = [...new Set(
+            paginatedEntries
+                .filter((e: any) => e.categoryId && !e.category)
+                .map((e: any) => String(e.categoryId))
+        )];
 
-                let category: FirestoreLedgerCategory | FirestoreCategory | null = null;
-                if (entry.categoryId) {
-                    const { getCachedLedgerCategory, getCachedCategory } = await import('@/lib/inventory');
-                    category = await getCachedLedgerCategory(entry.categoryId);
-                    if (!category) {
-                        category = await getCachedCategory(entry.categoryId);
-                    }
-                }
-                return {
-                    ...entry,
-                    category,
-                };
-            })
-        );
+        const catMap = new Map<string, any>();
+        if (uniqueCatIds.length > 0) {
+            const { getCachedLedgerCategory, getCachedCategory } = await import('@/lib/inventory');
+            await Promise.all(uniqueCatIds.map(async (catId) => {
+                let cat = await getCachedLedgerCategory(catId);
+                if (!cat) cat = await getCachedCategory(catId);
+                if (cat) catMap.set(catId, cat);
+            }));
+        }
+
+        const entriesWithCategories = paginatedEntries.map((entry: any) => {
+            if (entry.category) return entry;
+            return { ...entry, category: entry.categoryId ? catMap.get(String(entry.categoryId)) || null : null };
+        });
 
         const payload: {
             data: typeof entriesWithCategories;
@@ -284,7 +262,7 @@ export async function GET(req: NextRequest) {
         };
 
         if (process.env.NODE_ENV !== 'production') {
-            payload.meta.debug = { filters: { type, categoryId, from, to, search }, usedFallback };
+            payload.meta.debug = { filters: { type, categoryId, from, to, search } };
         }
 
         return NextResponse.json(payload);
@@ -335,22 +313,16 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Category is now optional
+        // Category is optional — must reference ledger_categories (FK constraint)
+        // If the categoryId is from the inventory categories table, clear it to avoid FK violation
+        let validCategoryId: string | null = null;
         if (categoryId) {
-            // Verify category exists if provided
-            let categoryExists: boolean = !!(await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
-
-            if (!categoryExists) {
-                // Check inventory categories
-                categoryExists = !!(await getDocById<FirestoreCategory>('categories', categoryId));
+            const isLedgerCategory = !!(await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
+            if (isLedgerCategory) {
+                validCategoryId = categoryId;
             }
-
-            if (!categoryExists) {
-                return NextResponse.json(
-                    { error: "Invalid Category ID" },
-                    { status: 400 }
-                );
-            }
+            // If it's an inventory category, we accept the entry but don't set the FK
+            // (the item's own categoryId tracks the inventory category)
         }
 
         // Extract Order Number from Note if present
@@ -373,7 +345,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const { createDoc } = await import('@/lib/firestore-helpers');
+        const { createDoc } = await import('@/lib/prisma-helpers');
 
         // --- Stock Update Logic Preparation ---
         // Fetch item details to determine conversion factor and units
@@ -387,14 +359,14 @@ export async function POST(req: NextRequest) {
                     conversionFactor = itemDoc.conversionFactor;
                 }
             } catch (e) {
-                console.warn("Could not fetch item for conversion factor", e);
+                // Conversion factor fetch failed — default to 1
             }
         }
 
         const entryData: Omit<FirestoreLedger, 'id'> = {
             type: type as 'debit' | 'credit',
             amount: Number(amount),
-            categoryId: categoryId || null,
+            categoryId: validCategoryId,
             itemId: itemId || null,
             quantity: quantity ? Number(quantity) : null,
             note: note || null,
@@ -431,7 +403,6 @@ export async function POST(req: NextRequest) {
                 };
 
                 await createDoc('stock_logs', stockLogData);
-                console.log(`Updated stock for item ${itemId}: ${stockType} ${contentQty} (Base)`);
             } catch (stockError) {
                 console.error("Failed to update stock log:", stockError);
                 // We don't fail the whole request if stock update fails, but we log it.
@@ -444,6 +415,7 @@ export async function POST(req: NextRequest) {
         // Invalidate daily cache and refresh dashboard stats (non-blocking)
         const todayStr = new Date().toISOString().split("T")[0];
         invalidateCache(`daily-summary:${todayStr}`);
+        invalidateCacheByPrefix("ledger-balance:");
         triggerDashboardStatsRefresh();
 
         return NextResponse.json(entry, { status: 201 });

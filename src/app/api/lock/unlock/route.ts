@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-admin';
+import { prisma } from '@/lib/prisma';
 
 const UNLOCK_PASSWORD = process.env.UNLOCK_PASSWORD || 'jbc@123';
 
@@ -15,10 +15,16 @@ export async function POST(request: NextRequest) {
         }
 
         if (password === UNLOCK_PASSWORD) {
-            await db.collection('settings').doc('lock').set({
-                isLocked: false,
-                updatedAt: new Date(),
-            }, { merge: true });
+            await prisma.systemSetting.upsert({
+                where: { key: 'lock' },
+                create: {
+                    key: 'lock',
+                    value: JSON.stringify({ isLocked: false, updatedAt: new Date().toISOString() }),
+                },
+                update: {
+                    value: JSON.stringify({ isLocked: false, updatedAt: new Date().toISOString() }),
+                },
+            });
 
             return NextResponse.json(
                 { success: true, message: 'Unlocked successfully' },

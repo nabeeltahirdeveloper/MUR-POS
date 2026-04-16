@@ -1,0 +1,1322 @@
+[
+  {
+    "id": "low_stock:0bVTkRUDQIcJkxppxwGy",
+    "createdAt": "2026-03-04T09:56:59.302Z",
+    "source": {
+      "collection": "items",
+      "id": "0bVTkRUDQIcJkxppxwGy"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: selector switch on/off/on  (bj33 tele)",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:56:59.302Z",
+    "resolvedAt": "2026-03-04T09:57:08.712Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:57:08.712Z"
+  },
+  {
+    "id": "low_stock:17kUaOoCKaPPMPEZUQnv",
+    "createdAt": "2026-02-17T09:04:18.028Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "17kUaOoCKaPPMPEZUQnv"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 16mm*9\" iMack",
+    "triggerAt": "2026-02-17T09:09:12.730Z",
+    "updatedAt": "2026-02-17T09:09:12.821Z"
+  },
+  {
+    "id": "low_stock:1YchpNLnUAvxdFo5xwHM",
+    "createdAt": "2026-03-03T10:44:50.053Z",
+    "source": {
+      "collection": "items",
+      "id": "1YchpNLnUAvxdFo5xwHM"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: inchi socket 3kw 10\"",
+    "type": "low_stock",
+    "triggerAt": "2026-03-03T10:44:50.053Z",
+    "resolvedAt": "2026-03-03T10:44:58.071Z",
+    "triggered": false,
+    "updatedAt": "2026-03-03T10:44:58.071Z"
+  },
+  {
+    "id": "low_stock:1dMdbCaHCSZkwko8zAOG",
+    "createdAt": "2026-03-04T09:57:42.774Z",
+    "source": {
+      "collection": "items",
+      "id": "1dMdbCaHCSZkwko8zAOG"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: selector switch on/off  (bj25 tele)",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:57:42.774Z",
+    "resolvedAt": "2026-03-04T09:57:51.795Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:57:51.795Z"
+  },
+  {
+    "id": "low_stock:2cSVensj1cXWnjTU2naX",
+    "createdAt": "2026-02-17T08:14:48.408Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "2cSVensj1cXWnjTU2naX"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*3\" Mack ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:28:51.385Z",
+    "updatedAt": "2026-02-17T08:28:51.429Z"
+  },
+  {
+    "id": "low_stock:3iVv7OiAk4gOud5HUNtL",
+    "createdAt": "2026-02-17T08:51:23.619Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "3iVv7OiAk4gOud5HUNtL"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 8mm*5\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:51:23.619Z",
+    "updatedAt": "2026-02-17T08:51:23.619Z"
+  },
+  {
+    "id": "low_stock:43moWIqwS2IpQYyXaDHj",
+    "createdAt": "2026-02-17T10:47:36.732Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "43moWIqwS2IpQYyXaDHj"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*3\" Chri ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T10:47:36.732Z",
+    "updatedAt": "2026-02-17T10:47:36.732Z"
+  },
+  {
+    "id": "low_stock:4Dj4ly7NlOPbcy2YyrH2",
+    "createdAt": "2026-02-24T07:45:12.128Z",
+    "source": {
+      "collection": "items",
+      "id": "4Dj4ly7NlOPbcy2YyrH2"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "type": "low_stock",
+    "title": "Low stock: ball heater 2500w imp",
+    "triggerAt": "2026-02-24T07:45:33.484Z",
+    "resolvedAt": "2026-02-24T07:46:09.722Z",
+    "triggered": false,
+    "updatedAt": "2026-02-24T07:46:09.722Z"
+  },
+  {
+    "id": "low_stock:5KhkZVEvEAfvkCZf4OgC",
+    "createdAt": "2026-02-17T08:41:07.625Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "5KhkZVEvEAfvkCZf4OgC"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 12mm*9\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:41:07.625Z",
+    "updatedAt": "2026-02-17T08:41:07.625Z"
+  },
+  {
+    "id": "low_stock:608pyFHhgAUuSD4cohDg",
+    "createdAt": "2026-01-27T14:21:51.790Z",
+    "source": {
+      "collection": "items",
+      "id": "608pyFHhgAUuSD4cohDg"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: mobile cover",
+    "type": "low_stock",
+    "triggerAt": "2026-01-27T14:21:51.790Z",
+    "resolvedAt": "2026-01-27T14:23:10.740Z",
+    "triggered": false,
+    "updatedAt": "2026-01-27T14:23:10.740Z"
+  },
+  {
+    "id": "low_stock:6OGB27yCAiC2XlCvmrvT",
+    "createdAt": "2026-02-17T08:22:40.514Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "6OGB27yCAiC2XlCvmrvT"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*5\" Mack ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:29:25.783Z",
+    "updatedAt": "2026-02-17T08:29:25.826Z"
+  },
+  {
+    "id": "low_stock:8pUtBxE7ofSIi4RHWGcA",
+    "createdAt": "2026-01-27T13:27:43.847Z",
+    "source": {
+      "collection": "items",
+      "id": "8pUtBxE7ofSIi4RHWGcA"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: mouse(usama)",
+    "type": "low_stock",
+    "triggerAt": "2026-01-27T13:27:43.847Z",
+    "resolvedAt": "2026-01-27T13:28:20.272Z",
+    "triggered": false,
+    "updatedAt": "2026-01-27T13:28:20.272Z"
+  },
+  {
+    "id": "low_stock:9EeichUQkn2GXA0G6A1n",
+    "createdAt": "2026-02-17T08:49:11.038Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "9EeichUQkn2GXA0G6A1n"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 8mm*4\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:49:11.038Z",
+    "updatedAt": "2026-02-17T08:49:11.038Z"
+  },
+  {
+    "id": "low_stock:9QGYNWuFiBMJQNUyBNaC",
+    "createdAt": "2026-02-17T10:51:26.715Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "9QGYNWuFiBMJQNUyBNaC"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*7\" Chri ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T10:51:26.715Z",
+    "updatedAt": "2026-02-17T10:51:26.715Z"
+  },
+  {
+    "id": "low_stock:9UBAtBOgcdCPGpqXBUyx",
+    "createdAt": "2026-02-17T08:52:19.888Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "9UBAtBOgcdCPGpqXBUyx"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 8mm*6\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:52:19.888Z",
+    "updatedAt": "2026-02-17T08:52:19.888Z"
+  },
+  {
+    "id": "low_stock:AeqzYklzga6O9SGQSFda",
+    "createdAt": "2026-02-17T10:33:01.998Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "AeqzYklzga6O9SGQSFda"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock:  8mm*2\" chri",
+    "triggerAt": "2026-02-17T10:40:14.239Z",
+    "updatedAt": "2026-02-17T10:40:14.294Z"
+  },
+  {
+    "id": "low_stock:Avas9GIyg7hmAaHYKYsn",
+    "createdAt": "2026-02-17T08:35:22.651Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "Avas9GIyg7hmAaHYKYsn"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 12mm*4\" Mack ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:35:22.651Z",
+    "updatedAt": "2026-02-17T08:35:22.651Z"
+  },
+  {
+    "id": "low_stock:AwLw15EwuLgwJ9oyif9L",
+    "createdAt": "2026-02-18T10:00:33.637Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "AwLw15EwuLgwJ9oyif9L"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*9\" Chri ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-18T10:00:33.637Z",
+    "updatedAt": "2026-02-18T10:00:33.637Z"
+  },
+  {
+    "id": "low_stock:CDRvJmPjOuN67VOzy3FI",
+    "createdAt": "2026-03-03T10:43:19.307Z",
+    "source": {
+      "collection": "items",
+      "id": "CDRvJmPjOuN67VOzy3FI"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: inchi socket 2.5kw 8\"",
+    "type": "low_stock",
+    "triggerAt": "2026-03-03T10:43:19.307Z",
+    "resolvedAt": "2026-03-03T10:43:50.324Z",
+    "triggered": false,
+    "updatedAt": "2026-03-03T10:43:50.324Z"
+  },
+  {
+    "id": "low_stock:CQP1At69Hz9kS3yzKIET",
+    "createdAt": "2026-02-17T08:24:39.952Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "CQP1At69Hz9kS3yzKIET"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 9.5mm*6\" Mack",
+    "triggerAt": "2026-02-17T08:29:14.463Z",
+    "updatedAt": "2026-02-17T08:29:14.510Z"
+  },
+  {
+    "id": "low_stock:CqLyi3ux1FkrhAekkPZv",
+    "createdAt": "2026-02-17T08:36:53.921Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "CqLyi3ux1FkrhAekkPZv"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 12mm*6\" Mack",
+    "triggerAt": "2026-02-17T08:37:57.319Z",
+    "updatedAt": "2026-02-17T08:37:57.370Z"
+  },
+  {
+    "id": "low_stock:ECbiRl6CZ8oLSQEru7et",
+    "createdAt": "2026-02-17T08:25:52.535Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "ECbiRl6CZ8oLSQEru7et"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*7\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:29:35.878Z",
+    "updatedAt": "2026-02-17T08:29:35.922Z"
+  },
+  {
+    "id": "low_stock:EjC9ysY5vnxdelaHey30",
+    "createdAt": "2026-02-24T07:48:14.329Z",
+    "source": {
+      "collection": "items",
+      "id": "EjC9ysY5vnxdelaHey30"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: 9kw 2\"s 12\"",
+    "type": "low_stock",
+    "triggerAt": "2026-02-24T07:48:14.329Z",
+    "resolvedAt": "2026-02-24T07:48:27.462Z",
+    "triggered": false,
+    "updatedAt": "2026-02-24T07:48:27.462Z"
+  },
+  {
+    "id": "low_stock:Elsmes1t9yOdgOiZhIp1",
+    "createdAt": "2026-02-17T08:57:20.650Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "Elsmes1t9yOdgOiZhIp1"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 16mm*3\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:57:20.650Z",
+    "updatedAt": "2026-02-17T08:57:20.650Z"
+  },
+  {
+    "id": "low_stock:Ez185vA2qTuKLyjVmw2U",
+    "createdAt": "2026-02-17T08:34:36.563Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "Ez185vA2qTuKLyjVmw2U"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: 12mm*3\" Mack ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:34:36.563Z",
+    "updatedAt": "2026-02-17T08:34:36.563Z"
+  },
+  {
+    "id": "low_stock:F28mv7L0vIQNuXI4kJk0",
+    "createdAt": "2026-02-17T10:34:42.677Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "F28mv7L0vIQNuXI4kJk0"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 8mm*5\" Chri",
+    "triggerAt": "2026-02-17T10:41:49.917Z",
+    "updatedAt": "2026-02-17T10:41:49.960Z"
+  },
+  {
+    "id": "low_stock:GkM0FGwFCgJObqjzlApI",
+    "createdAt": "2026-02-17T08:31:30.676Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "GkM0FGwFCgJObqjzlApI"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: 9.5mm*9\" Mack ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:31:30.676Z",
+    "updatedAt": "2026-02-17T08:31:30.676Z"
+  },
+  {
+    "id": "low_stock:IdILpFq5wM9L2BoFTCeN",
+    "createdAt": "2026-02-24T07:50:53.234Z",
+    "source": {
+      "collection": "items",
+      "id": "IdILpFq5wM9L2BoFTCeN"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: 12kw 2\"s 14\"",
+    "type": "low_stock",
+    "triggerAt": "2026-02-24T07:50:53.234Z",
+    "resolvedAt": "2026-02-24T07:51:03.240Z",
+    "triggered": false,
+    "updatedAt": "2026-02-24T07:51:03.240Z"
+  },
+  {
+    "id": "low_stock:JaRrpDEzrq5ZaJcsbZxm",
+    "createdAt": "2026-03-04T09:29:50.309Z",
+    "source": {
+      "collection": "items",
+      "id": "JaRrpDEzrq5ZaJcsbZxm"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: temperature controller  mi6 48*48",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:35:39.892Z",
+    "resolvedAt": "2026-03-04T09:36:18.681Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:36:18.681Z"
+  },
+  {
+    "id": "low_stock:Lm16lhs57AVUXWixPIGp",
+    "createdAt": "2026-02-24T07:55:16.985Z",
+    "source": {
+      "collection": "items",
+      "id": "Lm16lhs57AVUXWixPIGp"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: 4.5kw 1.5\"s 8\"",
+    "type": "low_stock",
+    "triggerAt": "2026-02-24T07:55:16.985Z",
+    "resolvedAt": "2026-02-24T07:56:38.257Z",
+    "triggered": false,
+    "updatedAt": "2026-02-24T07:56:38.257Z"
+  },
+  {
+    "id": "low_stock:M4lTESKyozhP4gxeGYcx",
+    "createdAt": "2026-02-17T10:50:08.002Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "M4lTESKyozhP4gxeGYcx"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*6\" Chri ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T10:50:08.002Z",
+    "updatedAt": "2026-02-17T10:50:08.002Z"
+  },
+  {
+    "id": "low_stock:M7gXojEtV3oAUw4pdH35",
+    "createdAt": "2026-02-18T10:00:33.643Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "M7gXojEtV3oAUw4pdH35"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: 9.5mm*9\" Chri",
+    "type": "low_stock",
+    "triggerAt": "2026-02-18T10:00:33.643Z",
+    "updatedAt": "2026-02-18T10:00:33.643Z"
+  },
+  {
+    "id": "low_stock:M8wxEKmaLF8nnRe6riVH",
+    "createdAt": "2026-03-04T09:41:42.329Z",
+    "source": {
+      "collection": "items",
+      "id": "M8wxEKmaLF8nnRe6riVH"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: thermocouple k-type 3\"",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:41:42.329Z",
+    "resolvedAt": "2026-03-04T09:42:04.089Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:42:04.089Z"
+  },
+  {
+    "id": "low_stock:Mh6AY6cTYKa9CFQYmlix",
+    "createdAt": "2026-02-17T08:21:30.602Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "Mh6AY6cTYKa9CFQYmlix"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*4\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:29:00.676Z",
+    "updatedAt": "2026-02-17T08:29:00.729Z"
+  },
+  {
+    "id": "low_stock:MxUhBmhiV5OiXbUhqsV5",
+    "createdAt": "2026-03-04T09:47:13.986Z",
+    "source": {
+      "collection": "items",
+      "id": "MxUhBmhiV5OiXbUhqsV5"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: emergency switch tic tic ",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:47:13.986Z",
+    "resolvedAt": "2026-03-04T09:47:42.882Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:47:42.882Z"
+  },
+  {
+    "id": "low_stock:NbjDeoaRdwVrLCdjB7bK",
+    "createdAt": "2026-02-17T10:33:38.595Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "NbjDeoaRdwVrLCdjB7bK"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 8mm*3\" Chri",
+    "triggerAt": "2026-02-17T10:40:52.541Z",
+    "updatedAt": "2026-02-17T10:40:52.579Z"
+  },
+  {
+    "id": "low_stock:OF6NRT1LFfepSsJibEFA",
+    "createdAt": "2026-02-17T10:34:10.515Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "OF6NRT1LFfepSsJibEFA"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 8mm*4\" Chri",
+    "triggerAt": "2026-02-17T10:41:29.277Z",
+    "updatedAt": "2026-02-17T10:41:29.339Z"
+  },
+  {
+    "id": "low_stock:ONxwNihkPktEZQp9yM1a",
+    "createdAt": "2026-03-04T09:37:21.571Z",
+    "source": {
+      "collection": "items",
+      "id": "ONxwNihkPktEZQp9yM1a"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: temperature controller rkc 48*48",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:37:21.571Z",
+    "resolvedAt": "2026-03-04T09:37:29.919Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:37:29.919Z"
+  },
+  {
+    "id": "low_stock:OxCJjazoRSMbDTqtCQRV",
+    "createdAt": "2026-02-24T08:31:01.498Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "OxCJjazoRSMbDTqtCQRV"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 16mm*7\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-24T08:31:01.498Z",
+    "updatedAt": "2026-02-24T08:31:01.498Z"
+  },
+  {
+    "id": "low_stock:P8E61eHP4zI57Tr1Ccin",
+    "createdAt": "2026-02-17T08:53:21.933Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "P8E61eHP4zI57Tr1Ccin"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 8mm*7\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:53:21.933Z",
+    "updatedAt": "2026-02-17T08:53:21.933Z"
+  },
+  {
+    "id": "low_stock:Qbhmpcsa6GcF9iNGLEGR",
+    "createdAt": "2026-02-17T08:46:22.710Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "Qbhmpcsa6GcF9iNGLEGR"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 8mm*2\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:46:22.710Z",
+    "updatedAt": "2026-02-17T08:46:22.710Z"
+  },
+  {
+    "id": "low_stock:SlG7aaOIiA0ag2rOJ4SB",
+    "createdAt": "2026-02-17T08:30:28.802Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "SlG7aaOIiA0ag2rOJ4SB"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*8\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:30:28.802Z",
+    "updatedAt": "2026-02-17T08:30:28.802Z"
+  },
+  {
+    "id": "low_stock:TMEYRCJaBibHqPRViXuI",
+    "createdAt": "2026-03-04T09:52:44.325Z",
+    "source": {
+      "collection": "items",
+      "id": "TMEYRCJaBibHqPRViXuI"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: selector switch on/off tic tic ",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:52:44.325Z",
+    "resolvedAt": "2026-03-04T09:52:57.811Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:52:57.811Z"
+  },
+  {
+    "id": "low_stock:UJpyXluJIA3wl5t4D4VX",
+    "createdAt": "2026-03-04T09:53:48.157Z",
+    "source": {
+      "collection": "items",
+      "id": "UJpyXluJIA3wl5t4D4VX"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: selector switch on/off/on tic tic",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:53:48.157Z",
+    "resolvedAt": "2026-03-04T09:53:55.440Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:53:55.440Z"
+  },
+  {
+    "id": "low_stock:VaJLgepOPECLV2nFhkrx",
+    "createdAt": "2026-02-17T08:47:40.468Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "VaJLgepOPECLV2nFhkrx"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 8mm*3\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:47:40.468Z",
+    "updatedAt": "2026-02-17T08:47:40.468Z"
+  },
+  {
+    "id": "low_stock:VmLD4llYjDdpaqQwCJD6",
+    "createdAt": "2026-02-17T10:37:43.153Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "VmLD4llYjDdpaqQwCJD6"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 8mm*7\" Chri",
+    "triggerAt": "2026-02-17T10:44:50.557Z",
+    "updatedAt": "2026-02-17T10:44:50.610Z"
+  },
+  {
+    "id": "low_stock:WfwBirgJ5jenwctGnlkk",
+    "createdAt": "2026-02-17T10:39:56.645Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "WfwBirgJ5jenwctGnlkk"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 8mm*8\" Chri",
+    "triggerAt": "2026-02-17T10:45:16.689Z",
+    "updatedAt": "2026-02-17T10:45:16.739Z"
+  },
+  {
+    "id": "low_stock:Y1ygoNFHBrv8BLsZa6C8",
+    "createdAt": "2026-02-17T08:45:11.563Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "Y1ygoNFHBrv8BLsZa6C8"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 12mm*12\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:45:11.563Z",
+    "updatedAt": "2026-02-17T08:45:11.563Z"
+  },
+  {
+    "id": "low_stock:aAvLQXiZSOkHcntzaPSy",
+    "createdAt": "2026-02-18T10:00:33.727Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "aAvLQXiZSOkHcntzaPSy"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*9\" Chri",
+    "type": "low_stock",
+    "triggerAt": "2026-02-18T10:00:33.727Z",
+    "updatedAt": "2026-02-18T10:00:33.727Z"
+  },
+  {
+    "id": "low_stock:bYFAQE6CrIRLBFy9qQjo",
+    "createdAt": "2026-02-17T08:55:16.716Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "bYFAQE6CrIRLBFy9qQjo"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 8mm*8\" Mack ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:55:16.716Z",
+    "updatedAt": "2026-02-17T08:55:16.716Z"
+  },
+  {
+    "id": "low_stock:bowGCe0U30Pd02vd10yF",
+    "createdAt": "2026-02-17T10:48:11.172Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "bowGCe0U30Pd02vd10yF"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*4\" Chri ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T10:48:11.172Z",
+    "updatedAt": "2026-02-17T10:48:11.172Z"
+  },
+  {
+    "id": "low_stock:cfLhj7YRmvMzIQOWqM6Y",
+    "createdAt": "2026-02-17T08:38:40.470Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "cfLhj7YRmvMzIQOWqM6Y"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 12mm*7\" Mack",
+    "triggerAt": "2026-02-17T08:39:55.421Z",
+    "updatedAt": "2026-02-17T08:39:55.478Z"
+  },
+  {
+    "id": "low_stock:eSXImK83NTlDHEGrCMV9",
+    "createdAt": "2026-03-04T10:10:18.004Z",
+    "source": {
+      "collection": "items",
+      "id": "eSXImK83NTlDHEGrCMV9"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: timer module 8 pin 220v single",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T10:10:18.004Z",
+    "resolvedAt": "2026-03-04T10:11:32.342Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T10:11:32.342Z"
+  },
+  {
+    "id": "low_stock:f4jHooB6dQyis8fK15Nt",
+    "createdAt": "2026-02-24T07:49:47.804Z",
+    "source": {
+      "collection": "items",
+      "id": "f4jHooB6dQyis8fK15Nt"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: 9kw 2\"s 14\"",
+    "type": "low_stock",
+    "triggerAt": "2026-02-24T07:49:47.804Z",
+    "resolvedAt": "2026-02-24T07:49:56.546Z",
+    "triggered": false,
+    "updatedAt": "2026-02-24T07:49:56.546Z"
+  },
+  {
+    "id": "low_stock:fmJyHUpTmlYMHzDniRhy",
+    "createdAt": "2026-03-04T09:49:29.936Z",
+    "source": {
+      "collection": "items",
+      "id": "fmJyHUpTmlYMHzDniRhy"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: emergency switch tele ",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:49:29.936Z",
+    "resolvedAt": "2026-03-04T09:49:44.169Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:49:44.169Z"
+  },
+  {
+    "id": "low_stock:giAl6xpQ7HBJvGl66thy",
+    "createdAt": "2026-03-14T11:45:13.377Z",
+    "source": {
+      "collection": "items",
+      "id": "giAl6xpQ7HBJvGl66thy"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: micro switch",
+    "type": "low_stock",
+    "triggerAt": "2026-03-14T11:45:13.377Z",
+    "resolvedAt": "2026-03-14T11:45:26.364Z",
+    "triggered": false,
+    "updatedAt": "2026-03-14T11:45:26.364Z"
+  },
+  {
+    "id": "low_stock:h2TmKfVf6VyXljKJItSB",
+    "createdAt": "2026-02-17T08:36:11.835Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "h2TmKfVf6VyXljKJItSB"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 12mm*5\" Mack",
+    "triggerAt": "2026-02-17T08:37:43.225Z",
+    "updatedAt": "2026-02-17T08:37:43.288Z"
+  },
+  {
+    "id": "low_stock:iKP1YkPiaqgKjnJvHLle",
+    "createdAt": "2026-02-17T09:00:18.165Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "iKP1YkPiaqgKjnJvHLle"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 16mm*6\"  Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T09:00:18.165Z",
+    "updatedAt": "2026-02-17T09:00:18.165Z"
+  },
+  {
+    "id": "low_stock:iU9GvK5PIyN0At1o63UH",
+    "createdAt": "2026-03-04T10:01:27.408Z",
+    "source": {
+      "collection": "items",
+      "id": "iU9GvK5PIyN0At1o63UH"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: magnetic contactor GMC-22",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T10:01:27.408Z",
+    "resolvedAt": "2026-03-04T10:01:35.586Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T10:01:35.586Z"
+  },
+  {
+    "id": "low_stock:it8z4J57E44jy8yIQkSI",
+    "createdAt": "2026-03-04T10:11:24.224Z",
+    "source": {
+      "collection": "items",
+      "id": "it8z4J57E44jy8yIQkSI"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: timer module 8 pin 220v Double",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T10:11:24.224Z",
+    "resolvedAt": "2026-03-04T10:11:41.328Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T10:11:41.328Z"
+  },
+  {
+    "id": "low_stock:k0CqC9MjLVcV4RFlh2PB",
+    "createdAt": "2026-02-18T10:00:33.639Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "k0CqC9MjLVcV4RFlh2PB"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*9\" Chri ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-18T10:00:33.639Z",
+    "updatedAt": "2026-02-18T10:00:33.639Z"
+  },
+  {
+    "id": "low_stock:k2xAjSMj1ZOaV1QfoLg8",
+    "createdAt": "2026-02-17T10:36:30.132Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "k2xAjSMj1ZOaV1QfoLg8"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 8mm*6\" Chri",
+    "triggerAt": "2026-02-17T10:44:32.151Z",
+    "updatedAt": "2026-02-17T10:44:32.197Z"
+  },
+  {
+    "id": "low_stock:kmDMsPzQ0E7HgSBDJoUv",
+    "createdAt": "2026-02-17T09:11:19.171Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "kmDMsPzQ0E7HgSBDJoUv"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 16mm*12\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T09:11:19.171Z",
+    "updatedAt": "2026-02-17T09:11:19.171Z"
+  },
+  {
+    "id": "low_stock:mLtiJz4rjCT0CRqhV7d5",
+    "createdAt": "2026-02-17T08:58:36.858Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "mLtiJz4rjCT0CRqhV7d5"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 16mm*4\" Mack",
+    "triggerAt": "2026-02-17T08:58:52.664Z",
+    "updatedAt": "2026-02-17T08:58:52.711Z"
+  },
+  {
+    "id": "low_stock:mTpqGHH1PJodg379ZPJj",
+    "createdAt": "2026-02-17T08:39:26.850Z",
+    "source": {
+      "collection": "items",
+      "id": "mTpqGHH1PJodg379ZPJj"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 12mm*8\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:39:26.850Z",
+    "resolvedAt": "2026-03-03T09:39:16.785Z",
+    "triggered": false,
+    "updatedAt": "2026-03-03T09:39:16.785Z"
+  },
+  {
+    "id": "low_stock:nGybFjA6UVwnf6QwuLzT",
+    "createdAt": "2026-03-04T09:43:30.338Z",
+    "source": {
+      "collection": "items",
+      "id": "nGybFjA6UVwnf6QwuLzT"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: thermocouple k-type 1\"",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:43:30.338Z",
+    "resolvedAt": "2026-03-04T09:43:42.145Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:43:42.145Z"
+  },
+  {
+    "id": "low_stock:nWcobseLrXmdDTwZW7pc",
+    "createdAt": "2026-02-17T10:51:51.757Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "nWcobseLrXmdDTwZW7pc"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*8\" Chri ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T10:51:51.757Z",
+    "updatedAt": "2026-02-17T10:51:51.757Z"
+  },
+  {
+    "id": "low_stock:ot1UYkA8zWzlC6Ad04Tg",
+    "createdAt": "2026-03-03T09:42:14.221Z",
+    "source": {
+      "collection": "items",
+      "id": "ot1UYkA8zWzlC6Ad04Tg"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: tygaflor paper",
+    "type": "low_stock",
+    "triggerAt": "2026-03-03T09:42:14.221Z",
+    "resolvedAt": "2026-03-03T09:42:23.929Z",
+    "triggered": false,
+    "updatedAt": "2026-03-03T09:42:23.929Z"
+  },
+  {
+    "id": "low_stock:owFXFbC3KQxuCrN5msMq",
+    "createdAt": "2026-02-17T10:38:24.424Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "owFXFbC3KQxuCrN5msMq"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 8mm*8\" Chri",
+    "triggerAt": "2026-02-17T10:45:05.788Z",
+    "updatedAt": "2026-02-17T10:45:05.837Z"
+  },
+  {
+    "id": "low_stock:qCN78MRzOpjskF0qOKuN",
+    "createdAt": "2026-02-17T10:49:28.511Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "qCN78MRzOpjskF0qOKuN"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 9.5mm*5\" Chri ",
+    "triggerAt": "2026-02-17T10:50:23.260Z",
+    "updatedAt": "2026-02-17T10:50:23.314Z"
+  },
+  {
+    "id": "low_stock:qzCnkTJRPIXAtQfb6554",
+    "createdAt": "2026-03-04T09:40:25.105Z",
+    "source": {
+      "collection": "items",
+      "id": "qzCnkTJRPIXAtQfb6554"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: thermocouple k-type holder (sleeve) ",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:40:25.105Z",
+    "resolvedAt": "2026-03-04T09:40:40.634Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:40:40.634Z"
+  },
+  {
+    "id": "low_stock:rehesVwN3wuJRXfpllc9",
+    "createdAt": "2026-02-17T08:56:46.191Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "rehesVwN3wuJRXfpllc9"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 16mm*2\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:56:46.191Z",
+    "updatedAt": "2026-02-17T08:56:46.191Z"
+  },
+  {
+    "id": "low_stock:saQldz9Ha4DJywt9OO7M",
+    "createdAt": "2026-02-17T10:47:04.549Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "saQldz9Ha4DJywt9OO7M"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock:   9.5mm*2\" Chri ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T10:47:04.549Z",
+    "updatedAt": "2026-02-17T10:47:04.549Z"
+  },
+  {
+    "id": "low_stock:tXwuKyp7jJnNRsNxYBnH",
+    "createdAt": "2026-02-24T08:04:00.568Z",
+    "source": {
+      "collection": "items",
+      "id": "tXwuKyp7jJnNRsNxYBnH"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: 9kw 2\"s 16\"",
+    "type": "low_stock",
+    "triggerAt": "2026-02-24T08:04:00.568Z",
+    "resolvedAt": "2026-02-24T08:04:13.169Z",
+    "triggered": false,
+    "updatedAt": "2026-02-24T08:04:13.169Z"
+  },
+  {
+    "id": "low_stock:tgUqIx8LPqYlIiFQxecF",
+    "createdAt": "2026-03-04T09:31:18.479Z",
+    "source": {
+      "collection": "items",
+      "id": "tgUqIx8LPqYlIiFQxecF"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: temperature controller mi6 72*72",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:35:48.743Z",
+    "resolvedAt": "2026-03-04T09:36:25.767Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:36:25.767Z"
+  },
+  {
+    "id": "low_stock:ubAIUsm0oETEee9qj5Hy",
+    "createdAt": "2026-02-17T08:11:32.197Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "ubAIUsm0oETEee9qj5Hy"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock:   9.5mm*2\" Mack ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:27:36.528Z",
+    "updatedAt": "2026-02-17T08:27:36.571Z"
+  },
+  {
+    "id": "low_stock:ueDZRcktA10bNWxgeMfC",
+    "createdAt": "2026-02-18T10:00:33.649Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "ueDZRcktA10bNWxgeMfC"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 9.5mm*9\" Chri ",
+    "type": "low_stock",
+    "triggerAt": "2026-02-18T10:00:33.649Z",
+    "updatedAt": "2026-02-18T10:00:33.649Z"
+  },
+  {
+    "id": "low_stock:v2Cj0AhLhRVBhlfVbtW7",
+    "createdAt": "2026-02-24T07:52:45.546Z",
+    "source": {
+      "collection": "items",
+      "id": "v2Cj0AhLhRVBhlfVbtW7"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: 3kw 1.5\"s 8\"",
+    "type": "low_stock",
+    "triggerAt": "2026-02-24T07:52:45.546Z",
+    "resolvedAt": "2026-02-24T07:55:39.773Z",
+    "triggered": false,
+    "updatedAt": "2026-02-24T07:55:39.773Z"
+  },
+  {
+    "id": "low_stock:vDKNju9RDqAmb6R6h8jq",
+    "createdAt": "2026-02-24T07:27:25.740Z",
+    "source": {
+      "collection": "items",
+      "id": "vDKNju9RDqAmb6R6h8jq"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: u type heater filz 18\"",
+    "type": "low_stock",
+    "triggerAt": "2026-02-24T07:27:25.740Z",
+    "resolvedAt": "2026-02-24T07:27:36.442Z",
+    "triggered": false,
+    "updatedAt": "2026-02-24T07:27:36.442Z"
+  },
+  {
+    "id": "low_stock:wTR2bDQMg0aVf9KfdCdB",
+    "createdAt": "2026-03-04T09:34:21.690Z",
+    "source": {
+      "collection": "items",
+      "id": "wTR2bDQMg0aVf9KfdCdB"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: temperature controller mi-3000 72*72",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:36:05.599Z",
+    "resolvedAt": "2026-03-04T09:36:39.946Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:36:39.946Z"
+  },
+  {
+    "id": "low_stock:wnuD1wE6jwasUmN9EY1n",
+    "createdAt": "2026-02-17T08:33:12.318Z",
+    "source": {
+      "collection": "items",
+      "id": "wnuD1wE6jwasUmN9EY1n"
+    },
+    "title": "Low stock: 12mm*2\" Mack ",
+    "type": "low_stock",
+    "resolvedAt": null,
+    "triggered": true,
+    "message": "Current stock is 7. Minimum is 10.",
+    "triggerAt": "2026-03-03T10:36:20.092Z",
+    "updatedAt": "2026-03-03T10:36:20.092Z"
+  },
+  {
+    "id": "low_stock:xFORqzTBzrNVhv2ODOuU",
+    "createdAt": "2026-03-04T09:33:49.086Z",
+    "source": {
+      "collection": "items",
+      "id": "xFORqzTBzrNVhv2ODOuU"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: temperature controller mi-3000 48*48",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T09:35:58.125Z",
+    "resolvedAt": "2026-03-04T09:36:32.107Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T09:36:32.107Z"
+  },
+  {
+    "id": "low_stock:xQG68YC4bCaNUMamaexh",
+    "createdAt": "2026-02-24T07:28:48.478Z",
+    "source": {
+      "collection": "items",
+      "id": "xQG68YC4bCaNUMamaexh"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: u type heater filz 28\"",
+    "type": "low_stock",
+    "triggerAt": "2026-02-24T07:28:48.478Z",
+    "resolvedAt": "2026-02-24T07:28:59.210Z",
+    "triggered": false,
+    "updatedAt": "2026-02-24T07:28:59.210Z"
+  },
+  {
+    "id": "low_stock:xT5JfsIXQkef12J5gHfJ",
+    "createdAt": "2026-02-17T08:59:29.997Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "xT5JfsIXQkef12J5gHfJ"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 16mm*5\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T08:59:29.997Z",
+    "updatedAt": "2026-02-17T08:59:29.997Z"
+  },
+  {
+    "id": "low_stock:xVMcNXZZ1ztxFbng0b9Y",
+    "createdAt": "2026-02-17T08:41:50.073Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "xVMcNXZZ1ztxFbng0b9Y"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "type": "low_stock",
+    "title": "Low stock: 12mm*10\" Mack",
+    "triggerAt": "2026-02-17T08:43:13.158Z",
+    "updatedAt": "2026-02-17T08:43:13.224Z"
+  },
+  {
+    "id": "low_stock:xokSYAtL3Ai8RuJZbpn8",
+    "createdAt": "2026-02-17T09:10:09.649Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "xokSYAtL3Ai8RuJZbpn8"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 16mm*10\" Maack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T09:10:09.649Z",
+    "updatedAt": "2026-02-17T09:10:09.649Z"
+  },
+  {
+    "id": "low_stock:yqGdFt8ja9aOSLDZROR4",
+    "createdAt": "2026-02-17T09:02:26.853Z",
+    "resolvedAt": null,
+    "triggered": true,
+    "source": {
+      "collection": "items",
+      "id": "yqGdFt8ja9aOSLDZROR4"
+    },
+    "message": "Current stock is 0. Minimum is 10.",
+    "title": "Low stock: 16mm*8\" Mack",
+    "type": "low_stock",
+    "triggerAt": "2026-02-17T09:02:26.853Z",
+    "updatedAt": "2026-02-17T09:02:26.853Z"
+  },
+  {
+    "id": "low_stock:zwlJwNTYKtFHmpbiB02p",
+    "createdAt": "2026-03-04T10:02:21.082Z",
+    "source": {
+      "collection": "items",
+      "id": "zwlJwNTYKtFHmpbiB02p"
+    },
+    "message": "Current stock is 0. Minimum is 0.",
+    "title": "Low stock: magnetic contactor GMC-40",
+    "type": "low_stock",
+    "triggerAt": "2026-03-04T10:02:21.082Z",
+    "resolvedAt": "2026-03-04T10:02:28.949Z",
+    "triggered": false,
+    "updatedAt": "2026-03-04T10:02:28.949Z"
+  }
+]

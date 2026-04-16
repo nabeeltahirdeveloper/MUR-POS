@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createDoc, getDocById, updateDoc, queryDocs } from "@/lib/firestore-helpers";
+import { createDoc, getDocById, updateDoc, queryDocs } from "@/lib/prisma-helpers";
 import type { FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import { isSystemLocked } from "@/lib/lock";
+import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
+import { invalidateCacheByPrefix } from "@/lib/server-cache";
 
 export const runtime = "nodejs";
 
@@ -10,12 +13,16 @@ export async function POST(
 ) {
     const { id: debtId } = await params;
     try {
+        if (await isSystemLocked()) {
+            return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
+        }
+
         const body = await request.json();
         const { amount, date, note } = body;
 
-        if (!amount) {
+        if (!amount || Number(amount) <= 0) {
             return NextResponse.json(
-                { error: "Payment amount is required" },
+                { error: "Payment amount must be greater than 0" },
                 { status: 400 }
             );
         }
@@ -23,6 +30,24 @@ export async function POST(
         const debt = await getDocById<FirestoreDebt>('debts', debtId);
         if (!debt) {
             return NextResponse.json({ error: "Debt not found" }, { status: 404 });
+        }
+
+        if (debt.status === 'paid') {
+            return NextResponse.json({ error: "Debt is already fully paid" }, { status: 400 });
+        }
+
+        // Check for overpayment
+        const existingPayments = await queryDocs<FirestoreDebtPayment>('debt_payments', [
+            { field: 'debtId', operator: '==', value: debtId }
+        ]);
+        const alreadyPaid = existingPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+        const remaining = Number(debt.amount) - alreadyPaid;
+
+        if (Number(amount) > remaining) {
+            return NextResponse.json(
+                { error: `Payment exceeds remaining balance. Remaining: ${remaining}` },
+                { status: 400 }
+            );
         }
 
         const paymentData: Omit<FirestoreDebtPayment, 'id'> = {
@@ -34,13 +59,10 @@ export async function POST(
 
         const paymentId = await createDoc<Omit<FirestoreDebtPayment, 'id'>>('debt_payments', paymentData);
 
-        // Check if debt is fully paid
-        const payments = await queryDocs<FirestoreDebtPayment>('debt_payments', [
-            { field: 'debtId', operator: '==', value: debtId }
-        ]);
-        const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+        // Check if debt is fully paid (alreadyPaid + this payment)
+        const totalPaid = alreadyPaid + Number(amount);
 
-        if (totalPaid >= debt.amount) {
+        if (totalPaid >= Number(debt.amount)) {
             await updateDoc('debts', debtId, { status: 'paid' });
 
             // Sync reminders to remove them if paid
@@ -49,6 +71,9 @@ export async function POST(
                 console.error("Failed to sync reminders after debt payment:", err);
             });
         }
+
+        invalidateCacheByPrefix("daily-summary:");
+        triggerDashboardStatsRefresh();
 
         return NextResponse.json({ id: paymentId, ...paymentData }, { status: 201 });
     } catch (error) {

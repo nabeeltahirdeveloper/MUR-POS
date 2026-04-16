@@ -5,73 +5,7 @@ import { useParams } from "next/navigation";
 import ThermalReceipt from "@/components/ledger/ThermalReceipt";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { DashboardLayout } from "@/components/layout";
-
-// Helper to parse transaction notes (duplicated from LedgerEntryForm for self-containment)
-// Helper to parse transaction notes (duplicated from LedgerEntryForm for self-containment)
-const parseTransactionNote = (note: string) => {
-    const lines = note.split('\n');
-    let orderNumber = "";
-    let partyName = "";
-    let customerPhone = "";
-    let customerAddress = "";
-    let paymentType = "Cash";
-    let itemName = "Item";
-    let itemType = "Stock";
-    let quantity = 1;
-    let unitPrice = 0;
-    let advance = undefined;
-    let remaining = undefined;
-
-    lines.forEach(line => {
-        const trimmed = line.trim();
-        if (trimmed.startsWith("Order #")) orderNumber = trimmed.replace("Order #", "").trim();
-        else if (trimmed.startsWith("Customer: ")) partyName = trimmed.replace("Customer: ", "").trim();
-        else if (trimmed.startsWith("Supplier: ")) partyName = trimmed.replace("Supplier: ", "").trim();
-        else if (trimmed.startsWith("Phone: ")) customerPhone = trimmed.replace("Phone: ", "").trim();
-        else if (trimmed.startsWith("Address: ")) customerAddress = trimmed.replace("Address: ", "").trim();
-
-        const amountMatch = trimmed.match(/^(Advance|Payment|Adjustment):\s*([\d\.]+(?!\s*[a-zA-Z]))/i);
-        if (amountMatch) {
-            advance = Number(amountMatch[2]);
-        }
-
-        const methodMatch = trimmed.match(/^Payment:\s*([a-zA-Z\s]+)$/i);
-        if (methodMatch) {
-            paymentType = methodMatch[1].trim();
-        }
-
-        if (trimmed.startsWith("Remaining: ")) remaining = Number(trimmed.replace("Remaining: ", "").trim());
-        else if (line.startsWith("Item: ")) {
-            // Robust Regex matching LedgerTable logic (updated for units)
-            const match = line.match(/Item:\s*(?:\[([^\]]*)\]\s*)?(.*?)\s*\(Qty:\s*([\d\.]+).*?@\s*([^)]*)\)/);
-            if (match) {
-                // match[1] is Type (Group 1)
-                // match[2] is Name (Group 2)
-                itemType = match[1] || "Stock";
-                itemName = match[2].trim();
-
-                // Clean up if valid Type was caught inside Name due to weird spacing
-                if (itemName.startsWith("[") && !match[1]) {
-                    const endBracket = itemName.indexOf(']');
-                    if (endBracket > 0) {
-                        itemType = itemName.substring(1, endBracket);
-                        itemName = itemName.substring(endBracket + 1).trim();
-                    }
-                }
-
-                quantity = Number(match[3]);
-                unitPrice = Number(match[4]);
-            } else {
-                itemName = line.replace("Item: ", "").trim();
-            }
-        }
-        else if (line.startsWith("Details: ")) {
-            itemName = line.replace("Details: ", "").trim();
-        }
-    });
-
-    return { orderNumber, partyName, customerPhone, customerAddress, paymentType, itemName, itemType, quantity, unitPrice, advance, remaining };
-};
+import { parseReceiptNote } from "@/lib/transaction-parser";
 
 export default function ReceiptPage() {
     const params = useParams();
@@ -89,7 +23,7 @@ export default function ReceiptPage() {
                 return res.json();
             })
             .then(async (entry) => {
-                const initialParsed = parseTransactionNote(entry.note || "");
+                const initialParsed = parseReceiptNote(entry.note || "");
                 let receiptItems: any[] = [];
                 let totalAmount = Number(entry.amount);
 
@@ -100,18 +34,18 @@ export default function ReceiptPage() {
                         if (res.ok) {
                             const result = await res.json();
                             const siblings = (result.data || []).filter((e: any) => {
-                                const p = parseTransactionNote(e.note || "");
+                                const p = parseReceiptNote(e.note || "");
                                 return p.orderNumber === initialParsed.orderNumber;
                             });
 
                             if (siblings.length > 0) {
                                 receiptItems = siblings.map((e: any) => {
-                                    const p = parseTransactionNote(e.note || "");
+                                    const p = parseReceiptNote(e.note || "");
                                     return {
                                         name: p.itemName,
                                         itemType: p.itemType,
                                         quantity: p.quantity,
-                                        unitPrice: p.unitPrice || (Number(e.amount) / p.quantity) || 0,
+                                        unitPrice: p.unitPrice || (Number(e.amount) / (p.quantity || 1)) || 0,
                                         amount: Number(e.amount)
                                     };
                                 });
@@ -129,25 +63,24 @@ export default function ReceiptPage() {
                         name: initialParsed.itemName,
                         itemType: initialParsed.itemType,
                         quantity: initialParsed.quantity,
-                        unitPrice: initialParsed.unitPrice || (entry.amount / initialParsed.quantity) || 0,
+                        unitPrice: initialParsed.unitPrice || (entry.amount / (initialParsed.quantity || 1)) || 0,
                         amount: Number(entry.amount)
                     });
                 }
 
-                // Use parsed values directly. If undefined, they won't show up on receipt.
-                const advance = initialParsed.advance;
-                // Only calculate remaining if we have an explicit advance, or if remaining is set.
-                // If both are undefined, we assume standard receipt (fully paid)
+                // Use the note's Remaining value — it includes the overall customer balance
+                // (partyBalance + itemTotal - advance), computed correctly by the form
+                let advance: number | undefined = initialParsed.advance;
                 let remaining: number | undefined = initialParsed.remaining;
 
                 if (advance !== undefined && remaining === undefined) {
-                    remaining = totalAmount - advance;
+                    remaining = Math.max(0, totalAmount - advance);
                 }
 
                 // FETCH HISTORY for the receipt
                 let history: any[] = [];
                 try {
-                    const hRes = await fetch(`/api/ledger?search=${encodeURIComponent(initialParsed.partyName)}&limit=100`);
+                    const hRes = await fetch(`/api/ledger?search=${encodeURIComponent(initialParsed.title)}&limit=100`);
                     if (hRes.ok) {
                         const hData = await hRes.json();
                         history = (hData.data || [])
@@ -163,7 +96,7 @@ export default function ReceiptPage() {
                     id: entry.id,
                     date: entry.date,
                     status: initialParsed.paymentType, // Use payment type as status (Online/Cash)
-                    customerName: initialParsed.partyName,
+                    customerName: initialParsed.title,
                     customerPhone: initialParsed.customerPhone,
                     customerAddress: initialParsed.customerAddress,
                     items: receiptItems,

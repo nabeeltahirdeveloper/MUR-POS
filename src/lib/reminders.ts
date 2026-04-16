@@ -1,7 +1,6 @@
-import { db, Timestamp } from "@/lib/firestore";
-import { objectToFirestore, timestampToDate, safeLimit } from "@/lib/firestore-helpers";
-import { getDocById } from "@/lib/firestore-helpers";
-import { calculateCurrentStock } from "@/lib/inventory";
+import { prisma } from "./prisma";
+import { getDocById } from "./prisma-helpers";
+import { calculateCurrentStock } from "./inventory";
 import type { FirestoreItem, FirestoreUtility, FirestoreDebt } from "@/types/firestore";
 
 import type { ReminderSourceRef, ReminderStatus, ReminderType } from "@/lib/reminders-shared";
@@ -32,10 +31,6 @@ export interface ReminderDoc {
 export const REMINDERS_COLLECTION = "reminders" as const;
 
 export function parseDateLike(input: unknown): Date | null {
-  // Firestore Timestamp
-  const tsDate = timestampToDate(input as any);
-  if (tsDate) return tsDate;
-
   if (input instanceof Date) return input;
   if (typeof input === "string" || typeof input === "number") {
     const d = new Date(input);
@@ -44,33 +39,29 @@ export function parseDateLike(input: unknown): Date | null {
   return null;
 }
 
-// startOfDay/addDays/computeDueTriggerAt are re-exported from reminders-shared.ts
-
-function docToReminder(id: string, data: Record<string, any>): ReminderDoc {
-  const createdAt = parseDateLike(data.createdAt) ?? new Date(0);
-  const updatedAt = parseDateLike(data.updatedAt) ?? createdAt;
-  const triggerAt = parseDateLike(data.triggerAt) ?? createdAt;
-  const resolvedAt = parseDateLike(data.resolvedAt);
+function recordToReminder(record: any): ReminderDoc {
+  const source = record.source
+    ? (typeof record.source === "string" ? JSON.parse(record.source) : record.source)
+    : { collection: "", id: "" };
 
   return {
-    id,
-    type: data.type as ReminderType,
-    source: data.source as ReminderSourceRef,
-    title: String(data.title ?? ""),
-    message: (data.message ?? null) as string | null,
-    triggered: Boolean(data.triggered),
-    triggerAt,
-    resolvedAt: resolvedAt ?? null,
-    createdAt,
-    updatedAt,
+    id: record.id,
+    type: record.type as ReminderType,
+    source,
+    title: record.title ?? "",
+    message: record.message ?? null,
+    triggered: Boolean(record.triggered),
+    triggerAt: record.triggerAt ?? record.createdAt ?? new Date(0),
+    resolvedAt: record.resolvedAt ?? null,
+    createdAt: record.createdAt ?? new Date(0),
+    updatedAt: record.updatedAt ?? record.createdAt ?? new Date(0),
   };
 }
 
 export async function getReminderById(id: string): Promise<ReminderDoc | null> {
-  const snap = await db.collection(REMINDERS_COLLECTION).doc(id).get();
-  if (!snap.exists) return null;
-  const data = snap.data() || {};
-  return docToReminder(snap.id, data);
+  const record = await prisma.reminder.findUnique({ where: { id } });
+  if (!record) return null;
+  return recordToReminder(record);
 }
 
 export async function upsertReminder(params: {
@@ -84,67 +75,63 @@ export async function upsertReminder(params: {
   resolvedAt?: Date | null;
 }): Promise<ReminderDoc> {
   const now = new Date();
-  const docRef = db.collection(REMINDERS_COLLECTION).doc(params.id);
-  const existing = await docRef.get();
+  const sourceStr = JSON.stringify(params.source);
 
-  const createdAt = existing.exists
-    ? parseDateLike(existing.data()?.createdAt) ?? now
-    : now;
+  const record = await prisma.reminder.upsert({
+    where: { id: params.id },
+    create: {
+      id: params.id,
+      type: params.type,
+      referenceId: params.source.id,
+      source: sourceStr,
+      title: params.title,
+      message: params.message ?? null,
+      triggered: params.triggered,
+      triggerAt: params.triggerAt,
+      resolvedAt: params.resolvedAt ?? null,
+      createdAt: now,
+    },
+    update: {
+      type: params.type,
+      referenceId: params.source.id,
+      source: sourceStr,
+      title: params.title,
+      message: params.message ?? null,
+      triggered: params.triggered,
+      triggerAt: params.triggerAt,
+      resolvedAt: params.resolvedAt ?? null,
+    },
+  });
 
-  const next: Omit<ReminderDoc, "id"> = {
-    type: params.type,
-    source: params.source,
-    title: params.title,
-    message: params.message ?? null,
-    triggered: params.triggered,
-    triggerAt: params.triggerAt,
-    resolvedAt: params.resolvedAt ?? null,
-    createdAt,
-    updatedAt: now,
-  };
-
-  // Use merge so we don’t accidentally wipe fields if you later extend the schema.
-  await docRef.set(objectToFirestore(next), { merge: true });
-
-  return { id: params.id, ...next };
+  return recordToReminder(record);
 }
 
 export async function resolveReminder(id: string, resolved: boolean): Promise<ReminderDoc> {
-  const docRef = db.collection(REMINDERS_COLLECTION).doc(id);
   const now = new Date();
 
-  await docRef.set(
-    objectToFirestore({
+  const record = await prisma.reminder.update({
+    where: { id },
+    data: {
       resolvedAt: resolved ? now : null,
-      // If it’s resolved, it should not be “active” in triggered/pending lists.
       triggered: resolved ? false : undefined,
-      updatedAt: now,
-    }),
-    { merge: true }
-  );
+    },
+  });
 
-  const updated = await getReminderById(id);
-  if (!updated) {
-    throw new Error("Reminder not found after update");
-  }
-  return updated;
+  return recordToReminder(record);
 }
 
 export async function deleteReminder(id: string): Promise<void> {
-  await db.collection(REMINDERS_COLLECTION).doc(id).delete();
+  try {
+    await prisma.reminder.delete({ where: { id } });
+  } catch {
+    // Ignore if reminder doesn't exist
+  }
 }
 
-/**
- * Ensure the low-stock reminder for an item reflects current reality.
- * This makes low-stock notifications appear immediately after stock changes,
- * without waiting for cron.
- */
 export async function syncLowStockReminderForItem(itemId: string): Promise<void> {
   const item = await getDocById<FirestoreItem>("items", String(itemId));
   const id = reminderDocId("low_stock", String(itemId));
-  const now = new Date();
 
-  // If item is missing or doesn't have a threshold, resolve any existing reminder.
   const min = item?.minStockLevel ?? null;
   if (!item || min === null || min === undefined) {
     const existing = await getReminderById(id);
@@ -164,7 +151,7 @@ export async function syncLowStockReminderForItem(itemId: string): Promise<void>
       source: { collection: "items", id: item.id },
       title: `Low stock: ${item.name}`,
       message: `Current stock is ${currentStock}. Minimum is ${Number(min)}.`,
-      triggerAt: now,
+      triggerAt: new Date(),
       triggered: true,
       resolvedAt: null,
     });
@@ -191,7 +178,6 @@ export async function syncUtilityReminders(utilityId: string): Promise<void> {
   const dueDate = new Date(u.dueDate);
   const isPaid = u.status === "paid";
 
-  // If paid, resolve all milestones
   if (isPaid) {
     for (const lead of MILESTONES) {
       const id = reminderDocId("bill_due", utilityId, `milestone_${lead}`);
@@ -203,22 +189,19 @@ export async function syncUtilityReminders(utilityId: string): Promise<void> {
     return;
   }
 
-  // Find the most urgent triggered milestone
   let mostUrgentLead: number | null = null;
   for (const lead of MILESTONES) {
     const triggerAt = computeDueTriggerAt(dueDate, lead);
     if (now >= triggerAt) {
       mostUrgentLead = lead;
-      break; // MILESTONES is sorted [3, 2, 1, 0], so first match is most urgent
+      break;
     }
   }
 
-  // Resolve all milestones except the most urgent one
   for (const lead of MILESTONES) {
     const id = reminderDocId("bill_due", utilityId, `milestone_${lead}`);
 
     if (lead === mostUrgentLead) {
-      // This is the active milestone - upsert it
       const timePrefix = lead === 0 ? "URGENT: " : "";
       const categoryLabel = u.category ? ` (${u.category})` : " (General)";
 
@@ -233,7 +216,6 @@ export async function syncUtilityReminders(utilityId: string): Promise<void> {
         resolvedAt: null,
       });
     } else {
-      // Resolve any other milestone that might exist
       const existing = await getReminderById(id);
       if (existing && existing.resolvedAt === null) {
         await resolveReminder(id, true);
@@ -250,7 +232,6 @@ export async function syncDebtReminders(debtId: string): Promise<void> {
   const dueDate = new Date(d.dueDate);
   const isPaid = d.status === "paid";
 
-  // If paid, resolve all milestones
   if (isPaid) {
     for (const lead of MILESTONES) {
       const id = reminderDocId("debt_due", debtId, `milestone_${lead}`);
@@ -262,22 +243,19 @@ export async function syncDebtReminders(debtId: string): Promise<void> {
     return;
   }
 
-  // Find the most urgent triggered milestone
   let mostUrgentLead: number | null = null;
   for (const lead of MILESTONES) {
     const triggerAt = computeDueTriggerAt(dueDate, lead);
     if (now >= triggerAt) {
       mostUrgentLead = lead;
-      break; // MILESTONES is sorted [3, 2, 1, 0], so first match is most urgent
+      break;
     }
   }
 
-  // Resolve all milestones except the most urgent one
   for (const lead of MILESTONES) {
     const id = reminderDocId("debt_due", debtId, `milestone_${lead}`);
 
     if (lead === mostUrgentLead) {
-      // This is the active milestone - upsert it
       const loanType = d.type === "loaned_in" ? "Loan-In (Payable)" : "Loan-Out (Receivable)";
       const timePrefix = lead === 0 ? "URGENT: " : "";
       await upsertReminder({
@@ -291,7 +269,6 @@ export async function syncDebtReminders(debtId: string): Promise<void> {
         resolvedAt: null,
       });
     } else {
-      // Resolve any other milestone that might exist
       const existing = await getReminderById(id);
       if (existing && existing.resolvedAt === null) {
         await resolveReminder(id, true);
@@ -306,72 +283,32 @@ export async function listReminders(options: {
   cursor?: string | null;
 }): Promise<{ reminders: ReminderDoc[]; nextCursor: string | null }> {
   const status = options.status ?? "all";
-  const limit = safeLimit(options.limit);
-  const cursor = options.cursor ?? null;
+  const limit = Math.min(Math.max(Number(options.limit) || 20, 1), 500);
 
-  // Prefer server-side query, but fall back to in-memory filtering if Firestore requires an index.
-  try {
-    // Helper to build query
-    const buildQuery = (baseQuery: FirebaseFirestore.Query, withSort: boolean) => {
-      let query = baseQuery;
-      if (withSort) {
-        query = query.orderBy("updatedAt", "desc");
-      }
+  const where: any = {};
 
-      if (status === "triggered") {
-        query = query.where("triggered", "==", true).where("resolvedAt", "==", null);
-      } else if (status === "pending") {
-        query = query.where("triggered", "==", false).where("resolvedAt", "==", null);
-      } else {
-        query = query.where("resolvedAt", "==", null);
-      }
-      return query;
-    };
-
-    let qWithSort = buildQuery(db.collection(REMINDERS_COLLECTION), true);
-
-    if (cursor) {
-      const cursorSnap = await db.collection(REMINDERS_COLLECTION).doc(cursor).get();
-      if (cursorSnap.exists) qWithSort = qWithSort.startAfter(cursorSnap);
-    }
-
-    try {
-      const snap = await qWithSort.limit(limit).get();
-      const reminders = snap.docs.map((d) => docToReminder(d.id, d.data() || {}));
-      const nextCursor = reminders.length === limit ? reminders[reminders.length - 1].id : null;
-      return { reminders, nextCursor };
-    } catch (err: any) {
-      // Fallback: If index is missing (code 9), try without sort
-      if (err.code === 9 || err.message?.includes("requires an index")) {
-        console.warn("listReminders: Falling back to in-memory sort due to missing index.");
-        const qNoSort = buildQuery(db.collection(REMINDERS_COLLECTION), false);
-        // Fetch up to limit * 2 to give buffer
-        const snap = await qNoSort.limit(limit * 2).get();
-        let reminders = snap.docs.map((d) => docToReminder(d.id, d.data() || {}));
-
-        // In-memory sort
-        reminders.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-
-        if (reminders.length > limit) {
-          reminders = reminders.slice(0, limit);
-        }
-
-        const nextCursor = reminders.length > 0 ? reminders[reminders.length - 1].id : null;
-        return { reminders, nextCursor };
-      }
-      throw err;
-    }
-  } catch (err) {
-    console.error("listReminders query failed:", err);
-    throw new Error("Service temporarily unavailable");
+  if (status === "triggered") {
+    where.triggered = true;
+    where.resolvedAt = null;
+  } else if (status === "pending") {
+    where.triggered = false;
+    where.resolvedAt = null;
+  } else {
+    where.resolvedAt = null;
   }
+
+  const records = await prisma.reminder.findMany({
+    where,
+    orderBy: { updatedAt: "desc" },
+    take: limit,
+    ...(options.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
+  });
+
+  const reminders = records.map(recordToReminder);
+  const nextCursor = reminders.length === limit ? reminders[reminders.length - 1].id : null;
+
+  return { reminders, nextCursor };
 }
-
-export function toTimestamp(d: Date): FirebaseFirestore.Timestamp {
-  return Timestamp.fromDate(d);
-}
-
-
 
 export async function deleteUtilityReminders(utilityId: string): Promise<void> {
   for (const lead of MILESTONES) {

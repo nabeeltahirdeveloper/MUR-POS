@@ -26,8 +26,8 @@ export async function GET(req: NextRequest) {
     });
 
     // Check user notification preferences
-    const { getDocById } = await import("@/lib/firestore-helpers");
-    const settings = await getDocById<any>("settings", "global");
+    const { getSettings } = await import("@/lib/prisma-helpers");
+    const settings = await getSettings();
 
     if (settings && settings.notifications && Array.isArray(settings.notifications.alertTypes)) {
       const allowed = new Set(settings.notifications.alertTypes);

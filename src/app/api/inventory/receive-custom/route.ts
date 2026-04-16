@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from "@/auth";
-import { createDoc, updateDoc, getDocById, getAllDocs } from '@/lib/firestore-helpers';
+import { createDoc, updateDoc, getDocById, getAllDocs } from '@/lib/prisma-helpers';
 import type { FirestoreLedger, FirestoreItem } from '@/types/firestore';
 
 export async function POST(req: NextRequest) {

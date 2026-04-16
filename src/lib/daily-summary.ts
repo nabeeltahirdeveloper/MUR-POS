@@ -8,8 +8,7 @@
  *  - Wrapped in server-cache with 5-minute TTL, invalidated on writes
  */
 
-import { queryDocs, getDocById } from "@/lib/firestore-helpers";
-import { Timestamp } from "@/lib/firestore";
+import { queryDocs, getDocById, Timestamp } from "@/lib/prisma-helpers";
 import { getOrSetCache } from "@/lib/server-cache";
 import type {
   FirestoreLedger,
@@ -146,7 +145,7 @@ async function computeDailySummary(dateStr: string): Promise<DailySummaryResult>
     if (entry.note) {
       for (const line of entry.note.split("\n")) {
         const trimmed = line.trim();
-        const advMatch = trimmed.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+        const advMatch = trimmed.match(/^(Advance|Payment|Paid):\s*(\d+(\.\d+)?)/i);
         if (advMatch) {
           cashMoved = Number(advMatch[2]) || 0;
           hasAdvanceOrPayment = true;

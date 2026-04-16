@@ -1,4 +1,4 @@
-import { getAllDocs } from "@/lib/firestore-helpers";
+import { getAllDocs } from "@/lib/prisma-helpers";
 import type { FirestoreLedger, FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
 import { getOrSetCache } from "@/lib/server-cache";
 import { getOrComputeStats } from "@/lib/stats-cache";

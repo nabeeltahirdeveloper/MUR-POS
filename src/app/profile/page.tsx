@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { DashboardLayout } from "@/components/layout";
 
 export default function ProfilePage() {
     const { data: session, update } = useSession();
@@ -86,6 +87,7 @@ export default function ProfilePage() {
     };
 
     return (
+        <DashboardLayout>
         <div className="mx-auto max-w-4xl p-6">
             <h1 className="mb-8 text-3xl font-bold">User Profile</h1>
 
@@ -183,5 +185,6 @@ export default function ProfilePage() {
                 </div>
             </div>
         </div>
+        </DashboardLayout>
     );
 }

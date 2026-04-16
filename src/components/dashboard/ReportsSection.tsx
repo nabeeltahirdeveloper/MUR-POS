@@ -85,7 +85,7 @@ export default function ReportsSection() {
                             const trimmed = line.trim();
 
                             // Robust regex check
-                            const advMatch = trimmed.match(/^(Advance|Payment):\s*(\d+(\.\d+)?)/i);
+                            const advMatch = trimmed.match(/^(Advance|Payment|Paid):\s*(\d+(\.\d+)?)/i);
                             if (advMatch) {
                                 cashMoved = Number(advMatch[2]) || 0;
                                 hasAdvanceOrPayment = true;

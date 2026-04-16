@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllDocs, createDoc } from "@/lib/firestore-helpers";
+import { getAllDocs, createDoc } from "@/lib/prisma-helpers";
 import { isSystemLocked } from "@/lib/lock";
 import type { FirestoreSupplier } from "@/types/firestore";
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         };
 
         const supplierId = await createDoc<Omit<FirestoreSupplier, 'id'>>('suppliers', supplierData);
-        const { getDocById } = await import('@/lib/firestore-helpers');
+        const { getDocById } = await import('@/lib/prisma-helpers');
         const supplier = await getDocById<FirestoreSupplier>('suppliers', supplierId);
 
         return NextResponse.json(supplier, { status: 201 });

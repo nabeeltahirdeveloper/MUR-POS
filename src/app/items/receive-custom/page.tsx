@@ -27,7 +27,7 @@ function ReceiveCustomContent() {
                     You are creating a new inventory item for a pending custom order.
                     Once saved, the item will be added to inventory and the pending order will be marked as processed.
                 </p>
-                <div className="mt-2 text-xs font-mono bg-white/50 p-2 rounded">
+                <div className="mt-2 text-sm font-mono bg-white p-2 rounded text-purple-900 font-semibold">
                     Ledger Ref: {ledgerId || "N/A"}
                 </div>
             </div>

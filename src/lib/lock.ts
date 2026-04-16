@@ -1,14 +1,15 @@
-import { db } from './firebase-admin';
+import { prisma } from './prisma';
 
 export async function isSystemLocked(): Promise<boolean> {
     try {
-        const doc = await db.collection('settings').doc('lock').get();
-        if (!doc.exists) {
-            // If the document doesn't exist, we assume it's unlocked for development
-            // or we could force it to locked. Let's force it to locked for security.
+        const setting = await prisma.systemSetting.findUnique({
+            where: { key: 'lock' },
+        });
+        if (!setting) {
+            // If the setting doesn't exist, assume locked for security
             return true;
         }
-        const data = doc.data();
+        const data = JSON.parse(setting.value);
         return data?.isLocked === true;
     } catch (error) {
         console.error('Check lock status error:', error);

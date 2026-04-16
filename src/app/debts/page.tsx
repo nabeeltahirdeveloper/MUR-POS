@@ -159,10 +159,22 @@ export default function DebtsPage() {
         },
         {
             key: "amount",
-            header: "Amount",
+            header: "Total",
             render: (value: number) => (
                 <span className="font-mono font-bold text-gray-900">Rs. {value.toLocaleString()}</span>
             )
+        },
+        {
+            key: "remaining",
+            header: "Remaining",
+            render: (value: any, row: DebtWithPayments) => {
+                const rem = value ?? Number(row.amount);
+                return (
+                    <span className={`font-mono font-bold ${rem > 0 ? "text-red-600" : "text-green-600"}`}>
+                        Rs. {Number(rem).toLocaleString()}
+                    </span>
+                );
+            }
         },
         {
             key: "dueDate",

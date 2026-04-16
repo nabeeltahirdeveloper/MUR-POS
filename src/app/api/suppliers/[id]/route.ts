@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateDoc, getDocById, deleteDoc } from "@/lib/firestore-helpers";
-import { db } from "@/lib/firestore";
+import { updateDoc, getDocById, deleteDoc, queryDocs } from "@/lib/prisma-helpers";
 import type { FirestoreSupplier } from "@/types/firestore";
 
 export async function GET(
@@ -67,12 +66,11 @@ export async function DELETE(
         const { id } = await params;
 
         // Check for existing POs
-        const poSnapshot = await db.collection('purchase_orders')
-            .where('supplierId', '==', id)
-            .limit(1)
-            .get();
+        const existingPOs = await queryDocs('purchase_orders', [
+            { field: 'supplierId', operator: '==', value: id }
+        ], { limit: 1 });
 
-        if (!poSnapshot.empty) {
+        if (existingPOs.length > 0) {
             return NextResponse.json(
                 { error: "Cannot delete supplier with existing Purchase Orders" },
                 { status: 400 }

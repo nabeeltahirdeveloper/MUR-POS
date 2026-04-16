@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDocById, queryDocs } from "@/lib/firestore-helpers";
+import { getDocById, queryDocs, deleteDoc } from "@/lib/prisma-helpers";
 import type { FirestorePurchaseOrder, FirestoreSupplier, FirestorePurchaseOrderItem, FirestoreItem, FirestoreUnit, FirestoreCategory } from "@/types/firestore";
 
 export async function GET(
@@ -93,7 +93,7 @@ export async function PUT(
             );
         }
 
-        const { updateDoc } = await import('@/lib/firestore-helpers');
+        const { updateDoc } = await import('@/lib/prisma-helpers');
         const updateData: Partial<FirestorePurchaseOrder> = {
             notes: notes !== undefined ? notes : null,
             terms: terms !== undefined ? terms : null,
@@ -145,21 +145,12 @@ export async function DELETE(
         // Usually you don't delete 'received' orders as they affect inventory/ledger history.
         // But let's assume user wants to delete.
 
-        // Use batch to delete items and PO
-        const { db } = await import('@/lib/firebase-admin');
-        const batch = db.batch();
-
-        // 1. Delete PO
-        const poRef = db.collection('purchase_orders').doc(id);
-        batch.delete(poRef);
-
-        // 2. Delete PO Items
-        const itemsSnapshot = await db.collection('purchase_order_items').where('orderId', '==', id).get();
-        itemsSnapshot.forEach((doc) => {
-            batch.delete(doc.ref);
-        });
-
-        await batch.commit();
+        // Delete PO items first, then the PO
+        const poItems = await queryDocs('purchase_order_items', [
+            { field: 'orderId', operator: '==', value: id }
+        ]);
+        await Promise.all(poItems.map(item => deleteDoc('purchase_order_items', item.id)));
+        await deleteDoc('purchase_orders', id);
 
         return NextResponse.json({ success: true });
     } catch (error) {

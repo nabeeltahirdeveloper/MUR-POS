@@ -45,6 +45,10 @@ function LedgerPageContent() {
 
     const handleViewChange = (newView: "entries" | "customers" | "suppliers" | "loans" | "utilities" | "pending") => {
         setView(newView);
+        // Clear search filter when switching views so lists aren't pre-filtered
+        if (newView !== "entries") {
+            setFilters(prev => ({ ...prev, search: "", page: 1 }));
+        }
         router.push(`/ledger?view=${newView}`);
     };
 
@@ -78,15 +82,11 @@ function LedgerPageContent() {
             });
 
             const url = `/api/ledger?${query.toString()}`;
-            console.debug('[ledger page] fetching', url);
             const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
-                console.debug('[ledger page] response meta', data?.meta);
                 setEntries(data.data || []);
                 setTotalPages(data.meta?.totalPages || 1);
-            } else {
-                console.warn('[ledger page] fetch failed', res.status);
             }
         } catch (error) {
             console.error(error);
@@ -476,9 +476,8 @@ function LedgerPageContent() {
                 </div>
             ) : (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    {/* Exclude pending from All Entries */}
                     <LedgerTable
-                        data={entries.filter((e: any) => !checkIsPending(e.note))}
+                        data={entries}
                         loading={loading}
                         onEdit={(id) => router.push(`/ledger/${id}/edit`)}
                         onDelete={handleDelete}

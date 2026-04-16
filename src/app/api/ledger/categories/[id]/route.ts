@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getDocById, updateDoc, queryDocs, deleteDoc } from "@/lib/firestore-helpers";
+import { getDocById, updateDoc, queryDocs, deleteDoc } from "@/lib/prisma-helpers";
 import type { FirestoreLedgerCategory, FirestoreLedger } from "@/types/firestore";
 
 export async function PUT(

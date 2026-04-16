@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllDocs, createDoc } from "@/lib/firestore-helpers";
+import { getAllDocs, createDoc } from "@/lib/prisma-helpers";
 import type { FirestoreUtility } from "@/types/firestore";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
+import { invalidateCacheByPrefix } from "@/lib/server-cache";
+import { isSystemLocked } from "@/lib/lock";
 
 export const runtime = "nodejs";
 
@@ -24,6 +26,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
     try {
+        if (await isSystemLocked()) {
+            return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
+        }
+
         const body = await request.json();
         const { name, amount, dueDate, category, status } = body;
 
@@ -51,6 +57,7 @@ export async function POST(request: NextRequest) {
             console.error("Failed to sync reminders for new utility:", err);
         });
 
+        invalidateCacheByPrefix("daily-summary:");
         triggerDashboardStatsRefresh();
 
         return NextResponse.json({ id: utilityId, ...utilityData }, { status: 201 });

@@ -63,18 +63,18 @@ export default function LedgerSupplierSummary({ onViewEntries, filters }: Ledger
         },
         {
             key: "totalCredit",
-            header: "Total Cash-In",
+            header: "Total Purchases",
             render: (value: any) => (
-                <span className="text-green-600 font-mono">
+                <span className="text-red-600 font-mono">
                     Rs. {Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
             ),
         },
         {
             key: "totalDebit",
-            header: "Total Cash-Out",
+            header: "Total Paid",
             render: (value: any) => (
-                <span className="text-red-600 font-mono">
+                <span className="text-green-600 font-mono">
                     Rs. {Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
             ),

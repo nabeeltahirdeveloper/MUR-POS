@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDocById } from "@/lib/firestore-helpers";
+import { getDocById, queryDocs, updateDoc, deleteDoc } from "@/lib/prisma-helpers";
 import { calculateCurrentStock, checkLowStock } from "@/lib/inventory";
 import { syncLowStockReminderForItem } from "@/lib/reminders";
 import type { FirestoreItem, FirestoreCategory, FirestoreUnit } from "@/types/firestore";
@@ -93,7 +93,6 @@ export async function PUT(
         if (image !== undefined) updateData.image = image || null;
         if (description !== undefined) updateData.description = description || null;
 
-        const { updateDoc } = await import('@/lib/firestore-helpers');
         await updateDoc<Partial<FirestoreItem>>('items', id, updateData);
 
         // If threshold changed (or item got updated), sync low-stock reminder immediately.
@@ -136,23 +135,20 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params;
-        const { db } = await import('@/lib/firestore');
-        const { deleteDoc } = await import('@/lib/firestore-helpers');
-
         // Get all associated stock logs and purchase order items
-        const stockLogsSnapshot = await db.collection('stock_logs')
-            .where('itemId', '==', id)
-            .get();
+        const stockLogs = await queryDocs('stock_logs', [
+            { field: 'itemId', operator: '==', value: id }
+        ]);
 
-        const poItemsSnapshot = await db.collection('purchase_order_items')
-            .where('itemId', '==', id)
-            .get();
+        const poItems = await queryDocs('purchase_order_items', [
+            { field: 'itemId', operator: '==', value: id }
+        ]);
 
         // Delete associated stock logs
-        const stockLogDeletions = stockLogsSnapshot.docs.map(doc => doc.ref.delete());
+        const stockLogDeletions = stockLogs.map(log => deleteDoc('stock_logs', log.id));
 
         // Delete associated purchase order items
-        const poItemDeletions = poItemsSnapshot.docs.map(doc => doc.ref.delete());
+        const poItemDeletions = poItems.map(item => deleteDoc('purchase_order_items', item.id));
 
         // Wait for all associated records to be deleted
         await Promise.all([...stockLogDeletions, ...poItemDeletions]);
@@ -169,8 +165,8 @@ export async function DELETE(
         }
 
         const deletedCounts = {
-            stockLogs: stockLogsSnapshot.size,
-            purchaseOrderItems: poItemsSnapshot.size,
+            stockLogs: stockLogs.length,
+            purchaseOrderItems: poItems.length,
         };
 
         return NextResponse.json({

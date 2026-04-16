@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { auth as firebaseAuth } from '@/lib/firebase-admin';
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcrypt';
 
 export async function POST(req: Request) {
     try {
@@ -24,23 +25,26 @@ export async function POST(req: Request) {
             );
         }
 
-        // Get Firebase user
-        let firebaseUser;
-        try {
-            firebaseUser = await firebaseAuth.getUser(session.user.id);
-        } catch (error) {
+        // Get user from database
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+        });
+
+        if (!user) {
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
         }
 
-        // Note: Firebase Admin SDK doesn't support password verification directly
-        // Password verification needs to be done client-side or via Firebase Auth REST API
-        // For now, we'll update the password directly
-        // In production, you should verify the current password first using Firebase Auth REST API
-        // or implement a custom verification endpoint
+        // Verify current password
+        const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!isValid) {
+            return NextResponse.json({ message: 'Current password is incorrect' }, { status: 400 });
+        }
 
-        // Update password in Firebase Auth
-        await firebaseAuth.updateUser(session.user.id, {
-            password: newPassword,
+        // Hash and update new password
+        const newHash = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { id: session.user.id },
+            data: { passwordHash: newHash },
         });
 
         return NextResponse.json(
@@ -49,14 +53,6 @@ export async function POST(req: Request) {
         );
     } catch (error: any) {
         console.error('Password change error:', error);
-        
-        if (error.code === 'auth/weak-password') {
-            return NextResponse.json(
-                { message: 'Password is too weak' },
-                { status: 400 }
-            );
-        }
-
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

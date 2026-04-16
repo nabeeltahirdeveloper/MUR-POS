@@ -55,10 +55,12 @@ export async function POST(request: Request) {
             );
         }
 
+        const id = `${type}:${referenceId || 'test'}_${Date.now()}`;
         const reminder = await prisma.reminder.create({
             data: {
+                id,
                 type,
-                referenceId: referenceId ? parseInt(referenceId) : null,
+                referenceId: referenceId || null,
                 message,
                 triggered: false,
             },
@@ -91,7 +93,7 @@ export async function PATCH(request: Request) {
         }
 
         const reminder = await prisma.reminder.update({
-            where: { id: parseInt(id) },
+            where: { id },
             data: { triggered: triggered ?? true },
         });
 

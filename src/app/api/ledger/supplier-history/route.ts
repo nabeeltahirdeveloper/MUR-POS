@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getAllDocs } from "@/lib/firestore-helpers";
+import { getAllDocs } from "@/lib/prisma-helpers";
 import type { FirestoreLedger } from "@/types/firestore";
 
 // Helper to parse transaction notes

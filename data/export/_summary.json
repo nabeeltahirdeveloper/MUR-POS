@@ -1,0 +1,86 @@
+{
+  "exportedAt": "2026-04-16T08:03:24.158Z",
+  "collections": [
+    {
+      "collection": "users",
+      "count": 1
+    },
+    {
+      "collection": "categories",
+      "count": 6
+    },
+    {
+      "collection": "items",
+      "count": 85
+    },
+    {
+      "collection": "units",
+      "count": 4
+    },
+    {
+      "collection": "unit_conversions",
+      "count": 0
+    },
+    {
+      "collection": "stock_logs",
+      "count": 55
+    },
+    {
+      "collection": "suppliers",
+      "count": 8
+    },
+    {
+      "collection": "customers",
+      "count": 2
+    },
+    {
+      "collection": "purchase_orders",
+      "count": 0
+    },
+    {
+      "collection": "purchase_order_items",
+      "count": 0
+    },
+    {
+      "collection": "ledger",
+      "count": 77
+    },
+    {
+      "collection": "ledger_categories",
+      "count": 0
+    },
+    {
+      "collection": "debts",
+      "count": 0
+    },
+    {
+      "collection": "debt_payments",
+      "count": 0
+    },
+    {
+      "collection": "utilities",
+      "count": 0
+    },
+    {
+      "collection": "other_expenses",
+      "count": 0
+    },
+    {
+      "collection": "reminders",
+      "count": 88
+    },
+    {
+      "collection": "settings",
+      "count": 2
+    },
+    {
+      "collection": "stats",
+      "count": 3
+    },
+    {
+      "collection": "cron_runs",
+      "count": 0
+    }
+  ],
+  "totalDocuments": 331
+}

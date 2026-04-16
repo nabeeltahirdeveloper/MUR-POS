@@ -41,32 +41,23 @@ export default function CategoryManager({
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("Form submitted, newCategory:", newCategory);
-        if (!newCategory.trim()) {
-            console.log("Category name is empty, returning");
-            return;
-        }
+        if (!newCategory.trim()) return;
 
         setLoading(true);
         setError("");
         try {
-            console.log("Sending POST request to /api/categories with name:", newCategory);
             const res = await fetch("/api/categories", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name: newCategory }),
             });
 
-            console.log("Response received, status:", res.status, "ok:", res.ok);
-
             if (!res.ok) {
                 const data = await res.json();
-                console.error("API error response:", data);
                 throw new Error(data.error || "Failed to create");
             }
 
-            const responseData = await res.json();
-            console.log("Category created successfully:", responseData);
+            await res.json();
             setNewCategory("");
             await fetchCategories();
             if (onChange) onChange();

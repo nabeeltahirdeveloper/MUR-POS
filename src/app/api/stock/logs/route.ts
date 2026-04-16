@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { queryDocs, getDocById } from "@/lib/firestore-helpers";
+import { queryDocs, getDocById } from "@/lib/prisma-helpers";
 import type { FirestoreStockLog, FirestoreItem, FirestoreUnit } from "@/types/firestore";
 
 export async function GET(request: NextRequest) {
@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
             });
         } catch (orderByError) {
             // If orderBy fails (e.g., missing index), try without orderBy
-            console.warn("OrderBy failed, trying without orderBy:", orderByError);
             logs = await queryDocs<FirestoreStockLog>('stock_logs', [
                 { field: 'itemId', operator: '==', value: String(itemId) }
             ]);
