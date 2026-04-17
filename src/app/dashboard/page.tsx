@@ -16,6 +16,7 @@ import {
     CheckCircleIcon,
     RectangleGroupIcon,
     LockClosedIcon,
+    ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import PendingCustomOrders from "@/components/dashboard/PendingCustomOrders";
 import LowStockWidget from "@/components/dashboard/LowStockWidget";
@@ -39,14 +40,21 @@ function DashboardContent() {
     const fetcher = (url: string) => fetch(url).then(res => res.json());
 
     const todayStr = new Date().toISOString().split("T")[0];
-    const { data: overviewData } = useSWR(
+    const [refreshing, setRefreshing] = useState(false);
+    const { data: overviewData, mutate: refreshDashboard } = useSWR(
         () => `/api/dashboard/overview?date=${todayStr}`,
         fetcher,
         {
-            revalidateOnFocus: false, // Prevent extra queries when switching tabs
-            dedupingInterval: 60000,  // Deduplicate requests within 60 seconds
+            revalidateOnFocus: false,
+            dedupingInterval: 60000,
         }
     );
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await refreshDashboard();
+        setRefreshing(false);
+    };
 
     useEffect(() => {
         if (!overviewData) return;
@@ -75,16 +83,25 @@ function DashboardContent() {
                             Overview of your business performance
                         </p>
                     </div>
-                    <div className="bg-white border border-gray-100 px-4 py-2 rounded-xl shadow-sm">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Today</p>
-                        <p className="text-sm font-bold text-gray-900">
-                            {new Date().toLocaleDateString("en-US", {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                            })}
-                        </p>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleRefresh}
+                            className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm text-gray-400 hover:text-primary hover:border-primary transition-all"
+                            title="Refresh Dashboard"
+                        >
+                            <ArrowPathIcon className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+                        </button>
+                        <div className="bg-white border border-gray-100 px-4 py-2 rounded-xl shadow-sm">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Today</p>
+                            <p className="text-sm font-bold text-gray-900">
+                                {new Date().toLocaleDateString("en-US", {
+                                    weekday: "long",
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                })}
+                            </p>
+                        </div>
                     </div>
                 </div>
 

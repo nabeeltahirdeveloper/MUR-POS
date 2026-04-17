@@ -327,11 +327,15 @@ export default function LedgerEntryForm({
                             const totalPaidLater = payments.reduce((sum, p) => sum + Number(p.amount), 0);
                             setPaidLaterAmount(totalPaidLater);
 
+                            // Store original order totals for balance adjustment in edit mode
+                            const batchTotal = items.reduce((sum, i) => sum + i.amount, 0);
+                            setOriginalOrderTotal(batchTotal);
+                            setOriginalOrderAdvance(parsed.advance || 0);
+
                             // --- Auto-Fill Advance for Fully Paid Transactions ---
                             if (!parsed.hasRemaining) {
                                 // If original note had NO "Remaining:" line, it means it was Fully Paid.
                                 // We should set Advance Amount = Total Bill Amount.
-                                const batchTotal = items.reduce((sum, i) => sum + i.amount, 0);
                                 setAdvanceAmount(String(batchTotal));
                             }
                         }
@@ -358,6 +362,10 @@ export default function LedgerEntryForm({
                 };
                 setCartItems([reconstructItem]);
                 setOriginalBatchIds([String(initialData.id)]);
+
+                // Store original order totals for balance adjustment in edit mode
+                setOriginalOrderTotal(Number(initialData.amount));
+                setOriginalOrderAdvance(parsed.advance || 0);
 
                 // Auto-fill Advance for Single Item if fully paid
                 if (!parsed.hasRemaining) {
@@ -531,18 +539,29 @@ export default function LedgerEntryForm({
 
     const displayTotal = cartItems.reduce((acc, curr) => acc + curr.amount, 0); // Keep for Table Footer
 
+    // Track the original order's total items and advance (for edit mode balance adjustment)
+    const [originalOrderTotal, setOriginalOrderTotal] = useState<number>(0);
+    const [originalOrderAdvance, setOriginalOrderAdvance] = useState<number>(0);
+
     useEffect(() => {
-        const balance = partyBalance || 0;
+        let balance = partyBalance || 0;
         const currentBill = effectiveTotal;
         const payment = parseFloat(advanceAmount) || 0;
         const paidLater = paidLaterAmount || 0;
 
-        // Unified Net Balance Logic: 
+        // When editing, partyBalance already includes this order's effect.
+        // Subtract the original order's contribution so we don't double-count.
+        // Original effect on balance = originalItems - originalAdvance
+        if (initialData?.id && partyBalance !== null && originalOrderTotal > 0) {
+            balance = balance - originalOrderTotal + originalOrderAdvance;
+        }
+
+        // Unified Net Balance Logic:
         // Remaining = (What they already owed) + (New Purchases/Sales) - (What was paid now or later)
         const net = balance + currentBill - payment - paidLater;
-        
+
         setRemainingAmount(Math.max(0, net));
-    }, [type, partyBalance, advanceAmount, effectiveTotal, paidLaterAmount]);
+    }, [type, partyBalance, advanceAmount, effectiveTotal, paidLaterAmount, originalOrderTotal, originalOrderAdvance]);
 
     // --- Handlers --- (skipped for brevity)
 

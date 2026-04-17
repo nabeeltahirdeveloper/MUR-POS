@@ -21,7 +21,7 @@ function BatchReceiptContent() {
             return;
         }
 
-        const ids = idsString.split(",");
+        const ids = [...new Set(idsString.split(","))];
 
         const fetchAll = async () => {
             try {
@@ -52,14 +52,45 @@ function BatchReceiptContent() {
 
                 const total = combinedItems.reduce((acc, it) => acc + it.amount, 0);
 
-                // Use the note's Remaining value — it includes the overall customer balance
-                // (partyBalance + itemTotal - advance), computed correctly by the form
-                let advance: number | undefined = meta.advance;
-                let remaining: number | undefined = meta.remaining;
+                // Fetch computed balance from API (source of truth)
+                let remaining: number | undefined = undefined;
 
-                if (advance !== undefined && remaining === undefined) {
-                    remaining = Math.max(0, total - advance);
+                if (meta.title && meta.title !== "-") {
+                    try {
+                        const isSupplier = (first.note || "").includes("Supplier:");
+                        const balanceEndpoint = isSupplier ? "/api/ledger/suppliers" : "/api/ledger/customers";
+                        const balRes = await fetch(balanceEndpoint, { cache: 'no-store' });
+                        if (balRes.ok) {
+                            const balances: { name: string; balance: number; totalCredit: number; totalDebit: number }[] = await balRes.json();
+                            const match = balances.find(
+                                b => b.name.trim().toLowerCase() === meta.title.trim().toLowerCase()
+                            );
+                            if (match) {
+                                remaining = match.balance;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Failed to fetch computed balance, using note-based fallback", e);
+                    }
                 }
+
+                if (remaining === undefined) {
+                    remaining = meta.remaining;
+                }
+
+                // Sum advances from all entries in the batch, deduplicating by order number
+                // (entries in the same order share one advance, not additive)
+                let advance: number | undefined = 0;
+                const processedOrders = new Set<string>();
+                results.forEach(entry => {
+                    const parsed = parseReceiptNote(entry.note || "");
+                    const orderNum = parsed.orderNumber || entry.id;
+                    if (parsed.advance !== undefined && !processedOrders.has(orderNum)) {
+                        advance = (advance || 0) + parsed.advance;
+                        processedOrders.add(orderNum);
+                    }
+                });
+                if (advance === 0) advance = meta.advance;
 
                 // FETCH HISTORY for the receipt
                 let history: any[] = [];

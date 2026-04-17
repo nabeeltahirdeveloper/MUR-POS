@@ -68,10 +68,28 @@ export default function ReceiptPage() {
                     });
                 }
 
-                // Use the note's Remaining value — it includes the overall customer balance
-                // (partyBalance + itemTotal - advance), computed correctly by the form
+                // Fetch computed balance from API (source of truth) instead of stale note values
                 let advance: number | undefined = initialParsed.advance;
                 let remaining: number | undefined = initialParsed.remaining;
+
+                if (initialParsed.title && initialParsed.title !== "-") {
+                    try {
+                        const isSupplier = (entry.note || "").includes("Supplier:");
+                        const balanceEndpoint = isSupplier ? "/api/ledger/suppliers" : "/api/ledger/customers";
+                        const balRes = await fetch(balanceEndpoint, { cache: 'no-store' });
+                        if (balRes.ok) {
+                            const balances: { name: string; balance: number }[] = await balRes.json();
+                            const match = balances.find(
+                                b => b.name.trim().toLowerCase() === initialParsed.title.trim().toLowerCase()
+                            );
+                            if (match) {
+                                remaining = match.balance;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Failed to fetch computed balance, using note-based fallback", e);
+                    }
+                }
 
                 if (advance !== undefined && remaining === undefined) {
                     remaining = Math.max(0, totalAmount - advance);
