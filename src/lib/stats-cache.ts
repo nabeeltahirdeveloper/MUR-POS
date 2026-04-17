@@ -39,3 +39,11 @@ export async function getOrComputeStats<T>(
 
   return value;
 }
+
+/**
+ * Invalidate a DB-persisted stats cache entry so the next call recomputes it.
+ */
+export async function invalidateStatsCache(docId: string): Promise<void> {
+  const key = `stats:${docId}`;
+  await prisma.systemSetting.deleteMany({ where: { key } });
+}

@@ -4,6 +4,7 @@ import { Timestamp } from "@/lib/prisma-helpers";
 import { queryDocs, getDocById, getAllDocs } from "@/lib/prisma-helpers";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCache, invalidateCacheByPrefix } from "@/lib/server-cache";
+import { invalidateStatsCache } from "@/lib/stats-cache";
 import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility, FirestoreExpense, FirestoreItem } from "@/types/firestore";
 import { isSystemLocked } from "@/lib/lock";
 
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
         const from = searchParams.get("from");
         const to = searchParams.get("to");
         const partyName = searchParams.get("partyName");
-
+        const showDeleted = searchParams.get("deleted") === "true";
 
         // Build filters
         const filters: Array<{ field: string; operator: '<' | '<=' | '==' | '>' | '>=' | '!=' | 'array-contains' | 'in' | 'array-contains-any'; value: unknown }> = [];
@@ -65,10 +66,11 @@ export async function GET(req: NextRequest) {
         }
 
         // Fetch everything relevant — no limit here; pagination is applied after merging virtual entries
+        const queryOpts = { includeDeleted: showDeleted };
         const [rawLedger, rawDebts, rawPayments, rawUtilities] = await Promise.all([
             filters.length > 0
-                ? queryDocs<FirestoreLedger>('ledger', filters, { orderBy: 'date', orderDirection: 'desc' })
-                : getAllDocs<FirestoreLedger>('ledger', { orderBy: 'date', orderDirection: 'desc' }),
+                ? queryDocs<FirestoreLedger>('ledger', filters, { orderBy: 'date', orderDirection: 'desc', ...queryOpts })
+                : getAllDocs<FirestoreLedger>('ledger', { orderBy: 'date', orderDirection: 'desc', ...queryOpts }),
             getAllDocs<FirestoreDebt>('debts', { orderBy: 'createdAt', orderDirection: 'desc' }),
             getAllDocs<FirestoreDebtPayment>('debt_payments', { orderBy: 'date', orderDirection: 'desc' }),
             getAllDocs<FirestoreUtility>('utilities', { orderBy: 'dueDate', orderDirection: 'desc' })
@@ -78,7 +80,15 @@ export async function GET(req: NextRequest) {
         // Use a Map to deduplicate by ID
         const combinedLedger = new Map();
         [...rawLedger, ...specificOrderEntries].forEach(item => combinedLedger.set(item.id, item));
-        entries = Array.from(combinedLedger.values());
+        let allLedger = Array.from(combinedLedger.values());
+
+        // When viewing trash, only show deleted entries; otherwise filter them out
+        if (showDeleted) {
+            allLedger = allLedger.filter((e: any) => e.deletedAt != null);
+        } else {
+            allLedger = allLedger.filter((e: any) => !e.deletedAt);
+        }
+        entries = allLedger;
 
         // Filter out physical legacy utility entries to avoid double counting
         // (Since we now inject them as virtual entries from the Utilities collection)
@@ -189,8 +199,8 @@ export async function GET(req: NextRequest) {
             });
         });
 
-        // Merge and sort
-        entries = [...entries, ...virtualEntries].sort((a, b) => {
+        // Merge and sort (skip virtual entries when viewing trash — trash only has real ledger records)
+        entries = [...entries, ...(showDeleted ? [] : virtualEntries)].sort((a, b) => {
             const da = a.date instanceof Date ? a.date : (a.date?.toDate ? a.date.toDate() : new Date(a.date));
             const db = b.date instanceof Date ? b.date : (b.date?.toDate ? b.date.toDate() : new Date(b.date));
             return db.getTime() - da.getTime();
@@ -412,10 +422,14 @@ export async function POST(req: NextRequest) {
 
         const entry = await getDocById<FirestoreLedger>('ledger', entryId);
 
-        // Invalidate daily cache and refresh dashboard stats (non-blocking)
+        // Invalidate daily cache and refresh dashboard stats
         const todayStr = new Date().toISOString().split("T")[0];
         invalidateCache(`daily-summary:${todayStr}`);
         invalidateCacheByPrefix("ledger-balance:");
+        await Promise.all([
+            invalidateStatsCache("ledger_balance_suppliers_v1"),
+            invalidateStatsCache("ledger_balance_customers_v1"),
+        ]);
         triggerDashboardStatsRefresh();
 
         return NextResponse.json(entry, { status: 201 });

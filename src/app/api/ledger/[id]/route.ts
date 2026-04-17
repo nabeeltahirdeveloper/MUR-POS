@@ -5,6 +5,7 @@ import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreItem } from "@/
 import { isSystemLocked } from "@/lib/lock";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCache, invalidateCacheByPrefix } from "@/lib/server-cache";
+import { invalidateStatsCache } from "@/lib/stats-cache";
 
 export async function GET(
     req: NextRequest,
@@ -19,7 +20,7 @@ export async function GET(
         const { id } = await params;
         const entry = await getDocById<FirestoreLedger>('ledger', id);
 
-        if (!entry) {
+        if (!entry || entry.deletedAt) {
             return NextResponse.json({ error: "Entry not found" }, { status: 404 });
         }
 
@@ -59,7 +60,7 @@ export async function PUT(
         const { type, amount, categoryId, note, date, status, markPaid, itemId, quantity } = body;
 
         const currentEntry = await getDocById<FirestoreLedger>('ledger', id);
-        if (!currentEntry) {
+        if (!currentEntry || currentEntry.deletedAt) {
             return NextResponse.json({ error: "Entry not found" }, { status: 404 });
         }
 
@@ -263,10 +264,14 @@ export async function PUT(
             return NextResponse.json({ error: "Entry not found" }, { status: 404 });
         }
 
-        // Refresh dashboard stats after edit (non-blocking)
+        // Refresh dashboard stats after edit
         const todayStr = new Date().toISOString().split("T")[0];
         invalidateCache(`daily-summary:${todayStr}`);
         invalidateCacheByPrefix("ledger-balance:");
+        await Promise.all([
+            invalidateStatsCache("ledger_balance_suppliers_v1"),
+            invalidateStatsCache("ledger_balance_customers_v1"),
+        ]);
         triggerDashboardStatsRefresh();
 
         return NextResponse.json(updatedEntry);
@@ -294,14 +299,15 @@ export async function DELETE(
         }
 
         const { id } = await params;
-        const { deleteDoc, getDocById, queryDocs, createDoc } = await import('@/lib/prisma-helpers');
+        const { deleteDoc, getDocById, queryDocs, createDoc, softDeleteDoc } = await import('@/lib/prisma-helpers');
+        const deletedByUser = session.user?.email || session.user?.name || 'unknown';
 
         // 1. Identify entries to delete (either by direct ID or by Order Number)
         let entriesToDelete: (FirestoreLedger & { id: string })[] = [];
 
         // Try direct ID first
         const directEntry = await getDocById<FirestoreLedger>('ledger', id);
-        if (directEntry) {
+        if (directEntry && !directEntry.deletedAt) {
             entriesToDelete = [directEntry];
         }
 
@@ -347,22 +353,27 @@ export async function DELETE(
                 const debts = await queryDocs<any>('debts', []);
                 const relevantDebts = debts.filter(d => d.note?.includes(`Order #${orderNum}`));
                 for (const debt of relevantDebts) {
-                    await deleteDoc('debts', debt.id);
+                    await softDeleteDoc('debts', debt.id, deletedByUser);
                 }
             }
         } catch (debtErr) {
             console.error("Failed to sync debt deletion:", debtErr);
         }
 
-        // 2. Perform Deletions
+        // 2. Soft-delete (mark as deleted, keep record for audit trail)
         for (const entry of entriesToDelete) {
-            await deleteDoc('ledger', entry.id);
+            await softDeleteDoc('ledger', entry.id, deletedByUser);
         }
 
-        // Refresh dashboard stats after delete (non-blocking)
+        // Refresh dashboard stats after delete
         const todayStr = new Date().toISOString().split("T")[0];
         invalidateCache(`daily-summary:${todayStr}`);
         invalidateCacheByPrefix("ledger-balance:");
+        // Also clear DB-persisted stats cache so recomputation uses fresh data
+        await Promise.all([
+            invalidateStatsCache("ledger_balance_suppliers_v1"),
+            invalidateStatsCache("ledger_balance_customers_v1"),
+        ]);
         triggerDashboardStatsRefresh();
 
         return NextResponse.json({ message: "Deleted successfully" });

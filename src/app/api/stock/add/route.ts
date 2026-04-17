@@ -6,6 +6,7 @@ import { getSupplierBalance } from "@/lib/ledger-balance";
 import { isSystemLocked } from "@/lib/lock";
 import { invalidateCacheByPrefix } from "@/lib/server-cache";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
+import { invalidateStatsCache } from "@/lib/stats-cache";
 import type { FirestoreStockLog, FirestoreItem, FirestoreUnit, FirestoreSupplier, FirestoreLedger } from "@/types/firestore";
 
 export async function POST(request: NextRequest) {
@@ -123,6 +124,10 @@ export async function POST(request: NextRequest) {
         // Invalidate caches so balance calculations are fresh
         invalidateCacheByPrefix("ledger-balance:");
         invalidateCacheByPrefix("daily-summary:");
+        await Promise.all([
+            invalidateStatsCache("ledger_balance_suppliers_v1"),
+            invalidateStatsCache("ledger_balance_customers_v1"),
+        ]);
         triggerDashboardStatsRefresh();
 
         return NextResponse.json({

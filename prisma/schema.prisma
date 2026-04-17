@@ -72,14 +72,17 @@ model Unit {
   name      String
   symbol    String?
   createdAt DateTime @default(now()) @map("created_at")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   String?   @map("deleted_by")
 
   conversionsFrom UnitConversion[] @relation("FromUnit")
   conversionsTo   UnitConversion[] @relation("ToUnit")
-  
+
   // Relations to be added later: Items (base/sale unit)
   itemsBase Item[] @relation("BaseUnit")
   itemsSale Item[] @relation("SaleUnit")
 
+  @@index([deletedAt])
   @@map("units")
 }
 
@@ -99,11 +102,14 @@ model UnitConversion {
 }
 
 model Category {
-  id   Int    @id @default(autoincrement())
-  name String @unique
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
 
   items Item[]
 
+  @@index([deletedAt])
   @@map("categories")
 }
 
@@ -122,6 +128,8 @@ model Item {
   image               String?
   description         String?
   createdAt           DateTime @default(now()) @map("created_at")
+  deletedAt           DateTime? @map("deleted_at")
+  deletedBy           String?   @map("deleted_by")
 
   category Category? @relation(fields: [categoryId], references: [id])
   baseUnit Unit?     @relation("BaseUnit", fields: [baseUnitId], references: [id])
@@ -135,6 +143,7 @@ model Item {
   @@index([baseUnitId])
   @@index([saleUnitId])
   @@index([supplierId])
+  @@index([deletedAt])
   @@map("items")
 }
 
@@ -154,11 +163,14 @@ model StockLog {
 
 // Ledger Tables
 model LedgerCategory {
-  id   Int    @id @default(autoincrement())
-  name String @unique
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
 
   ledgerEntries Ledger[]
 
+  @@index([deletedAt])
   @@map("ledger_categories")
 }
 
@@ -174,33 +186,42 @@ model Ledger {
   status      String?  @default("open")
   date        DateTime @default(now()) @db.Date
   createdAt   DateTime @default(now()) @map("created_at")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   String?   @map("deleted_by")
 
   category LedgerCategory? @relation(fields: [categoryId], references: [id])
 
   @@index([categoryId])
   @@index([orderNumber])
+  @@index([deletedAt])
   @@map("ledger")
 }
 
 // Purchase Orders Tables
 model Supplier {
-  id      Int     @id @default(autoincrement())
-  name    String
-  phone   String?
-  address String?
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String?
+  address   String?
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
 
   purchaseOrders PurchaseOrder[]
   items          Item[]
 
+  @@index([deletedAt])
   @@map("suppliers")
 }
 
 model Customer {
-  id      Int     @id @default(autoincrement())
-  name    String
-  phone   String?
-  address String?
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String?
+  address   String?
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
 
+  @@index([deletedAt])
   @@map("customers")
 }
 
@@ -213,10 +234,14 @@ model PurchaseOrder {
   terms       String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
 
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
+
   supplier Supplier?           @relation(fields: [supplierId], references: [id])
   items    PurchaseOrderItem[]
 
   @@index([supplierId])
+  @@index([deletedAt])
   @@map("purchase_orders")
 }
 
@@ -245,7 +270,10 @@ model Utility {
   category  String?
   status    String?   @default("pending")
   createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
 
+  @@index([deletedAt])
   @@map("utilities")
 }
 
@@ -259,9 +287,12 @@ model Debt {
   note       String?
   status     String    @default("active")
   createdAt  DateTime  @default(now()) @map("created_at")
+  deletedAt  DateTime? @map("deleted_at")
+  deletedBy  String?   @map("deleted_by")
 
   payments DebtPayment[]
 
+  @@index([deletedAt])
   @@map("debts")
 }
 
@@ -305,7 +336,10 @@ model OtherExpense {
   category  String?
   status    String    @default("unpaid")
   createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+  deletedBy String?   @map("deleted_by")
 
+  @@index([deletedAt])
   @@map("other_expenses")
 }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateDoc, deleteDoc, getDocById } from "@/lib/prisma-helpers";
+import { updateDoc, deleteDoc, getDocById, softDeleteDoc } from "@/lib/prisma-helpers";
+import { auth } from "@/auth";
 import type { FirestoreUtility } from "@/types/firestore";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCacheByPrefix } from "@/lib/server-cache";
@@ -85,13 +86,16 @@ export async function DELETE(
 ) {
     const { id } = await params;
     try {
+        const session = await auth();
+        const deletedByUser = session?.user?.email || session?.user?.name || 'unknown';
+
         // Delete associated reminders first
         const { deleteUtilityReminders } = await import("@/lib/reminders");
         await deleteUtilityReminders(id).catch(err => {
             console.error("Failed to delete reminders for utility:", err);
         });
 
-        await deleteDoc('utilities', id);
+        await softDeleteDoc('utilities', id, deletedByUser);
         invalidateCacheByPrefix("daily-summary:");
         triggerDashboardStatsRefresh();
         return NextResponse.json({ success: true });

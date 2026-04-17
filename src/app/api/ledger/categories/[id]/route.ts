@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getDocById, updateDoc, queryDocs, deleteDoc } from "@/lib/prisma-helpers";
+import { getDocById, updateDoc, queryDocs, deleteDoc, softDeleteDoc } from "@/lib/prisma-helpers";
 import type { FirestoreLedgerCategory, FirestoreLedger } from "@/types/firestore";
 
 export async function PUT(
@@ -83,7 +83,8 @@ export async function DELETE(
             );
         }
 
-        await deleteDoc('ledger_categories', id);
+        const deletedByUser = session?.user?.email || session?.user?.name || 'unknown';
+        await softDeleteDoc('ledger_categories', id, deletedByUser);
 
         return NextResponse.json({ message: "Category deleted successfully" });
     } catch (error) {

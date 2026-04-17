@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDocById, queryDocs, deleteDoc } from "@/lib/prisma-helpers";
+import { getDocById, queryDocs, deleteDoc, softDeleteDoc } from "@/lib/prisma-helpers";
+import { auth } from "@/auth";
 import type { FirestorePurchaseOrder, FirestoreSupplier, FirestorePurchaseOrderItem, FirestoreItem, FirestoreUnit, FirestoreCategory } from "@/types/firestore";
 
 export async function GET(
@@ -145,12 +146,9 @@ export async function DELETE(
         // Usually you don't delete 'received' orders as they affect inventory/ledger history.
         // But let's assume user wants to delete.
 
-        // Delete PO items first, then the PO
-        const poItems = await queryDocs('purchase_order_items', [
-            { field: 'orderId', operator: '==', value: id }
-        ]);
-        await Promise.all(poItems.map(item => deleteDoc('purchase_order_items', item.id)));
-        await deleteDoc('purchase_orders', id);
+        const session = await auth();
+        const deletedByUser = session?.user?.email || session?.user?.name || 'unknown';
+        await softDeleteDoc('purchase_orders', id, deletedByUser);
 
         return NextResponse.json({ success: true });
     } catch (error) {

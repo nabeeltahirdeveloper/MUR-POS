@@ -30,6 +30,13 @@ type PrismaDelegate = {
 // Models that use string IDs (not autoincrement int)
 const STRING_ID_MODELS = new Set(["users", "reminders"]);
 
+// Models that support soft-delete (deletedAt filtering)
+const SOFT_DELETE_MODELS = new Set([
+    "ledger", "items", "units", "categories", "ledger_categories",
+    "suppliers", "customers", "purchase_orders", "utilities",
+    "debts", "other_expenses",
+]);
+
 function getModel(collection: string): PrismaDelegate {
     const p = prisma as any;
     const map: Record<string, PrismaDelegate> = {
@@ -247,10 +254,15 @@ export async function getDocById<T extends Record<string, any>>(
 
 export async function getAllDocs<T extends Record<string, any>>(
     collection: string,
-    options?: { orderBy?: string; orderDirection?: "asc" | "desc"; limit?: number }
+    options?: { orderBy?: string; orderDirection?: "asc" | "desc"; limit?: number; includeDeleted?: boolean }
 ): Promise<(T & { id: string })[]> {
     const model = getModel(collection);
     const args: any = {};
+
+    // Auto-filter soft-deleted records unless explicitly requested
+    if (SOFT_DELETE_MODELS.has(collection) && !options?.includeDeleted) {
+        args.where = { deletedAt: null };
+    }
 
     if (options?.orderBy) {
         const field = mapFieldName(collection, options.orderBy);
@@ -302,6 +314,14 @@ export async function deleteDoc(collection: string, id: string): Promise<void> {
     });
 }
 
+export async function softDeleteDoc(collection: string, id: string, deletedBy?: string): Promise<void> {
+    const model = getModel(collection);
+    await model.update({
+        where: { id: parseId(collection, id) },
+        data: { deletedAt: new Date(), deletedBy: deletedBy || null },
+    });
+}
+
 export async function queryDocs<T extends Record<string, any>>(
     collection: string,
     filters: Array<{
@@ -318,10 +338,16 @@ export async function queryDocs<T extends Record<string, any>>(
             | "array-contains-any";
         value: any;
     }>,
-    options?: { orderBy?: string; orderDirection?: "asc" | "desc"; limit?: number }
+    options?: { orderBy?: string; orderDirection?: "asc" | "desc"; limit?: number; includeDeleted?: boolean }
 ): Promise<(T & { id: string })[]> {
     const model = getModel(collection);
     const where = buildWhere(collection, filters);
+
+    // Auto-filter soft-deleted records unless explicitly requested
+    if (SOFT_DELETE_MODELS.has(collection) && !options?.includeDeleted) {
+        where.deletedAt = null;
+    }
+
     const args: any = { where };
 
     if (options?.orderBy) {
@@ -358,11 +384,16 @@ export async function getPagedDocs<T extends Record<string, any>>(
         take: pageSize,
     };
 
+    // Auto-filter soft-deleted records
+    if (SOFT_DELETE_MODELS.has(collection)) {
+        args.where = { deletedAt: null };
+    }
+
     // Cursor-based pagination using startAfter values
     if (options.startAfter?.length) {
         const [orderValue, lastId] = options.startAfter;
         // Use cursor-based pagination
-        args.where = {
+        const cursorWhere = {
             OR: [
                 { [field]: { gt: orderValue } },
                 {
@@ -371,6 +402,12 @@ export async function getPagedDocs<T extends Record<string, any>>(
                 },
             ],
         };
+        // Merge with soft-delete filter if present
+        if (args.where) {
+            args.where = { AND: [args.where, cursorWhere] };
+        } else {
+            args.where = cursorWhere;
+        }
     }
 
     const records = await model.findMany(args);

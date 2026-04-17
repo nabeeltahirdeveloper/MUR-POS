@@ -18,6 +18,8 @@ export interface FirestoreUnit {
     name: string;
     symbol?: string | null;
     createdAt: Date | any;
+    deletedAt?: Date | null;
+    deletedBy?: string | null;
 }
 
 export interface FirestoreUnitConversion {
@@ -31,6 +33,8 @@ export interface FirestoreUnitConversion {
 export interface FirestoreCategory {
     id: string;
     name: string;
+    deletedAt?: Date | null;
+    deletedBy?: string | null;
 }
 
 export interface FirestoreItem {
@@ -48,6 +52,8 @@ export interface FirestoreItem {
     image?: string | null;
     description?: string | null;
     createdAt: Date | any;
+    deletedAt?: Date | null;
+    deletedBy?: string | null;
 }
 
 export interface FirestoreStockLog {
@@ -62,6 +68,8 @@ export interface FirestoreStockLog {
 export interface FirestoreLedgerCategory {
     id: string;
     name: string;
+    deletedAt?: Date | null;
+    deletedBy?: string | null;
 }
 
 export interface FirestoreLedger {
@@ -76,6 +84,8 @@ export interface FirestoreLedger {
     status?: 'open' | 'closed';
     date: Date | any;
     createdAt: Date | any;
+    deletedAt?: Date | null;
+    deletedBy?: string | null;
 }
 
 export interface FirestoreSupplier {
@@ -83,6 +93,8 @@ export interface FirestoreSupplier {
     name: string;
     phone?: string | null;
     address?: string | null;
+    deletedAt?: Date | null;
+    deletedBy?: string | null;
 }
 
 export interface FirestoreCustomer {
@@ -90,6 +102,8 @@ export interface FirestoreCustomer {
     name: string;
     phone?: string | null;
     address?: string | null;
+    deletedAt?: Date | null;
+    deletedBy?: string | null;
 }
 
 export interface FirestorePurchaseOrder {
@@ -100,6 +114,8 @@ export interface FirestorePurchaseOrder {
     notes?: string | null;
     terms?: string | null;
     createdAt: Date | any;
+    deletedAt?: Date | null;
+    deletedBy?: string | null;
 }
 
 export interface FirestorePurchaseOrderItem {
@@ -119,6 +135,8 @@ export interface FirestoreExpense {
     category?: string | null;
     status: 'paid' | 'unpaid';
     createdAt: Date | any;
+    deletedAt?: Date | null;
+    deletedBy?: string | null;
 }
 
 export interface FirestoreUtility {
@@ -130,6 +148,8 @@ export interface FirestoreUtility {
     category?: string | null;
     status: 'paid' | 'unpaid';
     createdAt: Date | any;
+    deletedAt?: Date | null;
+    deletedBy?: string | null;
 }
 
 export interface FirestoreDebt {
@@ -141,6 +161,8 @@ export interface FirestoreDebt {
     note?: string | null;
     status: 'active' | 'paid';
     createdAt: Date | any;
+    deletedAt?: Date | null;
+    deletedBy?: string | null;
 }
 
 export interface FirestoreDebtPayment {

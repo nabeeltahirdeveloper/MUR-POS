@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getDocById, updateDoc, queryDocs, deleteDoc } from "@/lib/prisma-helpers";
+import { getDocById, updateDoc, queryDocs, deleteDoc, softDeleteDoc } from "@/lib/prisma-helpers";
 import type { FirestoreCategory, FirestoreItem } from "@/types/firestore";
 
 export async function PUT(
@@ -73,7 +73,9 @@ export async function DELETE(
             );
         }
 
-        await deleteDoc('categories', id);
+        const session = await auth();
+        const deletedByUser = session?.user?.email || session?.user?.name || 'unknown';
+        await softDeleteDoc('categories', id, deletedByUser);
 
         return NextResponse.json({ message: "Category deleted successfully" });
     } catch (error) {

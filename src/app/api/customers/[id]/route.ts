@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateDoc, getDocById, deleteDoc } from "@/lib/prisma-helpers";
+import { updateDoc, getDocById, deleteDoc, softDeleteDoc } from "@/lib/prisma-helpers";
+import { auth } from "@/auth";
 import type { FirestoreCustomer } from "@/types/firestore";
 
 export async function GET(
@@ -64,11 +65,10 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params;
+        const session = await auth();
+        const deletedByUser = session?.user?.email || session?.user?.name || 'unknown';
 
-        // In the future, check for existing sales/orders before deleting
-        // For now, allow direct deletion
-
-        await deleteDoc('customers', id);
+        await softDeleteDoc('customers', id, deletedByUser);
 
         return NextResponse.json({ success: true });
     } catch (error) {

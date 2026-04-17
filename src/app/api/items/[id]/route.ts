@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDocById, queryDocs, updateDoc, deleteDoc } from "@/lib/prisma-helpers";
+import { getDocById, queryDocs, updateDoc, deleteDoc, softDeleteDoc } from "@/lib/prisma-helpers";
+import { auth } from "@/auth";
 import { calculateCurrentStock, checkLowStock } from "@/lib/inventory";
 import { syncLowStockReminderForItem } from "@/lib/reminders";
 import type { FirestoreItem, FirestoreCategory, FirestoreUnit } from "@/types/firestore";
@@ -12,7 +13,7 @@ export async function GET(
         const { id } = await params;
         const item = await getDocById<FirestoreItem>('items', id);
 
-        if (!item) {
+        if (!item || item.deletedAt) {
             return NextResponse.json({ error: "Item not found" }, { status: 404 });
         }
 
@@ -134,27 +135,12 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const session = await auth();
+        const deletedByUser = session?.user?.email || session?.user?.name || 'unknown';
         const { id } = await params;
-        // Get all associated stock logs and purchase order items
-        const stockLogs = await queryDocs('stock_logs', [
-            { field: 'itemId', operator: '==', value: id }
-        ]);
 
-        const poItems = await queryDocs('purchase_order_items', [
-            { field: 'itemId', operator: '==', value: id }
-        ]);
-
-        // Delete associated stock logs
-        const stockLogDeletions = stockLogs.map(log => deleteDoc('stock_logs', log.id));
-
-        // Delete associated purchase order items
-        const poItemDeletions = poItems.map(item => deleteDoc('purchase_order_items', item.id));
-
-        // Wait for all associated records to be deleted
-        await Promise.all([...stockLogDeletions, ...poItemDeletions]);
-
-        // Delete the item itself
-        await deleteDoc('items', id);
+        // Soft-delete the item
+        await softDeleteDoc('items', id, deletedByUser);
 
         // Delete associated low stock reminder
         try {
@@ -164,14 +150,8 @@ export async function DELETE(
             console.error("Failed to delete reminder:", e);
         }
 
-        const deletedCounts = {
-            stockLogs: stockLogs.length,
-            purchaseOrderItems: poItems.length,
-        };
-
         return NextResponse.json({
             message: "Item deleted successfully",
-            deletedCounts
         });
     } catch (error) {
         console.error("Error deleting item:", error);

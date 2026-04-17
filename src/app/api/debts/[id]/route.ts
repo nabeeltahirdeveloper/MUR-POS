@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateDoc, deleteDoc, getDocById, queryDocs } from "@/lib/prisma-helpers";
+import { updateDoc, deleteDoc, getDocById, queryDocs, softDeleteDoc } from "@/lib/prisma-helpers";
+import { auth } from "@/auth";
 import type { FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCacheByPrefix } from "@/lib/server-cache";
@@ -14,7 +15,7 @@ export async function GET(
     const { id } = await params;
     try {
         const debt = await getDocById<FirestoreDebt>('debts', id);
-        if (!debt) {
+        if (!debt || debt.deletedAt) {
             return NextResponse.json({ error: "Debt not found" }, { status: 404 });
         }
 
@@ -98,14 +99,8 @@ export async function DELETE(
             return NextResponse.json({ error: "System is locked. Access denied." }, { status: 423 });
         }
 
-        // Optional: Delete associated payments first
-        const payments = await queryDocs<FirestoreDebtPayment>('debt_payments', [
-            { field: 'debtId', operator: '==', value: id }
-        ]);
-
-        for (const payment of payments) {
-            await deleteDoc('debt_payments', payment.id);
-        }
+        const session = await auth();
+        const deletedByUser = session?.user?.email || session?.user?.name || 'unknown';
 
         // Delete associated reminders
         const { deleteDebtReminders } = await import("@/lib/reminders");
@@ -113,7 +108,7 @@ export async function DELETE(
             console.error("Failed to delete reminders for debt:", err);
         });
 
-        await deleteDoc('debts', id);
+        await softDeleteDoc('debts', id, deletedByUser);
         invalidateCacheByPrefix("daily-summary:");
         triggerDashboardStatsRefresh();
         return NextResponse.json({ success: true });

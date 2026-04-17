@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateDoc, getDocById, deleteDoc, queryDocs } from "@/lib/prisma-helpers";
+import { updateDoc, getDocById, deleteDoc, queryDocs, softDeleteDoc } from "@/lib/prisma-helpers";
+import { auth } from "@/auth";
 import type { FirestoreSupplier } from "@/types/firestore";
 
 export async function GET(
@@ -77,7 +78,9 @@ export async function DELETE(
             );
         }
 
-        await deleteDoc('suppliers', id);
+        const session = await auth();
+        const deletedByUser = session?.user?.email || session?.user?.name || 'unknown';
+        await softDeleteDoc('suppliers', id, deletedByUser);
 
         return NextResponse.json({ success: true });
     } catch (error) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateDoc, deleteDoc, getDocById } from "@/lib/prisma-helpers";
+import { updateDoc, deleteDoc, getDocById, softDeleteDoc } from "@/lib/prisma-helpers";
+import { auth } from "@/auth";
 import type { FirestoreExpense } from "@/types/firestore";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCacheByPrefix } from "@/lib/server-cache";
@@ -57,7 +58,9 @@ export async function DELETE(
 ) {
     const { id } = await params;
     try {
-        await deleteDoc('other_expenses', id);
+        const session = await auth();
+        const deletedByUser = session?.user?.email || session?.user?.name || 'unknown';
+        await softDeleteDoc('other_expenses', id, deletedByUser);
         invalidateCacheByPrefix("daily-summary:");
         triggerDashboardStatsRefresh();
         return NextResponse.json({ success: true });
