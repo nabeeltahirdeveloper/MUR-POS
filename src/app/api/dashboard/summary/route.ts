@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
             ]),
             queryDocs<FirestoreItem>('items', []),
             queryDocs<any>('utilities', [{ field: 'status', operator: '==', value: 'unpaid' }]),
-            queryDocs<any>('other-expenses', [{ field: 'status', operator: '==', value: 'unpaid' }]),
+            queryDocs<any>('other_expenses', [{ field: 'status', operator: '==', value: 'unpaid' }]),
             queryDocs<any>('debts', [{ field: 'status', operator: '==', value: 'active' }])
         ]);
 

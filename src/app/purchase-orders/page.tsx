@@ -198,7 +198,7 @@ export default function PurchaseOrdersPage() {
                         )}
                     </div>
                     <select
-                        className="lg:col-span-2 min-w-0 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="lg:col-span-2 min-w-0 w-full border border-gray-300 rounded-md p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
                     >
@@ -210,7 +210,7 @@ export default function PurchaseOrdersPage() {
                         <option value="cancelled">Cancelled</option>
                     </select>
                     <select
-                        className="lg:col-span-3 min-w-0 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="lg:col-span-3 min-w-0 w-full border border-gray-300 rounded-md p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         value={supplierId}
                         onChange={(e) => setSupplierId(e.target.value)}
                     >
@@ -224,13 +224,13 @@ export default function PurchaseOrdersPage() {
                     <div className="lg:col-span-3 grid grid-cols-2 gap-2 min-w-0">
                         <input
                             type="date"
-                            className="min-w-0 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            className="min-w-0 w-full border border-gray-300 rounded-md p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                         />
                         <input
                             type="date"
-                            className="min-w-0 w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            className="min-w-0 w-full border border-gray-300 rounded-md p-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
                         />

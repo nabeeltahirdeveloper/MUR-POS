@@ -171,7 +171,7 @@ export default function SettingsPage() {
                                                 type="text"
                                                 value={settings.businessProfile.name}
                                                 onChange={(e) => updateProfile("name", e.target.value)}
-                                                className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                                className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                                 placeholder="e.g. Moon Traders"
                                             />
                                         </div>
@@ -181,7 +181,7 @@ export default function SettingsPage() {
                                                 type="text"
                                                 value={settings.businessProfile.tagline || ""}
                                                 onChange={(e) => updateProfile("tagline", e.target.value)}
-                                                className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                                className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                                 placeholder="e.g. Quality Electric Solutions"
                                             />
                                         </div>
@@ -192,7 +192,7 @@ export default function SettingsPage() {
                                                     type="text"
                                                     value={settings.businessProfile.phone || ""}
                                                     onChange={(e) => updateProfile("phone", e.target.value)}
-                                                    className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                                    className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                                 />
                                             </div>
                                             <div>
@@ -201,7 +201,7 @@ export default function SettingsPage() {
                                                     type="email"
                                                     value={settings.businessProfile.email || ""}
                                                     onChange={(e) => updateProfile("email", e.target.value)}
-                                                    className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                                    className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                                 />
                                             </div>
                                         </div>
@@ -211,7 +211,7 @@ export default function SettingsPage() {
                                                 rows={3}
                                                 value={settings.businessProfile.address || ""}
                                                 onChange={(e) => updateProfile("address", e.target.value)}
-                                                className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none"
+                                                className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none"
                                             />
                                         </div>
                                     </div>
@@ -229,7 +229,7 @@ export default function SettingsPage() {
                                                     type="text"
                                                     value={settings.currency.symbol}
                                                     onChange={(e) => updateCurrency("symbol", e.target.value)}
-                                                    className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                                    className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                                 />
                                             </div>
                                             <div>
@@ -238,7 +238,7 @@ export default function SettingsPage() {
                                                     type="text"
                                                     value={settings.currency.code}
                                                     onChange={(e) => updateCurrency("code", e.target.value)}
-                                                    className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                                    className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                                 />
                                             </div>
                                         </div>
@@ -247,7 +247,7 @@ export default function SettingsPage() {
                                             <select
                                                 value={settings.currency.position}
                                                 onChange={(e) => updateCurrency("position", e.target.value)}
-                                                className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                                className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                             >
                                                 <option value="prefix">Prefix (e.g. $100)</option>
                                                 <option value="suffix">Suffix (e.g. 100 Rs.)</option>
@@ -282,7 +282,7 @@ export default function SettingsPage() {
                                                 type="number"
                                                 value={settings.inventory.globalMinStockLevel}
                                                 onChange={(e) => updateInventory("globalMinStockLevel", parseInt(e.target.value))}
-                                                className="mt-1 block w-32 rounded-lg border border-gray-200 p-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                                className="mt-1 block w-32 rounded-lg border border-gray-200 p-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                             />
                                             <p className="text-xs text-gray-500 mt-1">Used as fallback if item-specific threshold is not set.</p>
                                         </div>

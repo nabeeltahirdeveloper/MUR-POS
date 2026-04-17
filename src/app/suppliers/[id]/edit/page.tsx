@@ -131,7 +131,7 @@ export default function EditSupplierPage() {
                 <div>
                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 px-1">Supplier Name</label>
                     <input
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 font-bold focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 font-bold focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-500"
                         value={form.name}
                         onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                         placeholder="Enter full name"
@@ -141,7 +141,7 @@ export default function EditSupplierPage() {
                 <div>
                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 px-1">Phone Number</label>
                     <input
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 font-bold focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-300"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 font-bold focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-500"
                         value={form.phone}
                         onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                         placeholder="e.g., 0300 1234567"
@@ -150,7 +150,7 @@ export default function EditSupplierPage() {
                 <div>
                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 px-1">Address</label>
                     <textarea
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 font-bold h-32 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-300"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 font-bold h-32 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-500"
                         value={form.address}
                         onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
                         placeholder="Enter complete address"

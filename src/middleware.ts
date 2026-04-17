@@ -4,6 +4,18 @@ import { NextResponse } from "next/server"
 
 const { auth } = NextAuth(authConfig)
 
+// Routes that should be blocked in production (test/debug endpoints)
+const DEV_ONLY_ROUTES = [
+    "/api/test",
+    "/api/debug-auth",
+    "/api/seed",
+    "/test",
+]
+
+function isDevOnlyRoute(pathname: string): boolean {
+    return DEV_ONLY_ROUTES.some(route => pathname.startsWith(route))
+}
+
 // API routes that don't require authentication
 const PUBLIC_API_ROUTES = [
     "/api/auth",        // NextAuth endpoints
@@ -19,6 +31,14 @@ export default auth((req) => {
     const isLoggedIn = !!req.auth
     const { nextUrl } = req
     const user = req.auth?.user
+
+    // Block test/debug/seed routes in production
+    if (process.env.NODE_ENV === "production" && isDevOnlyRoute(nextUrl.pathname)) {
+        if (nextUrl.pathname.startsWith("/api")) {
+            return NextResponse.json({ error: "Not found" }, { status: 404 })
+        }
+        return NextResponse.redirect(new URL("/dashboard", nextUrl))
+    }
 
     const isApiRoute = nextUrl.pathname.startsWith("/api")
     const isPublicRoute = ["/login", "/signup", "/"].includes(nextUrl.pathname)

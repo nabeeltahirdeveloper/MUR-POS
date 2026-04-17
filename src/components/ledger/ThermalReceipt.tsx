@@ -309,23 +309,33 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
 
                     {/* Totals */}
                     <div className="mt-3 border-t-2 border-gray-800 pt-2 text-base">
-                        {((data.remaining !== undefined && data.remaining > 0) || (data.advance !== undefined && (data.total - data.advance) > 0)) ? (
-                            <>
-                                <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
-                                    <span>TOTAL BILL</span>
-                                    <span>{currency.code} {fmt((data.advance || 0) + (data.remaining || (data.total - (data.advance || 0))))}</span>
-                                </div>
-                                <div className="border-t border-dashed border-gray-400 mt-1 pt-1 mb-1"></div>
-                                <div className="flex justify-between font-semibold text-sm text-gray-800 mt-1">
-                                    <span>Paid Amount</span>
-                                    <span>{currency.code} {fmt(data.advance || 0)}</span>
-                                </div>
-                                <div className="flex justify-between font-semibold text-sm text-gray-800 mt-1 mb-2">
-                                    <span>Remaining</span>
-                                    <span>{currency.code} {fmt(data.remaining || (data.total - (data.advance || 0)))}</span>
-                                </div>
-                            </>
-                        ) : (
+                        {(data.advance !== undefined && data.remaining !== undefined) ? (() => {
+                            const prevBalance = Math.max(0, (data.remaining || 0) + (data.advance || 0) - data.total);
+                            return (
+                                <>
+                                    <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
+                                        <span>TOTAL (Items)</span>
+                                        <span>{currency.code} {fmt(data.total)}</span>
+                                    </div>
+                                    {prevBalance > 0 && (
+                                        <div className="flex justify-between font-semibold text-sm text-gray-600 mt-1">
+                                            <span>Previous Balance</span>
+                                            <span>{currency.code} {fmt(prevBalance)}</span>
+                                        </div>
+                                    )}
+                                    <div className="border-t border-dashed border-gray-400 mt-1 pt-1 mb-1"></div>
+                                    <div className="flex justify-between font-semibold text-sm text-green-700 mt-1">
+                                        <span>Paid Amount</span>
+                                        <span>{currency.code} {fmt(data.advance || 0)}</span>
+                                    </div>
+                                    <div className="border-t border-double border-gray-800 mt-1 pt-1"></div>
+                                    <div className="flex justify-between font-bold text-base text-red-700 mt-1 mb-2">
+                                        <span>Account Balance</span>
+                                        <span>{currency.code} {fmt(data.remaining || 0)}</span>
+                                    </div>
+                                </>
+                            );
+                        })() : (
                             <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
                                 <span>TOTAL</span>
                                 <span>{currency.code} {fmt(data.total)}</span>
