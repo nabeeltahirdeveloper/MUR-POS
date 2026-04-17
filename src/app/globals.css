@@ -29,6 +29,13 @@ textarea {
   color: #111827;
 }
 
+/* Override for dark-themed inputs (e.g. login page) */
+input.text-white,
+select.text-white,
+textarea.text-white {
+  color: #ffffff !important;
+}
+
 input::placeholder,
 textarea::placeholder {
   color: #6b7280;
@@ -99,5 +106,17 @@ input:-webkit-autofill:active {
   -webkit-text-fill-color: #111827 !important;
   color: #111827 !important;
   caret-color: #111827 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Autofill styles for dark-themed inputs (login page) */
+input.text-white:-webkit-autofill,
+input.text-white:-webkit-autofill:hover,
+input.text-white:-webkit-autofill:focus,
+input.text-white:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #020617 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  caret-color: #ffffff !important;
   transition: background-color 5000s ease-in-out 0s;
 }
