@@ -168,7 +168,7 @@ function DashboardContent() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <Link
                         href="/items"
-                        className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 transition-all group"
+                        className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-gray-300 hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 ease-out group"
                     >
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-gray-200 transition-colors">
@@ -183,10 +183,10 @@ function DashboardContent() {
 
                     <button
                         onClick={() => setShowTransactionModal(true)}
-                        className="block w-full text-left p-5 bg-primary rounded-xl shadow-sm hover:shadow-md hover:bg-primary-dark transition-all group"
+                        className="block w-full text-left p-5 bg-primary rounded-xl shadow-sm hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 ease-out group cursor-pointer"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
+                            <div className="p-3 bg-white/10 rounded-lg transition-colors">
                                 <BanknotesIcon className="h-6 w-6 text-white" />
                             </div>
                             <div>
@@ -198,7 +198,7 @@ function DashboardContent() {
 
                     <Link
                         href="/utilities"
-                        className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 transition-all group"
+                        className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-gray-300 hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 ease-out group"
                     >
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-gray-200 transition-colors">
@@ -213,7 +213,7 @@ function DashboardContent() {
 
                     <Link
                         href="/other-expenses"
-                        className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 transition-all group"
+                        className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-gray-300 hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 ease-out group"
                     >
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-gray-200 transition-colors">
