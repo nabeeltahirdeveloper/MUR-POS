@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateDoc, deleteDoc, getDocById, queryDocs, softDeleteDoc } from "@/lib/prisma-helpers";
 import { auth } from "@/auth";
-import type { FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import type { ApiDebt, ApiDebtPayment } from "@/types/models";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCacheByPrefix } from "@/lib/server-cache";
 import { isSystemLocked } from "@/lib/lock";
@@ -14,12 +14,12 @@ export async function GET(
 ) {
     const { id } = await params;
     try {
-        const debt = await getDocById<FirestoreDebt>('debts', id);
+        const debt = await getDocById<ApiDebt>('debts', id);
         if (!debt || debt.deletedAt) {
             return NextResponse.json({ error: "Debt not found" }, { status: 404 });
         }
 
-        const payments = await queryDocs<FirestoreDebtPayment>('debt_payments', [
+        const payments = await queryDocs<ApiDebtPayment>('debt_payments', [
             { field: 'debtId', operator: '==', value: id }
         ]);
 
@@ -46,7 +46,7 @@ export async function PATCH(
         const body = await request.json();
         const { personName, amount, dueDate, note, status } = body;
 
-        const updateData: Partial<FirestoreDebt> = {};
+        const updateData: Partial<ApiDebt> = {};
         if (personName !== undefined) updateData.personName = personName;
         if (amount !== undefined) updateData.amount = Number(amount);
         if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
@@ -57,11 +57,11 @@ export async function PATCH(
 
         // Auto-correct status based on actual payments
         if (amount !== undefined || status !== undefined) {
-            const payments = await queryDocs<FirestoreDebtPayment>('debt_payments', [
+            const payments = await queryDocs<ApiDebtPayment>('debt_payments', [
                 { field: 'debtId', operator: '==', value: id }
             ]);
             const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-            const debt = await getDocById<FirestoreDebt>('debts', id);
+            const debt = await getDocById<ApiDebt>('debts', id);
             if (debt) {
                 const correctStatus = totalPaid >= Number(debt.amount) ? 'paid' : 'active';
                 if (debt.status !== correctStatus) {
@@ -76,7 +76,7 @@ export async function PATCH(
             console.error("Failed to sync reminders for updated debt:", err);
         });
 
-        const updated = await getDocById<FirestoreDebt>('debts', id);
+        const updated = await getDocById<ApiDebt>('debts', id);
         invalidateCacheByPrefix("daily-summary:");
         triggerDashboardStatsRefresh();
         return NextResponse.json(updated);

@@ -807,7 +807,7 @@ export default function LedgerEntryForm({
 
         setLoading(true);
         try {
-            // If we have actual Firestore doc IDs, delete them directly (most reliable)
+            // If we have actual doc IDs, delete them directly (most reliable)
             if (entryIds && entryIds.length > 0) {
                 let allOk = true;
                 for (const docId of entryIds) {
@@ -1180,7 +1180,7 @@ export default function LedgerEntryForm({
                         <button
                             type="button"
                             onClick={() => router.push('/dashboard?select=type')}
-                            className="p-2.5 bg-slate-800 hover:bg-primary hover:text-slate-900 rounded-xl transition-all text-primary group border border-primary/10 cursor-pointer"
+                            className="p-2.5 bg-slate-800 hover:bg-primary hover:text-white rounded-xl transition-all text-primary group border border-primary/10 cursor-pointer"
                             title="Back to Dashboard"
                         >
                             <svg className="w-6 h-6 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1194,7 +1194,7 @@ export default function LedgerEntryForm({
                                     {type === 'credit' ? 'Cash-In' : 'Cash-Out'}
                                 </span>
                             </h2>
-                            <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">Moon Traders • Ledger System</p>
+                            <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">MUR Traders • Ledger System</p>
                         </div>
                     </div>
                     {isEdit && (
@@ -1583,7 +1583,7 @@ export default function LedgerEntryForm({
                                         {!isEdit && (
                                             editingCartId ? (
                                                 <div className="flex gap-2 w-full md:w-auto">
-                                                    <button type="button" onClick={handleAddOrUpdateItem} className="flex-1 md:flex-none bg-primary hover:bg-primary-dark text-slate-900 px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 whitespace-nowrap cursor-pointer">
+                                                    <button type="button" onClick={handleAddOrUpdateItem} className="flex-1 md:flex-none bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 whitespace-nowrap cursor-pointer">
                                                         Update
                                                     </button>
                                                     <button type="button" onClick={() => {

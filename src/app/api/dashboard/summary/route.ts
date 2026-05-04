@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { Timestamp } from "@/lib/prisma-helpers";
 import { queryDocs, getDocById } from "@/lib/prisma-helpers";
-import type { FirestoreLedger, FirestoreItem } from "@/types/firestore";
+import type { ApiLedger, ApiItem } from "@/types/models";
 
 export const dynamic = 'force-dynamic';
 
@@ -26,11 +25,11 @@ export async function GET(req: NextRequest) {
             expenses, 
             debts
         ] = await Promise.all([
-            queryDocs<FirestoreLedger>('ledger', [
-                { field: 'date', operator: '>=', value: Timestamp.fromDate(today) },
-                { field: 'date', operator: '<', value: Timestamp.fromDate(tomorrow) },
+            queryDocs<ApiLedger>('ledger', [
+                { field: 'date', operator: '>=', value: today },
+                { field: 'date', operator: '<', value: tomorrow },
             ]),
-            queryDocs<FirestoreItem>('items', []),
+            queryDocs<ApiItem>('items', []),
             queryDocs<any>('utilities', [{ field: 'status', operator: '==', value: 'unpaid' }]),
             queryDocs<any>('other_expenses', [{ field: 'status', operator: '==', value: 'unpaid' }]),
             queryDocs<any>('debts', [{ field: 'status', operator: '==', value: 'active' }])
@@ -54,7 +53,7 @@ export async function GET(req: NextRequest) {
         const processedOrderNumbers = new Set<string>();
 
         if (Array.isArray(ledgerRes)) {
-            for (const entry of (ledgerRes as FirestoreLedger[])) {
+            for (const entry of (ledgerRes as ApiLedger[])) {
                 if (entry.note && entry.note.startsWith("Utility payment:")) continue;
                 const orderNum = entry.orderNumber ? String(entry.orderNumber) : null;
                 if (orderNum && processedOrderNumbers.has(orderNum)) continue;

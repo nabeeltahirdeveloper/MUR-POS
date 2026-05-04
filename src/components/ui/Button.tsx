@@ -26,12 +26,12 @@ export function Button({
     `;
 
     const variantStyles = {
-        primary: 'bg-primary text-slate-900 hover:bg-primary-dark focus:ring-primary',
+        primary: 'bg-primary text-white hover:bg-primary-dark focus:ring-primary',
         secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500 border border-gray-300',
         danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
         success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
-        ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-300',
-        outline: 'text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-300',
+        ghost: 'text-gray-700 hover:bg-primary/10 hover:text-primary focus:ring-primary/30',
+        outline: 'text-primary border border-primary/40 hover:bg-primary/10 focus:ring-primary/30',
     };
 
     const sizeStyles = {

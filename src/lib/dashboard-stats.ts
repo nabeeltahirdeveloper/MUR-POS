@@ -1,21 +1,21 @@
 /**
  * dashboard-stats.ts
  *
- * Manages the precomputed `stats/dashboard-overview` Firestore document.
+ * Manages the precomputed `stats/dashboard-overview` document.
  *
  * This document is written at write-time (whenever orders, expenses, debts,
  * or utilities change) so the dashboard only needs to read ONE document.
  *
  * Pattern:
  *  - refreshDashboardStats() is called from all write-path API routes
- *  - /api/dashboard/overview reads stats/dashboard-overview (1 Firestore read)
+ *  - /api/dashboard/overview reads stats/dashboard-overview (1 database read)
  *  - A debounce prevents N refreshes during bulk operations
  */
 
 import { prisma } from "@/lib/prisma";
 import { getAllDocs } from "@/lib/prisma-helpers";
 import { getOrSetCache, invalidateCache } from "@/lib/server-cache";
-import type { FirestoreLedger, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility, FirestoreExpense } from "@/types/firestore";
+import type { ApiLedger, ApiDebt, ApiDebtPayment, ApiUtility, ApiExpense } from "@/types/models";
 import { getSuppliersSummaries, getCustomersSummaries } from "@/lib/ledger-balance";
 
 export interface PendingLedgerEntry {
@@ -58,7 +58,7 @@ export interface DashboardOverviewStats {
 
 const STATS_DOC_ID = "dashboard-overview";
 const CACHE_KEY = "dashboard-stats:overview:v1";
-const CACHE_TTL_MS = 2 * 60_000; // 2 minutes in-memory cache on top of Firestore doc
+const CACHE_TTL_MS = 2 * 60_000; // 2 minutes in-memory cache on top of database doc
 
 // Debounce state — prevents thrashing on rapid writes
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -102,7 +102,7 @@ export async function refreshDashboardStats(): Promise<void> {
 }
 
 /**
- * Read the precomputed stats doc from Firestore (or in-memory cache).
+ * Read the precomputed stats doc from database (or in-memory cache).
  * Falls back to a live computation if the doc is missing or older than 1 hour.
  */
 export async function getDashboardStats(): Promise<DashboardOverviewStats | null> {
@@ -125,7 +125,7 @@ export async function getDashboardStats(): Promise<DashboardOverviewStats | null
 }
 
 // ============================================================
-// Internal computation — runs against Firestore collections
+// Internal computation — runs against collections
 // ============================================================
 
 async function computeDashboardStats(): Promise<DashboardOverviewStats> {
@@ -136,11 +136,11 @@ async function computeDashboardStats(): Promise<DashboardOverviewStats> {
 
   // Fetch all needed collections in parallel
   const [ledgerEntries, debts, debtPayments, utilities, expenses] = await Promise.all([
-    getAllDocs<FirestoreLedger>("ledger"),
-    getAllDocs<FirestoreDebt>("debts"),
-    getAllDocs<FirestoreDebtPayment>("debt_payments"),
-    getAllDocs<FirestoreUtility>("utilities"),
-    getAllDocs<FirestoreExpense>("other_expenses"),
+    getAllDocs<ApiLedger>("ledger"),
+    getAllDocs<ApiDebt>("debts"),
+    getAllDocs<ApiDebtPayment>("debt_payments"),
+    getAllDocs<ApiUtility>("utilities"),
+    getAllDocs<ApiExpense>("other_expenses"),
   ]);
 
   // --- Pending Utilities (unpaid, due within 7 days) ---
@@ -215,7 +215,7 @@ async function computeDashboardStats(): Promise<DashboardOverviewStats> {
     .slice(0, 5);
 
   // --- Total Summary (all-time ledger totals) ---
-  const debtPaymentMap = new Map<string, FirestoreDebt>();
+  const debtPaymentMap = new Map<string, ApiDebt>();
   for (const d of debts) debtPaymentMap.set(d.id, d);
 
   let totalCredit = 0;
@@ -276,10 +276,8 @@ async function computeDashboardStats(): Promise<DashboardOverviewStats> {
   };
 }
 
-/** Safely convert Firestore Timestamp, Date, or string to JS Date */
 function toDate(val: any): Date {
   if (!val) return new Date(0);
   if (val instanceof Date) return val;
-  if (typeof val.toDate === "function") return val.toDate();
   return new Date(val);
 }

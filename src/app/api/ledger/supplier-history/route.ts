@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getAllDocs } from "@/lib/prisma-helpers";
-import type { FirestoreLedger } from "@/types/firestore";
+import type { ApiLedger } from "@/types/models";
 
 // Helper to parse transaction notes
 const parseTransactionNote = (note: string) => {
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
         }
 
         // Fetch all ledger entries
-        const allEntries = await getAllDocs<FirestoreLedger>('ledger');
+        const allEntries = await getAllDocs<ApiLedger>('ledger');
 
         // Filter for debit entries (Cash-Out) that match the supplier name
         const supplierEntries = allEntries
@@ -77,14 +77,14 @@ export async function GET(req: NextRequest) {
             })
             .sort((a, b) => {
                 // Sort by date descending
-                const dateA = a.date instanceof Date ? a.date : (a.date?.toDate ? a.date.toDate() : new Date(a.date));
-                const dateB = b.date instanceof Date ? b.date : (b.date?.toDate ? b.date.toDate() : new Date(b.date));
+                const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+                const dateB = b.date instanceof Date ? b.date : new Date(b.date);
                 return dateB.getTime() - dateA.getTime();
             });
 
         // Group entries by order number
         const orderMap = new Map<string, {
-            entries: (FirestoreLedger & { id: string })[];
+            entries: (ApiLedger & { id: string })[];
             totalAmount: number;
             date: Date;
             orderNumber: string;
@@ -96,9 +96,7 @@ export async function GET(req: NextRequest) {
             const orderNum = parsed.orderNumber || entry.orderNumber?.toString() || `single-${entry.id}`;
 
             if (!orderMap.has(orderNum)) {
-                const entryDate = entry.date instanceof Date
-                    ? entry.date
-                    : (entry.date?.toDate ? entry.date.toDate() : new Date(entry.date));
+                const entryDate = entry.date instanceof Date ? entry.date : new Date(entry.date);
 
                 orderMap.set(orderNum, {
                     entries: [],
@@ -137,7 +135,7 @@ export async function GET(req: NextRequest) {
 
                 return {
                     id: order.orderNumber,
-                    entryIds: order.entries.map(e => e.id), // actual Firestore doc IDs
+                    entryIds: order.entries.map(e => e.id), // actual doc IDs
                     date: order.date.toISOString(),
                     orderNumber: order.orderNumber.startsWith('single-') ? "-" : order.orderNumber,
                     type: firstEntry.type,

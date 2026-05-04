@@ -152,7 +152,7 @@ export default function LedgerTable({
                 return (
                     <div className="flex items-center gap-2">
                         {itemType === "Customize" && (
-                            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-purple-100 text-purple-700 text-xs font-bold" title="Customized">
+                            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary/15 text-primary text-xs font-bold" title="Customized">
                                 C
                             </span>
                         )}

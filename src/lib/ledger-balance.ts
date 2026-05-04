@@ -1,5 +1,5 @@
 import { getAllDocs } from "@/lib/prisma-helpers";
-import type { FirestoreLedger, FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import type { ApiLedger, ApiDebt, ApiDebtPayment } from "@/types/models";
 import { getOrSetCache } from "@/lib/server-cache";
 import { getOrComputeStats } from "@/lib/stats-cache";
 
@@ -27,9 +27,9 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
     return getOrSetCache("ledger-balance:suppliers:v2", 30_000, async () => {
         return getOrComputeStats("ledger_balance_suppliers_v1", 60_000, async () => {
         const [ledgerEntries, debts, payments] = await Promise.all([
-            getAllDocs<FirestoreLedger>('ledger'),
-            getAllDocs<FirestoreDebt>('debts'),
-            getAllDocs<FirestoreDebtPayment>('debt_payments')
+            getAllDocs<ApiLedger>('ledger'),
+            getAllDocs<ApiDebt>('debts'),
+            getAllDocs<ApiDebtPayment>('debt_payments')
         ]);
 
         const supplierMap: Record<string, {
@@ -78,7 +78,7 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
         if (supplierName && entry.type === 'debit') {
             const party = getPartyData(supplierName);
             const totalAmount = Number(entry.amount);
-            const entryDate = entry.date instanceof Date ? entry.date : (entry.date?.toDate ? entry.date.toDate() : new Date(entry.date));
+            const entryDate = entry.date instanceof Date ? entry.date : new Date(entry.date);
 
             // DEDUPLICATION: Track order numbers per business (supplier)
             const orderKey = entry.orderNumber ? `${supplierName}_${entry.orderNumber}` : null;
@@ -153,7 +153,7 @@ export async function getSuppliersSummaries(): Promise<PartySummary[]> {
         if (debt.note?.toLowerCase().includes("supplier:")) {
             const party = getPartyData(debt.personName);
             const amount = Number(debt.amount);
-            const debtDate = debt.createdAt instanceof Date ? debt.createdAt : (debt.createdAt?.toDate ? debt.createdAt.toDate() : new Date(debt.createdAt));
+            const debtDate = debt.createdAt instanceof Date ? debt.createdAt : new Date(debt.createdAt);
 
             if (debt.type === 'loaned_in') {
                 // We received a loan equivalent to buying on credit
@@ -199,9 +199,9 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
     return getOrSetCache("ledger-balance:customers:v2", 30_000, async () => {
         return getOrComputeStats("ledger_balance_customers_v1", 60_000, async () => {
         const [ledgerEntries, debts, payments] = await Promise.all([
-            getAllDocs<FirestoreLedger>('ledger'),
-            getAllDocs<FirestoreDebt>('debts'),
-            getAllDocs<FirestoreDebtPayment>('debt_payments')
+            getAllDocs<ApiLedger>('ledger'),
+            getAllDocs<ApiDebt>('debts'),
+            getAllDocs<ApiDebtPayment>('debt_payments')
         ]);
 
     const customerMap: Record<string, {
@@ -249,7 +249,7 @@ export async function getCustomersSummaries(): Promise<PartySummary[]> {
         if (customerName && entry.type === 'credit') {
             const party = getPartyData(customerName);
             const totalAmount = Number(entry.amount);
-            const entryDate = entry.date instanceof Date ? entry.date : (entry.date?.toDate ? entry.date.toDate() : new Date(entry.date));
+            const entryDate = entry.date instanceof Date ? entry.date : new Date(entry.date);
 
             // DEDUPLICATION
             const orderKey = entry.orderNumber ? `${customerName}_${entry.orderNumber}` : null;

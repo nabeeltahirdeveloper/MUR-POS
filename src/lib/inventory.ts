@@ -1,17 +1,17 @@
 import { queryDocs, getDocById, getSettings } from "./prisma-helpers";
-import type { FirestoreStockLog, FirestoreItem } from "@/types/firestore";
+import type { ApiStockLog, ApiItem } from "@/types/models";
 
 // Cache for items to reduce reads during repeated checks
-const itemCache: Record<string, { data: FirestoreItem; timestamp: number }> = {};
+const itemCache: Record<string, { data: ApiItem; timestamp: number }> = {};
 const CACHE_TTL = 60000 * 5; // 5 minutes
 
-export async function getCachedItem(itemId: string): Promise<FirestoreItem | null> {
+export async function getCachedItem(itemId: string): Promise<ApiItem | null> {
     const cached = itemCache[itemId];
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         return cached.data;
     }
 
-    const item = await getDocById<FirestoreItem>('items', itemId);
+    const item = await getDocById<ApiItem>('items', itemId);
     if (item) {
         itemCache[itemId] = { data: item, timestamp: Date.now() };
     }
@@ -42,7 +42,7 @@ export async function getCachedLedgerCategory(id: string): Promise<any> {
  * Returns the quantity in BASE unit.
  */
 export async function calculateCurrentStock(itemId: string | number): Promise<number> {
-    const logs = await queryDocs<FirestoreStockLog>('stock_logs', [
+    const logs = await queryDocs<ApiStockLog>('stock_logs', [
         { field: 'itemId', operator: '==', value: String(itemId) }
     ]);
 

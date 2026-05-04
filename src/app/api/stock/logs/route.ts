@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryDocs, getDocById } from "@/lib/prisma-helpers";
-import type { FirestoreStockLog, FirestoreItem, FirestoreUnit } from "@/types/firestore";
+import type { ApiStockLog, ApiItem, ApiUnit } from "@/types/models";
 
 export async function GET(request: NextRequest) {
     try {
@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
         }
 
         // Query stock logs - try with orderBy first, fallback to without if it fails
-        let logs: (FirestoreStockLog & { id: string })[];
+        let logs: (ApiStockLog & { id: string })[];
         try {
-            logs = await queryDocs<FirestoreStockLog>('stock_logs', [
+            logs = await queryDocs<ApiStockLog>('stock_logs', [
                 { field: 'itemId', operator: '==', value: String(itemId) }
             ], {
                 orderBy: 'createdAt',
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
             });
         } catch (orderByError) {
             // If orderBy fails (e.g., missing index), try without orderBy
-            logs = await queryDocs<FirestoreStockLog>('stock_logs', [
+            logs = await queryDocs<ApiStockLog>('stock_logs', [
                 { field: 'itemId', operator: '==', value: String(itemId) }
             ]);
             // Sort manually in memory
@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
         }
 
         // Fetch item details for each log
-        const item = await getDocById<FirestoreItem>('items', String(itemId));
-        const baseUnit = item?.baseUnitId ? await getDocById<FirestoreUnit>('units', item.baseUnitId) : null;
+        const item = await getDocById<ApiItem>('items', String(itemId));
+        const baseUnit = item?.baseUnitId ? await getDocById<ApiUnit>('units', item.baseUnitId) : null;
 
         const logsWithItem = logs.map(log => ({
             ...log,

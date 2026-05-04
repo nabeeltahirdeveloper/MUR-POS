@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     }
 
     // === Read 1 precomputed doc + settings (usually cached) + daily summary (cached 5min) ===
-    // Total: 1-3 Firestore reads instead of 20-25
+    // Total: 1-3 database reads instead of 20-25
     const [stats, settings, dailySummary] = await Promise.all([
       getDashboardStats(),
       getSettings(),

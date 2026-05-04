@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateDoc, deleteDoc, getDocById, softDeleteDoc } from "@/lib/prisma-helpers";
 import { auth } from "@/auth";
-import type { FirestoreExpense } from "@/types/firestore";
+import type { ApiExpense } from "@/types/models";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCacheByPrefix } from "@/lib/server-cache";
 import { isSystemLocked } from "@/lib/lock";
@@ -21,7 +21,7 @@ export async function PATCH(
         const body = await request.json();
         const { name, amount, dueDate, category, status } = body;
 
-        const updateData: Partial<FirestoreExpense> = {};
+        const updateData: Partial<ApiExpense> = {};
         if (name !== undefined) updateData.name = name;
         if (amount !== undefined) updateData.amount = Number(amount);
         if (dueDate !== undefined) updateData.dueDate = new Date(dueDate);
@@ -29,7 +29,7 @@ export async function PATCH(
         if (status !== undefined) updateData.status = status;
 
         // Check if this is a payment (status changing to paid)
-        const existingExpense = await getDocById<FirestoreExpense>('other_expenses', id);
+        const existingExpense = await getDocById<ApiExpense>('other_expenses', id);
         const isPayment = existingExpense && existingExpense.status === 'unpaid' && status === 'paid';
 
         // Capture paidAt date when marking as paid
@@ -39,7 +39,7 @@ export async function PATCH(
 
         await updateDoc('other_expenses', id, updateData);
 
-        const updated = await getDocById<FirestoreExpense>('other_expenses', id);
+        const updated = await getDocById<ApiExpense>('other_expenses', id);
         invalidateCacheByPrefix("daily-summary:");
         triggerDashboardStatsRefresh();
         return NextResponse.json(updated);

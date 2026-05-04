@@ -90,20 +90,20 @@ function LoginForm() {
     return (
         <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12 sm:px-6 lg:px-8">
             <div className="absolute inset-0 z-0 overflow-hidden">
-                <div className="absolute -top-[10%] -left-[10%] h-[40%] w-[40%] rounded-full bg-primary/10 blur-[120px]" />
-                <div className="absolute -bottom-[10%] -right-[10%] h-[40%] w-[40%] rounded-full bg-primary-dark/10 blur-[120px]" />
+                <div className="absolute -top-[10%] -left-[10%] h-[40%] w-[40%] rounded-full bg-white/10 blur-[120px]" />
+                <div className="absolute -bottom-[10%] -right-[10%] h-[40%] w-[40%] rounded-full bg-white/5 blur-[120px]" />
             </div>
 
             <div className="relative z-10 w-full max-w-md space-y-8">
                 <div className="text-center">
                     <div className="mx-auto h-24 w-24 rounded-2xl bg-slate-900 p-1 shadow-2xl border border-slate-800 flex items-center justify-center">
-                        <img src="/favicon.jpg" alt="Logo" className="h-full w-full rounded-xl object-cover" />
+                        <img src="/favicon.jpeg" alt="Logo" className="h-full w-full rounded-xl object-cover" />
                     </div>
-                    <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-white">
+                    <h2 className="font-serif mt-6 text-3xl font-extrabold tracking-tight text-white">
                         Welcome Back
                     </h2>
                     <p className="mt-2 text-sm text-slate-400">
-                        Sign in to your Moon Traders account
+                        Sign in to your MUR Traders account
                     </p>
                 </div>
 
@@ -175,7 +175,7 @@ function LoginForm() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="group relative flex w-full justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-slate-900 transition-all hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            className="group relative flex w-full justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                             {loading ? (
                                 <svg className="h-5 w-5 animate-spin text-slate-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

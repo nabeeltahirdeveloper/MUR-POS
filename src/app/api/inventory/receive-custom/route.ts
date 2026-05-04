@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from "@/auth";
 import { createDoc, updateDoc, getDocById, getAllDocs } from '@/lib/prisma-helpers';
-import type { FirestoreLedger, FirestoreItem } from '@/types/firestore';
+import type { ApiLedger, ApiItem } from '@/types/models';
 
 export async function POST(req: NextRequest) {
     try {
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 0. Auto-assign order number
-        const items = await getAllDocs<FirestoreItem>('items');
+        const items = await getAllDocs<ApiItem>('items');
         let maxOrderNum = 0;
         items.forEach(item => {
             if (item.orderNumber) {
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
         // 2. Link Ledger Entry
         if (ledgerId) {
-            const ledgerEntry = await getDocById<FirestoreLedger>('ledger', ledgerId);
+            const ledgerEntry = await getDocById<ApiLedger>('ledger', ledgerId);
 
             if (ledgerEntry) {
                 let note = ledgerEntry.note || "";

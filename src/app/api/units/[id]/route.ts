@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { updateDoc, deleteDoc, getDocById, queryDocs, softDeleteDoc } from "@/lib/prisma-helpers";
 import { auth } from "@/auth";
-import type { FirestoreUnit } from "@/types/firestore";
+import type { ApiUnit } from "@/types/models";
 
 export async function PUT(
     req: Request,
@@ -24,7 +24,7 @@ export async function PUT(
         const trimmedSymbol = symbol ? symbol.trim() : "";
 
         // Check if unit exists
-        const currentUnit = await getDocById<FirestoreUnit>('units', id);
+        const currentUnit = await getDocById<ApiUnit>('units', id);
         if (!currentUnit) {
             return NextResponse.json(
                 { error: "Unit not found" },
@@ -34,7 +34,7 @@ export async function PUT(
 
         // Check for duplicate name if name is changing
         if (trimmedName.toLowerCase() !== currentUnit.name.toLowerCase()) {
-            const existing = await queryDocs<FirestoreUnit>('units', [
+            const existing = await queryDocs<ApiUnit>('units', [
                 { field: 'name', operator: '==', value: trimmedName }
             ]);
 
@@ -51,7 +51,7 @@ export async function PUT(
             symbol: trimmedSymbol
         });
 
-        const updatedUnit = await getDocById<FirestoreUnit>('units', id);
+        const updatedUnit = await getDocById<ApiUnit>('units', id);
 
         return NextResponse.json(updatedUnit);
     } catch (error) {
@@ -71,7 +71,7 @@ export async function DELETE(
         const { id } = await params;
 
         // Check if unit exists
-        const currentUnit = await getDocById<FirestoreUnit>('units', id);
+        const currentUnit = await getDocById<ApiUnit>('units', id);
         if (!currentUnit) {
             return NextResponse.json(
                 { error: "Unit not found" },

@@ -1,0 +1,23 @@
+﻿
+> moon-electric@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.19.160.1:3000
+- Environments: .env.local, .env
+
+✓ Starting...
+node.exe : ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: 
+https://nextjs.org/docs/messages/middleware-to-proxy
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (⚠ The "middlewa...leware-to-proxy:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+✓ Ready in 2.7s
+ GET / 200 in 3.0s (compile: 2.3s, proxy.ts: 151ms, render: 575ms)
+ GET /api/lock/status 200 in 648ms (compile: 481ms, proxy.ts: 27ms, render: 140ms)
+ GET /api/auth/session 200 in 1726ms (compile: 1662ms, proxy.ts: 28ms, render: 36ms)
+ GET /api/auth/session 200 in 40ms (compile: 16ms, proxy.ts: 9ms, render: 15ms)

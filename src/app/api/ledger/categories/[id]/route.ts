@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDocById, updateDoc, queryDocs, deleteDoc, softDeleteDoc } from "@/lib/prisma-helpers";
-import type { FirestoreLedgerCategory, FirestoreLedger } from "@/types/firestore";
+import type { ApiLedgerCategory, ApiLedger } from "@/types/models";
 
 export async function PUT(
     req: NextRequest,
@@ -27,7 +27,7 @@ export async function PUT(
         const trimmedName = name.trim();
 
         // Check if name exists for another category
-        const existing = await queryDocs<FirestoreLedgerCategory>('ledger_categories', [
+        const existing = await queryDocs<ApiLedgerCategory>('ledger_categories', [
             { field: 'name', operator: '==', value: trimmedName }
         ]);
 
@@ -38,11 +38,11 @@ export async function PUT(
             );
         }
 
-        await updateDoc<Partial<FirestoreLedgerCategory>>('ledger_categories', id, {
+        await updateDoc<Partial<ApiLedgerCategory>>('ledger_categories', id, {
             name: trimmedName,
         });
 
-        const updatedCategory = await getDocById<FirestoreLedgerCategory>('ledger_categories', id);
+        const updatedCategory = await getDocById<ApiLedgerCategory>('ledger_categories', id);
         if (!updatedCategory) {
             return NextResponse.json({ error: "Category not found" }, { status: 404 });
         }
@@ -70,7 +70,7 @@ export async function DELETE(
         const { id } = await params;
 
         // Check usage
-        const usage = await queryDocs<FirestoreLedger>('ledger', [
+        const usage = await queryDocs<ApiLedger>('ledger', [
             { field: 'categoryId', operator: '==', value: id }
         ]);
 

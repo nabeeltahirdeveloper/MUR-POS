@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDocById, queryDocs, updateDoc, createDoc } from "@/lib/prisma-helpers";
-import type { FirestorePurchaseOrder, FirestorePurchaseOrderItem, FirestoreStockLog } from "@/types/firestore";
+import type { ApiPurchaseOrder, ApiPurchaseOrderItem, ApiStockLog } from "@/types/models";
 import { syncLowStockReminderForItem } from "@/lib/reminders";
 
 export async function POST(
@@ -10,7 +10,7 @@ export async function POST(
     try {
         const { id } = await params;
 
-        const po = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        const po = await getDocById<ApiPurchaseOrder>('purchase_orders', id);
 
         if (!po) {
             throw new Error("Purchase Order not found");
@@ -28,7 +28,7 @@ export async function POST(
             throw new Error("Purchase Order must be approved before receiving");
         }
 
-        const poItems = await queryDocs<FirestorePurchaseOrderItem>('purchase_order_items', [
+        const poItems = await queryDocs<ApiPurchaseOrderItem>('purchase_order_items', [
             { field: 'orderId', operator: '==', value: id }
         ]);
 
@@ -54,7 +54,7 @@ export async function POST(
         const uniqueItemIds = Array.from(new Set(poItems.map((i) => String(i.itemId))));
         await Promise.all(uniqueItemIds.map((itemId) => syncLowStockReminderForItem(itemId)));
 
-        const updatedPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        const updatedPO = await getDocById<ApiPurchaseOrder>('purchase_orders', id);
 
         return NextResponse.json(updatedPO);
     } catch (error: any) {

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getAllDocs, createDoc, queryDocs } from "@/lib/prisma-helpers";
-import type { FirestoreCategory } from "@/types/firestore";
+import type { ApiCategory } from "@/types/models";
 
 export async function GET() {
     try {
-        const categories = await getAllDocs<FirestoreCategory>('categories', {
+        const categories = await getAllDocs<ApiCategory>('categories', {
             orderBy: 'name',
             orderDirection: 'asc',
         });
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         const trimmedName = name.trim();
 
         // Check for duplicate
-        const existing = await queryDocs<FirestoreCategory>('categories', [
+        const existing = await queryDocs<ApiCategory>('categories', [
             { field: 'name', operator: '==', value: trimmedName }
         ]);
 
@@ -45,11 +45,11 @@ export async function POST(req: Request) {
             );
         }
 
-        const categoryId = await createDoc<Omit<FirestoreCategory, 'id'>>('categories', {
+        const categoryId = await createDoc<Omit<ApiCategory, 'id'>>('categories', {
             name: trimmedName,
         });
 
-        const category = await import('@/lib/prisma-helpers').then(m => m.getDocById<FirestoreCategory>('categories', categoryId));
+        const category = await import('@/lib/prisma-helpers').then(m => m.getDocById<ApiCategory>('categories', categoryId));
 
         return NextResponse.json(category, { status: 201 });
     } catch (error) {

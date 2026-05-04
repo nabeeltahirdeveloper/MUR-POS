@@ -1,12 +1,26 @@
 import type { Metadata } from "next";
+import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-lora",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
-  title: "MOON TRADERS | General Order Supplier",
-  description: "MOON TRADERS - Your Trust, Our Promise. Professional General Order Supplier services.",
+  title: "MUR Traders",
+  description: "MUR Traders — business management.",
   icons: {
-    icon: "/favicon.jpg",
-    apple: "/favicon.jpg",
+    icon: "/favicon.jpeg",
+    apple: "/favicon.jpeg",
   },
 };
 
@@ -19,17 +33,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${lora.variable}`} suppressHydrationWarning>
       <body
-        className={`antialiased`}
+        className="antialiased font-sans"
         suppressHydrationWarning
       >
         <Providers>{children}</Providers>
-        <div className="text-center py-4 text-sm text-gray-500">
-          <span>
-            © {new Date().getFullYear()} Moon Traders. All rights reserved.
-          </span>
-        </div>
       </body>
     </html >
   );

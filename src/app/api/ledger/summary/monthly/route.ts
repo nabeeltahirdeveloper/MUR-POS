@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { Timestamp } from "@/lib/prisma-helpers";
 import { queryDocs, getDocById } from "@/lib/prisma-helpers";
-import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreCategory, FirestoreUtility, FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import type { ApiLedger, ApiLedgerCategory, ApiCategory, ApiUtility, ApiDebt, ApiDebtPayment } from "@/types/models";
 
 export async function GET(req: NextRequest) {
     try {
@@ -39,28 +38,28 @@ export async function GET(req: NextRequest) {
 
         // Fetch all entries for the month
         const [entries, paidByDate, allDueThisMonth, debtsThisMonth, paymentsThisMonth] = await Promise.all([
-            queryDocs<FirestoreLedger>('ledger', [
-                { field: 'date', operator: '>=', value: Timestamp.fromDate(startDate) },
-                { field: 'date', operator: '<=', value: Timestamp.fromDate(endDate) },
+            queryDocs<ApiLedger>('ledger', [
+                { field: 'date', operator: '>=', value: startDate },
+                { field: 'date', operator: '<=', value: endDate },
             ], {
                 orderBy: 'date',
                 orderDirection: 'asc',
             }),
-            queryDocs<FirestoreUtility>('utilities', [
-                { field: 'paidAt', operator: '>=', value: Timestamp.fromDate(startDate) },
-                { field: 'paidAt', operator: '<=', value: Timestamp.fromDate(endDate) },
+            queryDocs<ApiUtility>('utilities', [
+                { field: 'paidAt', operator: '>=', value: startDate },
+                { field: 'paidAt', operator: '<=', value: endDate },
             ]),
-            queryDocs<FirestoreUtility>('utilities', [
-                { field: 'dueDate', operator: '>=', value: Timestamp.fromDate(startDate) },
-                { field: 'dueDate', operator: '<=', value: Timestamp.fromDate(endDate) },
+            queryDocs<ApiUtility>('utilities', [
+                { field: 'dueDate', operator: '>=', value: startDate },
+                { field: 'dueDate', operator: '<=', value: endDate },
             ]),
-            queryDocs<FirestoreDebt>('debts', [
-                { field: 'createdAt', operator: '>=', value: Timestamp.fromDate(startDate) },
-                { field: 'createdAt', operator: '<=', value: Timestamp.fromDate(endDate) },
+            queryDocs<ApiDebt>('debts', [
+                { field: 'createdAt', operator: '>=', value: startDate },
+                { field: 'createdAt', operator: '<=', value: endDate },
             ]),
-            queryDocs<FirestoreDebtPayment>('debt_payments', [
-                { field: 'date', operator: '>=', value: Timestamp.fromDate(startDate) },
-                { field: 'date', operator: '<=', value: Timestamp.fromDate(endDate) },
+            queryDocs<ApiDebtPayment>('debt_payments', [
+                { field: 'date', operator: '>=', value: startDate },
+                { field: 'date', operator: '<=', value: endDate },
             ]),
         ]);
 
@@ -80,11 +79,11 @@ export async function GET(req: NextRequest) {
         // Fetch categories for entries
         const entriesWithCategories = await Promise.all(
             entries.map(async (entry) => {
-                let category: FirestoreLedgerCategory | FirestoreCategory | null = null;
+                let category: ApiLedgerCategory | ApiCategory | null = null;
                 if (entry.categoryId) {
-                    category = await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId);
+                    category = await getDocById<ApiLedgerCategory>('ledger_categories', entry.categoryId);
                     if (!category) {
-                        category = await getDocById<FirestoreCategory>('categories', entry.categoryId);
+                        category = await getDocById<ApiCategory>('categories', entry.categoryId);
                     }
                 }
                 return {
@@ -152,8 +151,7 @@ export async function GET(req: NextRequest) {
                 processedOrderNumbers.add(orderNum);
             }
 
-            // Convert Firestore Timestamp to Date if needed
-            const entryDate = entry.date instanceof Date ? entry.date : (entry.date as any).toDate ? (entry.date as any).toDate() : new Date(entry.date);
+            const entryDate = entry.date instanceof Date ? entry.date : new Date(entry.date as any);
             const dateKey = entryDate.toISOString().split("T")[0];
 
             // Global Totals
@@ -233,7 +231,7 @@ export async function GET(req: NextRequest) {
 
         // 4. Process Debt Payments made this month
         // Build debt lookup map for O(1) access
-        const debtMap = new Map<string, FirestoreDebt>();
+        const debtMap = new Map<string, ApiDebt>();
         for (const d of debtsThisMonth) debtMap.set(d.id, d);
         // Also fetch debts referenced by payments that may have been created in a prior month
         const missingDebtIds = paymentsThisMonth
@@ -241,7 +239,7 @@ export async function GET(req: NextRequest) {
             .filter(id => !debtMap.has(id))
             .filter((id, idx, arr) => arr.indexOf(id) === idx);
         const missingDebts = await Promise.all(
-            missingDebtIds.map(id => getDocById<FirestoreDebt>('debts', id))
+            missingDebtIds.map(id => getDocById<ApiDebt>('debts', id))
         );
         for (const d of missingDebts) {
             if (d) debtMap.set(d.id, d);

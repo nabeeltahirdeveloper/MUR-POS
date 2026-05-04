@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDocById, updateDoc } from "@/lib/prisma-helpers";
-import type { FirestorePurchaseOrder } from "@/types/firestore";
+import type { ApiPurchaseOrder } from "@/types/models";
 
 export async function POST(
     request: NextRequest,
@@ -19,7 +19,7 @@ export async function POST(
             );
         }
 
-        const currentPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        const currentPO = await getDocById<ApiPurchaseOrder>('purchase_orders', id);
 
         if (!currentPO) {
             return NextResponse.json(
@@ -36,7 +36,7 @@ export async function POST(
         }
 
         // Enforce valid transitions
-        const next = status as FirestorePurchaseOrder["status"];
+        const next = status as ApiPurchaseOrder["status"];
         const curr = currentPO.status;
 
         const isValidTransition =
@@ -51,11 +51,11 @@ export async function POST(
             );
         }
 
-        await updateDoc<Partial<FirestorePurchaseOrder>>('purchase_orders', id, {
+        await updateDoc<Partial<ApiPurchaseOrder>>('purchase_orders', id, {
             status: next as any,
         });
 
-        const updatedPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        const updatedPO = await getDocById<ApiPurchaseOrder>('purchase_orders', id);
 
         return NextResponse.json(updatedPO);
     } catch (error) {

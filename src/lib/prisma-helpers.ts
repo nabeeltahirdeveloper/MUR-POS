@@ -1,5 +1,5 @@
 /**
- * Prisma-based drop-in replacement for firestore-helpers.ts
+ * Prisma-based drop-in replacement for database-helpers.ts
  *
  * Exports the same function signatures so API routes can switch
  * by changing one import line.
@@ -17,7 +17,7 @@ export function safeLimit(limit?: number | null): number {
 }
 
 // ─── Model Registry ──────────────────────────────────────────
-// Maps Firestore collection names to Prisma delegates
+// Maps database collection names to Prisma delegates
 
 type PrismaDelegate = {
     findMany: (args?: any) => Promise<any[]>;
@@ -66,11 +66,11 @@ function getModel(collection: string): PrismaDelegate {
 }
 
 // ─── Field name mapping ──────────────────────────────────────
-// Firestore uses camelCase field names, Prisma also uses camelCase
+// database uses camelCase field names, Prisma also uses camelCase
 // but some fields need mapping for orderBy/filter
 
 function mapFieldName(_collection: string, field: string): string {
-    // Most fields are identical between Firestore and Prisma
+    // Most fields are identical between database and Prisma
     // Add specific mappings here if needed
     const fieldMap: Record<string, string> = {
         quantityBaseUnit: "quantityBaseUnit",
@@ -125,11 +125,7 @@ function buildWhere(
 
     for (const filter of filters) {
         const field = mapFieldName(collection, filter.field);
-        // Convert Timestamp/Date objects to plain Date
         let value = filter.value;
-        if (value && typeof value === "object" && typeof value.toDate === "function") {
-            value = value.toDate();
-        }
         // Auto-parse string IDs to integers for FK fields (e.g., categoryId, itemId, supplierId)
         if (typeof value === "string" && /Id$/.test(field) && /^\d+$/.test(value)) {
             value = parseInt(value, 10);
@@ -167,19 +163,6 @@ function buildWhere(
 
     return where;
 }
-
-// ─── Timestamp compatibility shim ────────────────────────────
-// Legacy: routes still import Timestamp.fromDate(). It's a no-op passthrough.
-// TODO: Remove once all callers are updated to pass Date directly.
-
-export const Timestamp = {
-    fromDate(date: Date): Date {
-        return date;
-    },
-    now(): Date {
-        return new Date();
-    },
-};
 
 // ─── Settings cache ──────────────────────────────────────────
 
@@ -221,12 +204,8 @@ function cleanDataForWrite(data: Record<string, any>): Record<string, any> {
         }
     }
 
-    // Convert Firestore Timestamp objects to Date
+    // Convert ISO date strings to Date objects for DateTime fields
     for (const key of Object.keys(result)) {
-        if (result[key] && typeof result[key] === "object" && typeof result[key].toDate === "function") {
-            result[key] = result[key].toDate();
-        }
-        // Convert date strings to Date objects for DateTime fields
         if (typeof result[key] === "string" && /^\d{4}-\d{2}-\d{2}/.test(result[key])) {
             const d = new Date(result[key]);
             if (!isNaN(d.getTime())) {

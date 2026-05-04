@@ -1,43 +1,44 @@
 /**
- * Firestore document type definitions based on Prisma schema
- * All integer IDs are converted to strings for Firestore
+ * API/DTO type definitions for data returned by the data layer
+ * (lib/prisma-helpers.ts). All numeric IDs from Prisma are converted
+ * to strings for consistent API responses.
  */
 
-export interface FirestoreUser {
+export interface ApiUser {
     id: string;
     name: string;
     email: string;
     role: string;
-    createdAt: Date | any;
-    emailVerified?: Date | null | any;
+    createdAt: Date | string;
+    emailVerified?: Date | string | null;
     image?: string | null;
 }
 
-export interface FirestoreUnit {
+export interface ApiUnit {
     id: string;
     name: string;
     symbol?: string | null;
-    createdAt: Date | any;
-    deletedAt?: Date | null;
+    createdAt: Date | string;
+    deletedAt?: Date | string | null;
     deletedBy?: string | null;
 }
 
-export interface FirestoreUnitConversion {
+export interface ApiUnitConversion {
     id: string;
     fromUnitId: string;
     toUnitId: string;
     factor: number;
-    createdAt: Date | any;
+    createdAt: Date | string;
 }
 
-export interface FirestoreCategory {
+export interface ApiCategory {
     id: string;
     name: string;
-    deletedAt?: Date | null;
+    deletedAt?: Date | string | null;
     deletedBy?: string | null;
 }
 
-export interface FirestoreItem {
+export interface ApiItem {
     id: string;
     name: string;
     categoryId?: string | null;
@@ -51,28 +52,28 @@ export interface FirestoreItem {
     orderNumber?: number | null;
     image?: string | null;
     description?: string | null;
-    createdAt: Date | any;
-    deletedAt?: Date | null;
+    createdAt: Date | string;
+    deletedAt?: Date | string | null;
     deletedBy?: string | null;
 }
 
-export interface FirestoreStockLog {
+export interface ApiStockLog {
     id: string;
     itemId: string;
     type: 'in' | 'out';
     quantityBaseUnit: number;
     description?: string | null;
-    createdAt: Date | any;
+    createdAt: Date | string;
 }
 
-export interface FirestoreLedgerCategory {
+export interface ApiLedgerCategory {
     id: string;
     name: string;
-    deletedAt?: Date | null;
+    deletedAt?: Date | string | null;
     deletedBy?: string | null;
 }
 
-export interface FirestoreLedger {
+export interface ApiLedger {
     id: string;
     type: 'debit' | 'credit';
     amount: number;
@@ -82,43 +83,43 @@ export interface FirestoreLedger {
     note?: string | null;
     orderNumber?: number | null;
     status?: 'open' | 'closed';
-    date: Date | any;
-    createdAt: Date | any;
-    deletedAt?: Date | null;
+    date: Date | string;
+    createdAt: Date | string;
+    deletedAt?: Date | string | null;
     deletedBy?: string | null;
 }
 
-export interface FirestoreSupplier {
+export interface ApiSupplier {
     id: string;
     name: string;
     phone?: string | null;
     address?: string | null;
-    deletedAt?: Date | null;
+    deletedAt?: Date | string | null;
     deletedBy?: string | null;
 }
 
-export interface FirestoreCustomer {
+export interface ApiCustomer {
     id: string;
     name: string;
     phone?: string | null;
     address?: string | null;
-    deletedAt?: Date | null;
+    deletedAt?: Date | string | null;
     deletedBy?: string | null;
 }
 
-export interface FirestorePurchaseOrder {
+export interface ApiPurchaseOrder {
     id: string;
     supplierId?: string | null;
     status: 'draft' | 'pending' | 'approved' | 'received' | 'cancelled';
     totalAmount?: number | null;
     notes?: string | null;
     terms?: string | null;
-    createdAt: Date | any;
-    deletedAt?: Date | null;
+    createdAt: Date | string;
+    deletedAt?: Date | string | null;
     deletedBy?: string | null;
 }
 
-export interface FirestorePurchaseOrderItem {
+export interface ApiPurchaseOrderItem {
     id: string;
     orderId: string;
     itemId: string;
@@ -126,65 +127,64 @@ export interface FirestorePurchaseOrderItem {
     pricePerUnit: number;
 }
 
-export interface FirestoreExpense {
+export interface ApiExpense {
     id: string;
     name: string;
     amount: number;
-    dueDate: Date | any;
-    paidAt?: Date | any;
+    dueDate: Date | string;
+    paidAt?: Date | string | null;
     category?: string | null;
     status: 'paid' | 'unpaid';
-    createdAt: Date | any;
-    deletedAt?: Date | null;
+    createdAt: Date | string;
+    deletedAt?: Date | string | null;
     deletedBy?: string | null;
 }
 
-export interface FirestoreUtility {
+export interface ApiUtility {
     id: string;
     name: string;
     amount: number;
-    dueDate: Date | any;
-    paidAt?: Date | any; // Capture when the bill was paid
+    dueDate: Date | string;
+    paidAt?: Date | string | null;
     category?: string | null;
     status: 'paid' | 'unpaid';
-    createdAt: Date | any;
-    deletedAt?: Date | null;
+    createdAt: Date | string;
+    deletedAt?: Date | string | null;
     deletedBy?: string | null;
 }
 
-export interface FirestoreDebt {
+export interface ApiDebt {
     id: string;
     personName: string;
     type: 'loaned_out' | 'loaned_in';
     amount: number;
-    dueDate?: Date | null | any;
+    dueDate?: Date | string | null;
     note?: string | null;
     status: 'active' | 'paid';
-    createdAt: Date | any;
-    deletedAt?: Date | null;
+    createdAt: Date | string;
+    deletedAt?: Date | string | null;
     deletedBy?: string | null;
 }
 
-export interface FirestoreDebtPayment {
+export interface ApiDebtPayment {
     id: string;
     debtId: string;
     amount: number;
-    date: Date | any;
+    date: Date | string;
     note?: string | null;
 }
 
-
-export interface FirestoreReminder {
+export interface ApiReminder {
     id: string;
     type: 'low_stock' | 'bill_due' | 'debt_due';
     referenceId?: string | null;
     message?: string | null;
     triggered?: boolean | null;
-    createdAt: Date | any;
+    createdAt: Date | string;
 }
 
-export interface FirestoreSettings {
-    id: string; // 'global'
+export interface ApiSettings {
+    id: string;
     businessProfile: {
         name: string;
         address?: string | null;
@@ -206,5 +206,5 @@ export interface FirestoreSettings {
         emailEnabled: boolean;
         alertTypes: string[];
     };
-    updatedAt: Date | any;
+    updatedAt: Date | string;
 }

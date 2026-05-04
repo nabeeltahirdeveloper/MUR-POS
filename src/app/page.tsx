@@ -69,10 +69,12 @@ export default async function Home() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/favicon.jpg" alt="Logo" className="h-9 w-9 rounded-lg object-cover" />
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
-              Moon Traders
+          <Link href="/" className="flex items-center gap-3">
+            <div className="rounded-xl ring-1 ring-white/15 shadow-[0_0_20px_rgba(255,255,255,0.5),0_0_6px_rgba(255,255,255,0.35)]">
+              <img src="/favicon.jpeg" alt="Logo" className="h-11 w-11 rounded-xl object-cover block" />
+            </div>
+            <span className="font-serif text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+              MUR Traders
             </span>
           </Link>
           <div className="flex items-center gap-4">
@@ -104,8 +106,8 @@ export default async function Home() {
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-6 overflow-hidden">
         {/* Background glow effects */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-primary-dark/10 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-pulse delay-1000" />
 
         <div className="relative max-w-7xl mx-auto text-center">
           {/* Badge */}
@@ -114,21 +116,22 @@ export default async function Home() {
             <span className="text-sm text-slate-300">Business Management Simplified</span>
           </div>
 
+          {/* Logo lockup */}
+          <div className="flex justify-center mb-8">
+            <div className="rounded-2xl ring-1 ring-white/15 shadow-[0_0_80px_rgba(255,255,255,0.55),0_0_20px_rgba(255,255,255,0.4)]">
+              <img src="/favicon.jpeg" alt="MUR Traders" className="h-24 w-24 rounded-2xl object-cover block" />
+            </div>
+          </div>
+
           {/* Main heading */}
-          <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6">
-            <span className="text-white">Professional</span>
-            <br />
-            <span className="bg-gradient-to-r from-primary via-primary to-primary-dark bg-clip-text text-transparent">
-              General Order Supplier
-            </span>
-            <br />
-            <span className="text-white">Solutions</span>
+          <h1 className="font-serif text-5xl md:text-7xl font-bold leading-tight mb-6 text-white">
+            MUR Traders
           </h1>
 
           {/* Subheadline */}
           <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 text-balance">
-            Your Trust, Our Promise. All-in-one management for inventory, ledger,
-            and orders, tailored for efficient supplier operations.
+            Power your business with the future of trading technology.
+            Reliable. Modern. Simplified.
           </p>
 
           {/* CTA Buttons */}
@@ -165,7 +168,7 @@ export default async function Home() {
               { value: "24/7", label: "Access Anywhere" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</div>
+                <div className="text-3xl md:text-4xl font-bold text-white">{stat.value}</div>
                 <div className="text-sm text-slate-500 mt-1">{stat.label}</div>
               </div>
             ))}
@@ -178,12 +181,12 @@ export default async function Home() {
         <div className="max-w-7xl mx-auto">
           {/* Section header */}
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="font-serif text-3xl md:text-4xl font-bold text-white mb-4">
               Everything You Need to
-              <span className="bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent"> Succeed</span>
+              <span className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent"> Succeed</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto">
-              Powerful features designed specifically for electrical supply businesses to streamline operations and boost productivity.
+              Powerful features designed to streamline operations and boost productivity.
             </p>
           </div>
 
@@ -192,10 +195,10 @@ export default async function Home() {
             {features.map((feature, index) => (
               <div
                 key={feature.title}
-                className="group p-6 bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl hover:bg-slate-800/50 hover:border-primary/30 transition-all duration-300 hover:-translate-y-1"
+                className="group p-6 bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl hover:bg-slate-800/50 hover:border-white/20 transition-all duration-300 hover:-translate-y-1"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="mb-4 text-primary group-hover:scale-110 transition-transform duration-300">
+                <div className="mb-4 text-white group-hover:scale-110 transition-transform duration-300">
                   <feature.Icon className="h-10 w-10" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
@@ -211,9 +214,9 @@ export default async function Home() {
         <div className="max-w-7xl mx-auto">
           {/* Section header */}
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="font-serif text-3xl md:text-4xl font-bold text-white mb-4">
               Get Started in
-              <span className="bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent"> 3 Simple Steps</span>
+              <span className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent"> 3 Simple Steps</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto">
               From signup to full business management in minutes, not days.
@@ -226,12 +229,12 @@ export default async function Home() {
               <div key={step.number} className="relative">
                 {/* Connector line */}
                 {index < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-12 left-1/2 w-full h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
+                  <div className="hidden md:block absolute top-12 left-1/2 w-full h-0.5 bg-gradient-to-r from-white/40 to-transparent" />
                 )}
 
                 <div className="relative text-center p-6">
                   {/* Step number */}
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-dark text-slate-900 text-xl font-bold mb-6 shadow-lg shadow-primary/30">
+                  <div className="font-serif inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-white to-slate-300 text-slate-900 text-xl font-bold mb-6 shadow-lg shadow-white/10">
                     {step.number}
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-2">{step.title}</h3>
@@ -251,11 +254,11 @@ export default async function Home() {
             <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary-dark/5 blur-3xl" />
 
             <div className="relative">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              <h2 className="font-serif text-3xl md:text-4xl font-bold text-white mb-4">
                 Ready to Transform Your Business?
               </h2>
               <p className="text-slate-400 mb-8 max-w-xl mx-auto">
-                Join businesses that trust Moon Traders to manage their operations efficiently.
+                Join businesses that trust MUR Traders to manage their operations efficiently.
               </p>
               {/* <Link
                 href="/signup"
@@ -270,36 +273,43 @@ export default async function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-6 border-t border-slate-800/50">
+      <footer className="relative py-16 px-6 border-t border-white/10">
+        {/* Subtle gold accent line at top of footer */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             {/* Brand */}
-            <div className="flex items-center gap-2">
-              <img src="/favicon.jpg" alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
-                Moon Traders
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg ring-1 ring-white/15 shadow-[0_0_18px_rgba(255,255,255,0.45)]">
+                <img src="/favicon.jpeg" alt="Logo" className="h-10 w-10 rounded-lg object-cover block" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-serif text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent leading-none">
+                  MUR Traders
+                </span>
+                <span className="text-[10px] uppercase tracking-widest text-slate-500 mt-1">
+                  Power your business
+                </span>
+              </div>
             </div>
 
             {/* Links */}
             <div className="flex items-center gap-8">
               {session ? (
-                <Link href="/dashboard" className="text-sm text-slate-400 hover:text-white transition-colors">
+                <Link href="/dashboard" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
                   Dashboard
                 </Link>
               ) : (
-                <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">
+                <Link href="/login" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
                   Sign In
                 </Link>
               )}
-              {/* <Link href="/signup" className="text-sm text-slate-400 hover:text-white transition-colors">
-                Sign Up
-              </Link> */}
             </div>
 
             {/* Copyright */}
             <p className="text-sm text-slate-500">
-              © {new Date().getFullYear()} Moon Traders. All rights reserved.
+              © {new Date().getFullYear()} MUR Traders. All rights reserved.
             </p>
           </div>
         </div>

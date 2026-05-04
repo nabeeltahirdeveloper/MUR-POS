@@ -78,7 +78,7 @@ export default function SignupPage() {
                 {/* Logo and Header */}
                 <div className="text-center">
                     <div className="mx-auto h-24 w-24 rounded-2xl bg-slate-900 p-1 shadow-2xl border border-slate-800 flex items-center justify-center">
-                        <img src="/favicon.jpg" alt="Logo" className="h-full w-full rounded-xl object-cover" />
+                        <img src="/favicon.jpeg" alt="Logo" className="h-full w-full rounded-xl object-cover" />
                     </div>
                     <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-white">
                         Registration Disabled
@@ -95,7 +95,7 @@ export default function SignupPage() {
 
                     <Link
                         href="/login"
-                        className="inline-flex items-center justify-center rounded-xl bg-primary px-8 py-3 text-sm font-semibold text-slate-900 transition-all hover:bg-primary-dark"
+                        className="inline-flex items-center justify-center rounded-xl bg-primary px-8 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark"
                     >
                         Back to Login
                     </Link>

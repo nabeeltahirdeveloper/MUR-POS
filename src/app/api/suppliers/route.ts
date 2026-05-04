@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllDocs, createDoc } from "@/lib/prisma-helpers";
 import { isSystemLocked } from "@/lib/lock";
-import type { FirestoreSupplier } from "@/types/firestore";
+import type { ApiSupplier } from "@/types/models";
 
 export const runtime = "nodejs";
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
 
     try {
-        const suppliers = await getAllDocs<FirestoreSupplier>('suppliers', {
+        const suppliers = await getAllDocs<ApiSupplier>('suppliers', {
             orderBy: 'name',
             orderDirection: 'asc',
         });
@@ -65,15 +65,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const supplierData: Omit<FirestoreSupplier, 'id'> = {
+        const supplierData: Omit<ApiSupplier, 'id'> = {
             name,
             phone: phone || null,
             address: address || null,
         };
 
-        const supplierId = await createDoc<Omit<FirestoreSupplier, 'id'>>('suppliers', supplierData);
+        const supplierId = await createDoc<Omit<ApiSupplier, 'id'>>('suppliers', supplierData);
         const { getDocById } = await import('@/lib/prisma-helpers');
-        const supplier = await getDocById<FirestoreSupplier>('suppliers', supplierId);
+        const supplier = await getDocById<ApiSupplier>('suppliers', supplierId);
 
         return NextResponse.json(supplier, { status: 201 });
     } catch (error) {

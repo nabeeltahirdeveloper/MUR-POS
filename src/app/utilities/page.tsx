@@ -19,12 +19,12 @@ import {
     TrashIcon,
     PencilSquareIcon,
 } from "@heroicons/react/24/outline";
-import type { FirestoreUtility } from "@/types/firestore";
+import type { ApiUtility } from "@/types/models";
 
 function UtilitiesPageContent() {
     const searchParams = useSearchParams();
     const { showConfirm } = useAlert();
-    const [utilities, setUtilities] = useState<FirestoreUtility[]>([]);
+    const [utilities, setUtilities] = useState<ApiUtility[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -113,7 +113,7 @@ function UtilitiesPageContent() {
         }
     };
 
-    const toggleStatus = async (utility: FirestoreUtility) => {
+    const toggleStatus = async (utility: ApiUtility) => {
         const newStatus = utility.status === "paid" ? "unpaid" : "paid";
         try {
             const res = await fetch(`/api/utilities/${utility.id}`, {
@@ -139,7 +139,7 @@ function UtilitiesPageContent() {
         }
     };
 
-    const startEdit = (utility: FirestoreUtility) => {
+    const startEdit = (utility: ApiUtility) => {
         const dateStr = utility.dueDate instanceof Date
             ? utility.dueDate.toISOString().split("T")[0]
             : new Date(utility.dueDate).toISOString().split("T")[0];
@@ -188,7 +188,7 @@ function UtilitiesPageContent() {
         {
             key: "name",
             header: "Utility Name",
-            render: (value: string, row: FirestoreUtility) => (
+            render: (value: string, row: ApiUtility) => (
                 <div className="flex flex-col">
                     <span className="font-semibold text-gray-900">{value}</span>
                     <span className="text-xs text-gray-500">{row.category || "General"}</span>
@@ -218,11 +218,11 @@ function UtilitiesPageContent() {
         {
             key: "status",
             header: "Status",
-            render: (value: string, row: FirestoreUtility) => (
+            render: (value: string, row: ApiUtility) => (
                 <button
                     onClick={() => toggleStatus(row)}
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${value === "paid"
-                        ? "bg-green-100 text-green-800 hover:bg-green-200"
+                        ? "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
                         : "bg-red-100 text-red-800 hover:bg-red-200"
                         } cursor-pointer`}
                 >
@@ -234,11 +234,11 @@ function UtilitiesPageContent() {
         {
             key: "actions",
             header: "Actions",
-            render: (_: any, row: FirestoreUtility) => (
+            render: (_: any, row: ApiUtility) => (
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => startEdit(row)}
-                        className="text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                        className="text-gray-400 hover:text-primary transition-colors cursor-pointer"
                     >
                         <PencilSquareIcon className="h-5 w-5" />
                     </button>
@@ -304,12 +304,12 @@ function UtilitiesPageContent() {
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                        <div className="p-3 bg-blue-100 rounded-lg">
-                            <CalendarIcon className="h-6 w-6 text-blue-600" />
+                        <div className="p-3 bg-primary/15 rounded-lg">
+                            <CalendarIcon className="h-6 w-6 text-primary" />
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-500">Due within 7 days</p>
-                            <p className="text-2xl font-bold text-blue-600">{stats.upcomingCount}</p>
+                            <p className="text-2xl font-bold text-primary">{stats.upcomingCount}</p>
                         </div>
                     </div>
                 </div>
@@ -393,7 +393,7 @@ function UtilitiesPageContent() {
                     <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
                         <h3 className="font-bold text-gray-900 text-lg">Utility Bill List</h3>
                         <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span className="inline-block w-2 h-2 rounded-full bg-primary/100"></span>
                             {utilities.length} Total
                         </div>
                     </div>

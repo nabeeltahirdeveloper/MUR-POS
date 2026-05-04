@@ -51,13 +51,23 @@ function BatchReceiptContent() {
                 });
 
                 const total = combinedItems.reduce((acc, it) => acc + it.amount, 0);
+                const hasRealItems = combinedItems.some(it =>
+                    it.name &&
+                    it.name !== "-" &&
+                    !/direct payment/i.test(it.name)
+                );
 
-                // Fetch computed balance from API (source of truth)
-                let remaining: number | undefined = undefined;
+                const isPaymentOnly = !hasRealItems;
 
-                if (meta.title && meta.title !== "-") {
+                // Remaining:
+                // - For payment-only entries, use the note's own Remaining (snapshot at the time of this transaction)
+                //   so the receipt matches the Recent Transactions row.
+                // - For item purchases, fetch the live balance API as the source of truth.
+                let remaining: number | undefined = isPaymentOnly ? meta.remaining : undefined;
+                const isSupplier = (first.note || "").includes("Supplier:");
+
+                if (!isPaymentOnly && meta.title && meta.title !== "-") {
                     try {
-                        const isSupplier = (first.note || "").includes("Supplier:");
                         const balanceEndpoint = isSupplier ? "/api/ledger/suppliers" : "/api/ledger/customers";
                         const balRes = await fetch(balanceEndpoint, { cache: 'no-store' });
                         if (balRes.ok) {
@@ -106,6 +116,15 @@ function BatchReceiptContent() {
                     console.error("Failed to fetch history for receipt", e);
                 }
 
+                // For payment-only receipts:
+                //   PAID        = advance (this transaction's payment)
+                //   BALANCE DUE = remaining (state right after this payment)
+                //   TOTAL BILL  = advance + remaining (state right before this payment)
+                const displayTotal = isPaymentOnly
+                    ? (Number(advance || 0) + Number(remaining || 0))
+                    : total;
+                const displayAdvance = advance;
+
                 setData({
                     title: "Order RECEIPT",
                     id: first.id, // Primary ID for QR
@@ -114,10 +133,11 @@ function BatchReceiptContent() {
                     customerName: meta.title,
                     customerPhone: meta.customerPhone,
                     customerAddress: meta.customerAddress,
-                    items: combinedItems,
-                    total: total,
-                    advance: advance,
+                    items: isPaymentOnly ? [] : combinedItems,
+                    total: displayTotal,
+                    advance: displayAdvance,
                     remaining: remaining,
+                    isPaymentOnly,
                     notes: `Batch of ${results.length} items`,
                     orderNumber: first.orderNumber || meta.orderNumber,
                     history: history

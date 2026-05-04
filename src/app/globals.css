@@ -8,10 +8,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter), Arial, Helvetica, sans-serif;
+  --font-serif: var(--font-lora), Georgia, "Times New Roman", serif;
   --font-mono: var(--font-geist-mono);
-  --color-primary: #4fd1c5;
-  --color-primary-dark: #38b2ac;
+  --color-primary: #111827;
+  --color-primary-dark: #374151;
+  --color-success: #047857;
+  --color-text-secondary: #4B5563;
 }
 
 /* Dark mode disabled - app is light-mode only */
@@ -19,7 +22,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* Ensure form elements have readable text color on light backgrounds */

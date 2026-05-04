@@ -19,12 +19,12 @@ import {
     TrashIcon,
     PencilSquareIcon,
 } from "@heroicons/react/24/outline";
-import type { FirestoreExpense } from "@/types/firestore";
+import type { ApiExpense } from "@/types/models";
 
 function OtherExpensesPageContent() {
     const searchParams = useSearchParams();
     const { showConfirm } = useAlert();
-    const [expenses, setExpenses] = useState<FirestoreExpense[]>([]);
+    const [expenses, setExpenses] = useState<ApiExpense[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -112,7 +112,7 @@ function OtherExpensesPageContent() {
         }
     };
 
-    const toggleStatus = async (expense: FirestoreExpense) => {
+    const toggleStatus = async (expense: ApiExpense) => {
         const newStatus = expense.status === "paid" ? "unpaid" : "paid";
         try {
             const res = await fetch(`/api/other-expenses/${expense.id}`, {
@@ -138,7 +138,7 @@ function OtherExpensesPageContent() {
         }
     };
 
-    const startEdit = (expense: FirestoreExpense) => {
+    const startEdit = (expense: ApiExpense) => {
         const dateStr = expense.dueDate instanceof Date
             ? expense.dueDate.toISOString().split("T")[0]
             : new Date(expense.dueDate).toISOString().split("T")[0];
@@ -187,7 +187,7 @@ function OtherExpensesPageContent() {
         {
             key: "name",
             header: "Expense Name",
-            render: (value: string, row: FirestoreExpense) => (
+            render: (value: string, row: ApiExpense) => (
                 <div className="flex flex-col">
                     <span className="font-semibold text-gray-900">{value}</span>
                     <span className="text-xs text-gray-500">{row.category || "General"}</span>
@@ -217,11 +217,11 @@ function OtherExpensesPageContent() {
         {
             key: "status",
             header: "Status",
-            render: (value: string, row: FirestoreExpense) => (
+            render: (value: string, row: ApiExpense) => (
                 <button
                     onClick={() => toggleStatus(row)}
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${value === "paid"
-                        ? "bg-green-100 text-green-800 hover:bg-green-200"
+                        ? "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
                         : "bg-red-100 text-red-800 hover:bg-red-200"
                         } cursor-pointer`}
                 >
@@ -233,7 +233,7 @@ function OtherExpensesPageContent() {
         {
             key: "actions",
             header: "Actions",
-            render: (_: any, row: FirestoreExpense) => (
+            render: (_: any, row: ApiExpense) => (
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => startEdit(row)}

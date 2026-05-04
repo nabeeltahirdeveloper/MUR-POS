@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getDocById, updateDoc } from '@/lib/prisma-helpers';
-import type { FirestoreUser } from '@/types/firestore';
+import type { ApiUser } from '@/types/models';
 
 export async function POST(req: Request) {
     try {
@@ -19,10 +19,10 @@ export async function POST(req: Request) {
         }
 
         // Update user in PostgreSQL
-        await updateDoc<Partial<FirestoreUser>>('users', session.user.id, { name });
+        await updateDoc<Partial<ApiUser>>('users', session.user.id, { name });
 
         // Get updated user
-        const updatedUser = await getDocById<FirestoreUser>('users', session.user.id);
+        const updatedUser = await getDocById<ApiUser>('users', session.user.id);
 
         if (!updatedUser) {
             return NextResponse.json({ message: 'User not found' }, { status: 404 });

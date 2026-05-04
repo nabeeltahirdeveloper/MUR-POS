@@ -3,7 +3,7 @@ import { getDocById, queryDocs, updateDoc, deleteDoc, softDeleteDoc } from "@/li
 import { auth } from "@/auth";
 import { calculateCurrentStock, checkLowStock } from "@/lib/inventory";
 import { syncLowStockReminderForItem } from "@/lib/reminders";
-import type { FirestoreItem, FirestoreCategory, FirestoreUnit } from "@/types/firestore";
+import type { ApiItem, ApiCategory, ApiUnit } from "@/types/models";
 
 export async function GET(
     request: NextRequest,
@@ -11,7 +11,7 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
-        const item = await getDocById<FirestoreItem>('items', id);
+        const item = await getDocById<ApiItem>('items', id);
 
         if (!item || item.deletedAt) {
             return NextResponse.json({ error: "Item not found" }, { status: 404 });
@@ -19,9 +19,9 @@ export async function GET(
 
         // Fetch related data
         const [category, baseUnit, saleUnit, supplier] = await Promise.all([
-            item.categoryId ? getDocById<FirestoreCategory>('categories', item.categoryId) : null,
-            item.baseUnitId ? getDocById<FirestoreUnit>('units', item.baseUnitId) : null,
-            item.saleUnitId ? getDocById<FirestoreUnit>('units', item.saleUnitId) : null,
+            item.categoryId ? getDocById<ApiCategory>('categories', item.categoryId) : null,
+            item.baseUnitId ? getDocById<ApiUnit>('units', item.baseUnitId) : null,
+            item.saleUnitId ? getDocById<ApiUnit>('units', item.saleUnitId) : null,
             item.supplierId ? getDocById<{ id: string; name: string }>('suppliers', item.supplierId) : null,
         ]);
 
@@ -72,7 +72,7 @@ export async function PUT(
         // TODO: Add check if we can change units safely if stock exists?
         // Start with basic update.
 
-        const updateData: Partial<FirestoreItem> = {};
+        const updateData: Partial<ApiItem> = {};
         if (name !== undefined) updateData.name = name;
         if (categoryId !== undefined) updateData.categoryId = categoryId || null;
         if (baseUnitId !== undefined) updateData.baseUnitId = baseUnitId || null;
@@ -94,7 +94,7 @@ export async function PUT(
         if (image !== undefined) updateData.image = image || null;
         if (description !== undefined) updateData.description = description || null;
 
-        await updateDoc<Partial<FirestoreItem>>('items', id, updateData);
+        await updateDoc<Partial<ApiItem>>('items', id, updateData);
 
         // If threshold changed (or item got updated), sync low-stock reminder immediately.
         if (minStockLevel !== undefined || name !== undefined) {
@@ -102,15 +102,15 @@ export async function PUT(
         }
 
         // Fetch updated item with relations
-        const updatedItem = await getDocById<FirestoreItem>('items', id);
+        const updatedItem = await getDocById<ApiItem>('items', id);
         if (!updatedItem) {
             return NextResponse.json({ error: "Item not found" }, { status: 404 });
         }
 
         const [category, baseUnit, saleUnit, supplier] = await Promise.all([
-            updatedItem.categoryId ? getDocById<FirestoreCategory>('categories', updatedItem.categoryId) : null,
-            updatedItem.baseUnitId ? getDocById<FirestoreUnit>('units', updatedItem.baseUnitId) : null,
-            updatedItem.saleUnitId ? getDocById<FirestoreUnit>('units', updatedItem.saleUnitId) : null,
+            updatedItem.categoryId ? getDocById<ApiCategory>('categories', updatedItem.categoryId) : null,
+            updatedItem.baseUnitId ? getDocById<ApiUnit>('units', updatedItem.baseUnitId) : null,
+            updatedItem.saleUnitId ? getDocById<ApiUnit>('units', updatedItem.saleUnitId) : null,
             updatedItem.supplierId ? getDocById<{ id: string; name: string }>('suppliers', updatedItem.supplierId) : null,
         ]);
 

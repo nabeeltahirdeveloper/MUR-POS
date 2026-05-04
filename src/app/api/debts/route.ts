@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllDocs, createDoc } from "@/lib/prisma-helpers";
-import type { FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import type { ApiDebt, ApiDebtPayment } from "@/types/models";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCacheByPrefix } from "@/lib/server-cache";
 import { isSystemLocked } from "@/lib/lock";
@@ -10,11 +10,11 @@ export const runtime = "nodejs";
 export async function GET() {
     try {
         const [debts, allPayments] = await Promise.all([
-            getAllDocs<FirestoreDebt>('debts', {
+            getAllDocs<ApiDebt>('debts', {
                 orderBy: 'createdAt',
                 orderDirection: 'desc',
             }),
-            getAllDocs<FirestoreDebtPayment>('debt_payments'),
+            getAllDocs<ApiDebtPayment>('debt_payments'),
         ]);
 
         // Group payments by debtId for O(1) lookup
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const debtData: Omit<FirestoreDebt, 'id'> = {
+        const debtData: Omit<ApiDebt, 'id'> = {
             personName,
             type,
             amount: Number(amount),
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(),
         };
 
-        const debtId = await createDoc<Omit<FirestoreDebt, 'id'>>('debts', debtData);
+        const debtId = await createDoc<Omit<ApiDebt, 'id'>>('debts', debtData);
 
         // Sync reminders if due date is provided
         if (debtData.dueDate) {

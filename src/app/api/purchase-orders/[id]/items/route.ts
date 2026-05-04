@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDocById, queryDocs, createDoc, updateDoc, deleteDoc } from "@/lib/prisma-helpers";
-import type { FirestorePurchaseOrder, FirestorePurchaseOrderItem, FirestoreSupplier, FirestoreItem, FirestoreUnit } from "@/types/firestore";
+import type { ApiPurchaseOrder, ApiPurchaseOrderItem, ApiSupplier, ApiItem, ApiUnit } from "@/types/models";
 
 export async function PUT(
     request: NextRequest,
@@ -18,7 +18,7 @@ export async function PUT(
             );
         }
 
-        const currentPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        const currentPO = await getDocById<ApiPurchaseOrder>('purchase_orders', id);
 
         if (!currentPO) {
             return NextResponse.json(
@@ -53,7 +53,7 @@ export async function PUT(
         });
 
         // Delete old items
-        const oldItems = await queryDocs<FirestorePurchaseOrderItem>('purchase_order_items', [
+        const oldItems = await queryDocs<ApiPurchaseOrderItem>('purchase_order_items', [
             { field: 'orderId', operator: '==', value: id }
         ]);
         
@@ -63,31 +63,31 @@ export async function PUT(
 
         // Insert new items
         for (const item of cleanItems) {
-            await createDoc<Omit<FirestorePurchaseOrderItem, 'id'>>('purchase_order_items', item);
+            await createDoc<Omit<ApiPurchaseOrderItem, 'id'>>('purchase_order_items', item);
         }
 
         // Update PO total
-        await updateDoc<Partial<FirestorePurchaseOrder>>('purchase_orders', id, {
+        await updateDoc<Partial<ApiPurchaseOrder>>('purchase_orders', id, {
             totalAmount,
         });
 
         // Fetch updated PO with relations
-        const updatedPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        const updatedPO = await getDocById<ApiPurchaseOrder>('purchase_orders', id);
         if (!updatedPO) {
             throw new Error('Failed to fetch updated purchase order');
         }
 
         const supplier = updatedPO.supplierId 
-            ? await getDocById<FirestoreSupplier>('suppliers', updatedPO.supplierId)
+            ? await getDocById<ApiSupplier>('suppliers', updatedPO.supplierId)
             : null;
 
-        const poItems = await queryDocs<FirestorePurchaseOrderItem>('purchase_order_items', [
+        const poItems = await queryDocs<ApiPurchaseOrderItem>('purchase_order_items', [
             { field: 'orderId', operator: '==', value: id }
         ]);
 
         const itemsWithDetails = await Promise.all(
             poItems.map(async (poItem) => {
-                const item = await getDocById<FirestoreItem>('items', poItem.itemId);
+                const item = await getDocById<ApiItem>('items', poItem.itemId);
                 return {
                     ...poItem,
                     item,

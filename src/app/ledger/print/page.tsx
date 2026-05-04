@@ -217,7 +217,26 @@ function LedgerPrintContent() {
                     }
                 `}</style>
 
-                <div className="text-center mb-1 pt-4">
+                {/* Faded brand watermark behind the report */}
+                <img
+                    src="/favicon.jpeg"
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-x-0 top-1/3 mx-auto h-40 w-40 rounded-2xl opacity-[0.04] pointer-events-none select-none print:opacity-[0.06]"
+                    style={{ zIndex: 0 }}
+                />
+
+                <div className="text-center mb-1 pt-4 relative z-10">
+                    <div className="flex justify-center mb-2">
+                        <img
+                            src="/favicon.jpeg"
+                            alt="MUR Traders"
+                            className="h-12 w-12 rounded-lg object-cover"
+                        />
+                    </div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-black mb-1">
+                        MUR Traders
+                    </p>
                     <h1 className="text-xl font-black uppercase tracking-tight break-words relative z-50 receipt-title">
                         {view === 'customers' ? 'CUS. LIST' : 'LEDGER RPT'}
                     </h1>

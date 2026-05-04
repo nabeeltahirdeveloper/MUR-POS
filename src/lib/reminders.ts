@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
 import { getDocById } from "./prisma-helpers";
 import { calculateCurrentStock } from "./inventory";
-import type { FirestoreItem, FirestoreUtility, FirestoreDebt } from "@/types/firestore";
+import type { ApiItem, ApiUtility, ApiDebt } from "@/types/models";
 
 import type { ReminderSourceRef, ReminderStatus, ReminderType } from "@/lib/reminders-shared";
 import {
@@ -129,7 +129,7 @@ export async function deleteReminder(id: string): Promise<void> {
 }
 
 export async function syncLowStockReminderForItem(itemId: string): Promise<void> {
-  const item = await getDocById<FirestoreItem>("items", String(itemId));
+  const item = await getDocById<ApiItem>("items", String(itemId));
   const id = reminderDocId("low_stock", String(itemId));
 
   const min = item?.minStockLevel ?? null;
@@ -171,7 +171,7 @@ function fmtDate(d: Date): string {
 }
 
 export async function syncUtilityReminders(utilityId: string): Promise<void> {
-  const u = await getDocById<FirestoreUtility>("utilities", utilityId);
+  const u = await getDocById<ApiUtility>("utilities", utilityId);
   const now = new Date();
   if (!u || !u.dueDate) return;
 
@@ -225,7 +225,7 @@ export async function syncUtilityReminders(utilityId: string): Promise<void> {
 }
 
 export async function syncDebtReminders(debtId: string): Promise<void> {
-  const d = await getDocById<FirestoreDebt>("debts", debtId);
+  const d = await getDocById<ApiDebt>("debts", debtId);
   const now = new Date();
   if (!d || !d.dueDate) return;
 

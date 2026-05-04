@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Timestamp } from "@/lib/prisma-helpers";
 import { queryDocs, getAllDocs, getDocById, createDoc } from "@/lib/prisma-helpers";
-import type { FirestorePurchaseOrder, FirestoreSupplier } from "@/types/firestore";
+import type { ApiPurchaseOrder, ApiSupplier } from "@/types/models";
 
 
 export async function GET(request: NextRequest) {
@@ -18,7 +17,7 @@ export async function GET(request: NextRequest) {
     try {
         const filters: Array<{ field: string; operator: '<' | '<=' | '==' | '>' | '>=' | '!=' | 'array-contains' | 'in' | 'array-contains-any'; value: any }> = [];
 
-        // ONLY apply Equality filters to Firestore to allow chaining without composite indexes.
+        // ONLY apply Equality filters to database to allow chaining without composite indexes.
         // Mixing Equality + Inequality (Range) + Sort usually requires specific indexes.
         // To be safe, we filter Status/Supplier in DB, and Date in Memory.
         if (status) {
@@ -29,18 +28,18 @@ export async function GET(request: NextRequest) {
             filters.push({ field: 'supplierId', operator: '==', value: supplierId });
         }
 
-        let purchaseOrders: FirestorePurchaseOrder[];
+        let purchaseOrders: ApiPurchaseOrder[];
 
         if (filters.length > 0) {
             // Apply strict equality filters only.
             // DO NOT apply orderBy here to avoid "Equality + Sort" index requirements.
-            purchaseOrders = await queryDocs<FirestorePurchaseOrder>('purchase_orders', filters);
+            purchaseOrders = await queryDocs<ApiPurchaseOrder>('purchase_orders', filters);
         } else {
             // No filters? Safe to use native sort.
             // However, to ensure consistency with Date filtering later, maybe fetch all and sort in memory?
             // "getAllDocs" naturally supports simple ordering.
             // Let's use it for efficiency when no filters are present.
-            purchaseOrders = await getAllDocs<FirestorePurchaseOrder>('purchase_orders', {
+            purchaseOrders = await getAllDocs<ApiPurchaseOrder>('purchase_orders', {
                 orderBy: 'createdAt',
                 orderDirection: 'desc',
             });
@@ -74,7 +73,7 @@ export async function GET(request: NextRequest) {
             const supplierIds = new Set<string>();
 
             // Find matching suppliers
-            const allSuppliers = await getAllDocs<FirestoreSupplier>('suppliers');
+            const allSuppliers = await getAllDocs<ApiSupplier>('suppliers');
             allSuppliers.forEach(supplier => {
                 if (supplier.name.toLowerCase().includes(searchLower)) {
                     supplierIds.add(supplier.id);
@@ -104,7 +103,7 @@ export async function GET(request: NextRequest) {
         const posWithSuppliers = await Promise.all(
             paginatedPOs.map(async (po) => {
                 const supplier = po.supplierId
-                    ? await getDocById<FirestoreSupplier>('suppliers', po.supplierId)
+                    ? await getDocById<ApiSupplier>('suppliers', po.supplierId)
                     : null;
                 return {
                     ...po,
@@ -144,7 +143,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const poData: Omit<FirestorePurchaseOrder, 'id'> = {
+        const poData: Omit<ApiPurchaseOrder, 'id'> = {
             supplierId: supplierId || null,
             notes: notes || null,
             terms: terms || null,
@@ -153,15 +152,15 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(),
         };
 
-        const poId = await createDoc<Omit<FirestorePurchaseOrder, 'id'>>('purchase_orders', poData);
-        const purchaseOrder = await getDocById<FirestorePurchaseOrder>('purchase_orders', poId);
+        const poId = await createDoc<Omit<ApiPurchaseOrder, 'id'>>('purchase_orders', poData);
+        const purchaseOrder = await getDocById<ApiPurchaseOrder>('purchase_orders', poId);
 
         if (!purchaseOrder) {
             throw new Error('Failed to fetch created purchase order');
         }
 
         const supplier = purchaseOrder.supplierId
-            ? await getDocById<FirestoreSupplier>('suppliers', purchaseOrder.supplierId)
+            ? await getDocById<ApiSupplier>('suppliers', purchaseOrder.supplierId)
             : null;
 
         return NextResponse.json({

@@ -8,16 +8,16 @@
  *  - Wrapped in server-cache with 5-minute TTL, invalidated on writes
  */
 
-import { queryDocs, getDocById, Timestamp } from "@/lib/prisma-helpers";
+import { queryDocs, getDocById} from "@/lib/prisma-helpers";
 import { getOrSetCache } from "@/lib/server-cache";
 import type {
-  FirestoreLedger,
-  FirestoreDebt,
-  FirestoreDebtPayment,
-  FirestoreUtility,
-  FirestoreLedgerCategory,
-  FirestoreCategory,
-} from "@/types/firestore";
+  ApiLedger,
+  ApiDebt,
+  ApiDebtPayment,
+  ApiUtility,
+  ApiLedgerCategory,
+  ApiCategory,
+} from "@/types/models";
 
 export interface CategoryBreakdownItem {
   name: string;
@@ -55,29 +55,29 @@ async function computeDailySummary(dateStr: string): Promise<DailySummaryResult>
   const [entries, debtsToday, allPaymentsToday, paidUtilitiesByPaidAt, dueUtilitiesToday] =
     await Promise.all([
       // Ledger entries for the day
-      queryDocs<FirestoreLedger>("ledger", [
-        { field: "date", operator: ">=", value: Timestamp.fromDate(startOfDay) },
-        { field: "date", operator: "<=", value: Timestamp.fromDate(endOfDay) },
+      queryDocs<ApiLedger>("ledger", [
+        { field: "date", operator: ">=", value: startOfDay },
+        { field: "date", operator: "<=", value: endOfDay },
       ]),
       // New debts created today
-      queryDocs<FirestoreDebt>("debts", [
-        { field: "createdAt", operator: ">=", value: Timestamp.fromDate(startOfDay) },
-        { field: "createdAt", operator: "<=", value: Timestamp.fromDate(endOfDay) },
+      queryDocs<ApiDebt>("debts", [
+        { field: "createdAt", operator: ">=", value: startOfDay },
+        { field: "createdAt", operator: "<=", value: endOfDay },
       ]),
       // Debt payments made today
-      queryDocs<FirestoreDebtPayment>("debt_payments", [
-        { field: "date", operator: ">=", value: Timestamp.fromDate(startOfDay) },
-        { field: "date", operator: "<=", value: Timestamp.fromDate(endOfDay) },
+      queryDocs<ApiDebtPayment>("debt_payments", [
+        { field: "date", operator: ">=", value: startOfDay },
+        { field: "date", operator: "<=", value: endOfDay },
       ]),
       // Utilities paid today (by paidAt — modern field)
-      queryDocs<FirestoreUtility>("utilities", [
-        { field: "paidAt", operator: ">=", value: Timestamp.fromDate(startOfDay) },
-        { field: "paidAt", operator: "<=", value: Timestamp.fromDate(endOfDay) },
+      queryDocs<ApiUtility>("utilities", [
+        { field: "paidAt", operator: ">=", value: startOfDay },
+        { field: "paidAt", operator: "<=", value: endOfDay },
       ]),
       // Legacy: utilities whose dueDate is today AND status is paid (handles old records without paidAt)
-      queryDocs<FirestoreUtility>("utilities", [
-        { field: "dueDate", operator: ">=", value: Timestamp.fromDate(startOfDay) },
-        { field: "dueDate", operator: "<=", value: Timestamp.fromDate(endOfDay) },
+      queryDocs<ApiUtility>("utilities", [
+        { field: "dueDate", operator: ">=", value: startOfDay },
+        { field: "dueDate", operator: "<=", value: endOfDay },
       ]),
     ]);
 
@@ -95,9 +95,9 @@ async function computeDailySummary(dateStr: string): Promise<DailySummaryResult>
     allPaymentsToday
       .map((p) => p.debtId)
       .filter((id, idx, arr) => arr.indexOf(id) === idx) // unique debt IDs
-      .map((debtId) => getDocById<FirestoreDebt>("debts", debtId))
+      .map((debtId) => getDocById<ApiDebt>("debts", debtId))
   );
-  const debtMap = new Map<string, FirestoreDebt & { id: string }>();
+  const debtMap = new Map<string, ApiDebt & { id: string }>();
   for (const debt of allDebtsForPayments) {
     if (debt) debtMap.set(debt.id, debt);
   }
@@ -108,8 +108,8 @@ async function computeDailySummary(dateStr: string): Promise<DailySummaryResult>
   ];
   const categoryResults = await Promise.all(
     uniqueCategoryIds.map(async (catId) => {
-      let cat = await getDocById<FirestoreLedgerCategory>("ledger_categories", catId);
-      if (!cat) cat = await getDocById<FirestoreCategory>("categories", catId) as any;
+      let cat = await getDocById<ApiLedgerCategory>("ledger_categories", catId);
+      if (!cat) cat = await getDocById<ApiCategory>("categories", catId) as any;
       return [catId, cat] as const;
     })
   );

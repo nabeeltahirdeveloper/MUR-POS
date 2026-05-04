@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createDoc, getDocById, updateDoc, queryDocs } from "@/lib/prisma-helpers";
-import type { FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import type { ApiDebt, ApiDebtPayment } from "@/types/models";
 import { isSystemLocked } from "@/lib/lock";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCacheByPrefix } from "@/lib/server-cache";
@@ -27,7 +27,7 @@ export async function POST(
             );
         }
 
-        const debt = await getDocById<FirestoreDebt>('debts', debtId);
+        const debt = await getDocById<ApiDebt>('debts', debtId);
         if (!debt) {
             return NextResponse.json({ error: "Debt not found" }, { status: 404 });
         }
@@ -37,7 +37,7 @@ export async function POST(
         }
 
         // Check for overpayment
-        const existingPayments = await queryDocs<FirestoreDebtPayment>('debt_payments', [
+        const existingPayments = await queryDocs<ApiDebtPayment>('debt_payments', [
             { field: 'debtId', operator: '==', value: debtId }
         ]);
         const alreadyPaid = existingPayments.reduce((sum, p) => sum + Number(p.amount), 0);
@@ -50,14 +50,14 @@ export async function POST(
             );
         }
 
-        const paymentData: Omit<FirestoreDebtPayment, 'id'> = {
+        const paymentData: Omit<ApiDebtPayment, 'id'> = {
             debtId,
             amount: Number(amount),
             date: date ? new Date(date) : new Date(),
             note: note || null,
         };
 
-        const paymentId = await createDoc<Omit<FirestoreDebtPayment, 'id'>>('debt_payments', paymentData);
+        const paymentId = await createDoc<Omit<ApiDebtPayment, 'id'>>('debt_payments', paymentData);
 
         // Check if debt is fully paid (alreadyPaid + this payment)
         const totalPaid = alreadyPaid + Number(amount);

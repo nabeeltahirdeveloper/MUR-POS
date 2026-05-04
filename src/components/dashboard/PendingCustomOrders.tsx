@@ -66,20 +66,20 @@ export default function PendingCustomOrders() {
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-purple-50/50">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-purple-100 rounded-lg">
-                        <ClipboardDocumentListIcon className="h-5 w-5 text-purple-600" />
+                    <div className="p-1.5 bg-gray-100 rounded-lg">
+                        <ClipboardDocumentListIcon className="h-5 w-5 text-gray-600" />
                     </div>
                     <h3 className="font-bold text-gray-900">Pending Custom Orders</h3>
                 </div>
-                <span className="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-1 rounded-full">{orders.length}</span>
+                <span className="text-xs font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded-full">{orders.length}</span>
             </div>
             <div className="flex-1">
                 {orders.length > 0 ? (
                     <div className="divide-y divide-gray-100">
                         {orders.map((order) => (
-                            <div key={order.id} className="px-6 py-4 flex items-center justify-between hover:bg-purple-50/30 transition-colors group">
+                            <div key={order.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group">
                                 <div className="flex flex-col gap-1">
                                     <span className="font-bold text-gray-900">{order.itemName}</span>
                                     <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -92,7 +92,7 @@ export default function PendingCustomOrders() {
                                 </div>
                                 <button
                                     onClick={() => handleReceive(order)}
-                                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all transform active:scale-95 cursor-pointer"
+                                    className="px-3 py-1.5 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-lg shadow-sm transition-all transform active:scale-95 cursor-pointer"
                                 >
                                     Receive
                                 </button>
@@ -101,8 +101,8 @@ export default function PendingCustomOrders() {
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
-                        <div className="p-3 bg-purple-50 rounded-full mb-3">
-                            <CheckCircleIcon className="h-6 w-6 text-purple-500" />
+                        <div className="p-3 bg-gray-100 rounded-full mb-3">
+                            <CheckCircleIcon className="h-6 w-6 text-gray-400" />
                         </div>
                         <p className="text-sm font-bold text-gray-500 mb-1">No Pending Custom Orders</p>
                         <p className="text-xs text-gray-400">All custom items have been processed.</p>

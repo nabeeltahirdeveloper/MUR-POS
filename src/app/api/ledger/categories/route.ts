@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getAllDocs, createDoc, queryDocs } from "@/lib/prisma-helpers";
-import type { FirestoreLedgerCategory } from "@/types/firestore";
+import type { ApiLedgerCategory } from "@/types/models";
 
 export async function GET(req: NextRequest) {
     try {
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const categories = await getAllDocs<FirestoreLedgerCategory>('ledger_categories', {
+        const categories = await getAllDocs<ApiLedgerCategory>('ledger_categories', {
             orderBy: 'name',
             orderDirection: 'asc',
         });
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         const trimmedName = name.trim();
 
         // Check for duplicate
-        const existing = await queryDocs<FirestoreLedgerCategory>('ledger_categories', [
+        const existing = await queryDocs<ApiLedgerCategory>('ledger_categories', [
             { field: 'name', operator: '==', value: trimmedName }
         ]);
 
@@ -56,11 +56,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const categoryId = await createDoc<Omit<FirestoreLedgerCategory, 'id'>>('ledger_categories', {
+        const categoryId = await createDoc<Omit<ApiLedgerCategory, 'id'>>('ledger_categories', {
             name: trimmedName,
         });
 
-        const category = await import('@/lib/prisma-helpers').then(m => m.getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
+        const category = await import('@/lib/prisma-helpers').then(m => m.getDocById<ApiLedgerCategory>('ledger_categories', categoryId));
 
         return NextResponse.json(category, { status: 201 });
     } catch (error) {

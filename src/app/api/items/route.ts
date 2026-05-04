@@ -3,7 +3,7 @@ import { getAllDocs, createDoc, queryDocs, getDocById } from "@/lib/prisma-helpe
 import { isSystemLocked } from "@/lib/lock";
 import { calculateCurrentStock, checkLowStock } from "@/lib/inventory";
 import { getReminderById, reminderDocId, upsertReminder } from "@/lib/reminders";
-import type { FirestoreItem, FirestoreCategory, FirestoreUnit } from "@/types/firestore";
+import type { ApiItem, ApiCategory, ApiUnit } from "@/types/models";
 
 export async function GET(request: NextRequest) {
     try {
@@ -11,17 +11,17 @@ export async function GET(request: NextRequest) {
         const categoryId = searchParams.get("categoryId");
         const search = searchParams.get("search");
 
-        let items: (FirestoreItem & { id: string })[];
+        let items: (ApiItem & { id: string })[];
 
         if (categoryId) {
-            items = await queryDocs<FirestoreItem>('items', [
+            items = await queryDocs<ApiItem>('items', [
                 { field: 'categoryId', operator: '==', value: categoryId }
             ], {
                 orderBy: 'orderNumber',
                 orderDirection: 'asc',
             });
         } else {
-            items = await getAllDocs<FirestoreItem>('items', {
+            items = await getAllDocs<ApiItem>('items', {
                 orderBy: 'orderNumber',
                 orderDirection: 'asc',
             });
@@ -45,9 +45,9 @@ export async function GET(request: NextRequest) {
         const itemsWithRelations = await Promise.all(
             items.map(async (item) => {
                 const [category, baseUnit, saleUnit, supplier] = await Promise.all([
-                    item.categoryId ? getDocById<FirestoreCategory>('categories', item.categoryId) : null,
-                    item.baseUnitId ? getDocById<FirestoreUnit>('units', item.baseUnitId) : null,
-                    item.saleUnitId ? getDocById<FirestoreUnit>('units', item.saleUnitId) : null,
+                    item.categoryId ? getDocById<ApiCategory>('categories', item.categoryId) : null,
+                    item.baseUnitId ? getDocById<ApiUnit>('units', item.baseUnitId) : null,
+                    item.saleUnitId ? getDocById<ApiUnit>('units', item.saleUnitId) : null,
                     item.supplierId ? getDocById<{ id: string; name: string }>('suppliers', item.supplierId) : null,
                 ]);
 
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Auto-assign order number
-        const items = await getAllDocs<FirestoreItem>('items');
+        const items = await getAllDocs<ApiItem>('items');
         let maxOrderNum = 0;
         items.forEach(item => {
             if (item.orderNumber) {
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
         });
         const nextOrderNumber = maxOrderNum + 1;
 
-        const itemData: Omit<FirestoreItem, 'id'> = {
+        const itemData: Omit<ApiItem, 'id'> = {
             name,
             categoryId: categoryId || null,
             baseUnitId: baseUnitId || null,
@@ -153,18 +153,18 @@ export async function POST(request: NextRequest) {
         };
 
         const { createDoc, getDocById } = await import('@/lib/prisma-helpers');
-        const itemId = await createDoc<Omit<FirestoreItem, 'id'>>('items', itemData);
+        const itemId = await createDoc<Omit<ApiItem, 'id'>>('items', itemData);
 
         // Fetch the created item with relations
-        const newItem = await getDocById<FirestoreItem>('items', itemId);
+        const newItem = await getDocById<ApiItem>('items', itemId);
         if (!newItem) {
             throw new Error('Failed to fetch created item');
         }
 
         const [category, baseUnit, saleUnit, supplier] = await Promise.all([
-            newItem.categoryId ? getDocById<FirestoreCategory>('categories', newItem.categoryId) : null,
-            newItem.baseUnitId ? getDocById<FirestoreUnit>('units', newItem.baseUnitId) : null,
-            newItem.saleUnitId ? getDocById<FirestoreUnit>('units', newItem.saleUnitId) : null,
+            newItem.categoryId ? getDocById<ApiCategory>('categories', newItem.categoryId) : null,
+            newItem.baseUnitId ? getDocById<ApiUnit>('units', newItem.baseUnitId) : null,
+            newItem.saleUnitId ? getDocById<ApiUnit>('units', newItem.saleUnitId) : null,
             newItem.supplierId ? getDocById<{ id: string; name: string }>('suppliers', newItem.supplierId) : null,
         ]);
 

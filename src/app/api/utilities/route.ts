@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllDocs, createDoc } from "@/lib/prisma-helpers";
-import type { FirestoreUtility } from "@/types/firestore";
+import type { ApiUtility } from "@/types/models";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCacheByPrefix } from "@/lib/server-cache";
 import { isSystemLocked } from "@/lib/lock";
@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 export async function GET() {
     try {
-        const utilities = await getAllDocs<FirestoreUtility>('utilities', {
+        const utilities = await getAllDocs<ApiUtility>('utilities', {
             orderBy: 'dueDate',
             orderDirection: 'asc',
         });
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const utilityData: Omit<FirestoreUtility, 'id'> = {
+        const utilityData: Omit<ApiUtility, 'id'> = {
             name,
             amount: Number(amount),
             dueDate: new Date(dueDate),
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(),
         };
 
-        const utilityId = await createDoc<Omit<FirestoreUtility, 'id'>>('utilities', utilityData);
+        const utilityId = await createDoc<Omit<ApiUtility, 'id'>>('utilities', utilityData);
 
         // Sync reminders immediately if due date is close
         const { syncUtilityReminders } = await import("@/lib/reminders");

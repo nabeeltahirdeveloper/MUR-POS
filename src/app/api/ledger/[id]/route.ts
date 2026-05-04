@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDocById } from "@/lib/prisma-helpers";
-import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreItem } from "@/types/firestore";
+import type { ApiLedger, ApiLedgerCategory, ApiItem } from "@/types/models";
 import { isSystemLocked } from "@/lib/lock";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCache, invalidateCacheByPrefix } from "@/lib/server-cache";
@@ -18,14 +18,14 @@ export async function GET(
         }
 
         const { id } = await params;
-        const entry = await getDocById<FirestoreLedger>('ledger', id);
+        const entry = await getDocById<ApiLedger>('ledger', id);
 
         if (!entry || entry.deletedAt) {
             return NextResponse.json({ error: "Entry not found" }, { status: 404 });
         }
 
         const category = entry.categoryId
-            ? await getDocById<FirestoreLedgerCategory>('ledger_categories', entry.categoryId)
+            ? await getDocById<ApiLedgerCategory>('ledger_categories', entry.categoryId)
             : null;
 
         return NextResponse.json({
@@ -59,7 +59,7 @@ export async function PUT(
         const body = await req.json();
         const { type, amount, categoryId, note, date, status, markPaid, itemId, quantity } = body;
 
-        const currentEntry = await getDocById<FirestoreLedger>('ledger', id);
+        const currentEntry = await getDocById<ApiLedger>('ledger', id);
         if (!currentEntry || currentEntry.deletedAt) {
             return NextResponse.json({ error: "Entry not found" }, { status: 404 });
         }
@@ -74,7 +74,7 @@ export async function PUT(
             }
         }
 
-        const updateData: Partial<FirestoreLedger> = {};
+        const updateData: Partial<ApiLedger> = {};
 
         if (status && (status === 'open' || status === 'closed')) {
             updateData.status = status;
@@ -104,7 +104,7 @@ export async function PUT(
         if (categoryId !== undefined) {
             if (categoryId) {
                 // Only set categoryId if it exists in ledger_categories (FK constraint)
-                const isLedgerCategory = !!(await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
+                const isLedgerCategory = !!(await getDocById<ApiLedgerCategory>('ledger_categories', categoryId));
                 updateData.categoryId = isLedgerCategory ? categoryId : null;
             } else {
                 updateData.categoryId = null;
@@ -158,7 +158,7 @@ export async function PUT(
                 try {
                     // Check if item exists and get conversion factor
                     // getDoc is aliased to getDocById from import
-                    const itemDoc = await getDoc<FirestoreItem>('items', newItemId);
+                    const itemDoc = await getDoc<ApiItem>('items', newItemId);
 
                     if (itemDoc) {
                         const conversionFactor = itemDoc.conversionFactor || 1;
@@ -179,7 +179,7 @@ export async function PUT(
             }
         }
 
-        await updateDoc<Partial<FirestoreLedger>>('ledger', id, updateData);
+        await updateDoc<Partial<ApiLedger>>('ledger', id, updateData);
 
         // --- Mark Paid / Stock Logic ---
         if (markPaid) {
@@ -192,7 +192,7 @@ export async function PUT(
                 const logs = await queryDocs<any>('stock_logs', [
                     { field: 'description', operator: '>=', value: `Auto-generated from Ledger ${type || 'credit'} entry #${id}` },
                     { field: 'description', operator: '<=', value: `Auto-generated from Ledger ${type || 'credit'} entry #${id}\uf8ff` }
-                    // Note: Firestore doesn't support logical OR in simple queries easily without multiple queries.
+                    // Note: database doesn't support logical OR in simple queries easily without multiple queries.
                     // So we might need to do a second check if the first returns empty.
                 ]);
 
@@ -210,7 +210,7 @@ export async function PUT(
 
                 if (!alreadyDeducted) {
                     // No stock log found. Proceed to deduct.
-                    const currentEntry = await getDoc<FirestoreLedger>('ledger', id);
+                    const currentEntry = await getDoc<ApiLedger>('ledger', id);
                     if (currentEntry) {
                         let itemId = currentEntry.itemId;
                         let quantity = currentEntry.quantity || 1;
@@ -235,7 +235,7 @@ export async function PUT(
                         if (itemId) {
                             // Get Item for Conversion Factor
                             let conversionFactor = 1;
-                            const itemDoc = await getDoc<FirestoreItem>('items', itemId);
+                            const itemDoc = await getDoc<ApiItem>('items', itemId);
                             if (itemDoc && itemDoc.conversionFactor) {
                                 conversionFactor = itemDoc.conversionFactor;
                             }
@@ -259,7 +259,7 @@ export async function PUT(
         }
         // -------------------------------
 
-        const updatedEntry = await getDocById<FirestoreLedger>('ledger', id);
+        const updatedEntry = await getDocById<ApiLedger>('ledger', id);
         if (!updatedEntry) {
             return NextResponse.json({ error: "Entry not found" }, { status: 404 });
         }
@@ -303,10 +303,10 @@ export async function DELETE(
         const deletedByUser = session.user?.email || session.user?.name || 'unknown';
 
         // 1. Identify entries to delete (either by direct ID or by Order Number)
-        let entriesToDelete: (FirestoreLedger & { id: string })[] = [];
+        let entriesToDelete: (ApiLedger & { id: string })[] = [];
 
         // Try direct ID first
-        const directEntry = await getDocById<FirestoreLedger>('ledger', id);
+        const directEntry = await getDocById<ApiLedger>('ledger', id);
         if (directEntry && !directEntry.deletedAt) {
             entriesToDelete = [directEntry];
         }

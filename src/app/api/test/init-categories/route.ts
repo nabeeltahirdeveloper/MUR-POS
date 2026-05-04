@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { createDoc, getAllDocs } from "@/lib/prisma-helpers";
-import type { FirestoreCategory } from "@/types/firestore";
+import type { ApiCategory } from "@/types/models";
 
 export async function POST() {
     try {
         // Check if categories already exist
-        const existing = await getAllDocs<FirestoreCategory>('categories');
+        const existing = await getAllDocs<ApiCategory>('categories');
         
         if (existing.length > 0) {
             return NextResponse.json(
@@ -27,7 +27,7 @@ export async function POST() {
 
         const created = [];
         for (const name of initialCategories) {
-            const id = await createDoc<Omit<FirestoreCategory, 'id'>>('categories', { name });
+            const id = await createDoc<Omit<ApiCategory, 'id'>>('categories', { name });
             created.push({ id, name });
         }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateDoc, getDocById, deleteDoc, softDeleteDoc } from "@/lib/prisma-helpers";
 import { auth } from "@/auth";
-import type { FirestoreCustomer } from "@/types/firestore";
+import type { ApiCustomer } from "@/types/models";
 
 export async function GET(
     request: NextRequest,
@@ -9,7 +9,7 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
-        const customer = await getDocById<FirestoreCustomer>("customers", id);
+        const customer = await getDocById<ApiCustomer>("customers", id);
 
         if (!customer) {
             return NextResponse.json({ error: "Customer not found" }, { status: 404 });
@@ -38,13 +38,13 @@ export async function PUT(
             );
         }
 
-        await updateDoc<Partial<FirestoreCustomer>>('customers', id, {
+        await updateDoc<Partial<ApiCustomer>>('customers', id, {
             name,
             phone: phone || null,
             address: address || null,
         });
 
-        const customer = await getDocById<FirestoreCustomer>('customers', id);
+        const customer = await getDocById<ApiCustomer>('customers', id);
         if (!customer) {
             return NextResponse.json({ error: "Customer not found" }, { status: 404 });
         }

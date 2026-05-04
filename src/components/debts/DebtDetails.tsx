@@ -14,16 +14,16 @@ import {
     ClipboardDocumentListIcon,
     CheckCircleIcon,
 } from "@heroicons/react/24/outline";
-import type { FirestoreDebt, FirestoreDebtPayment } from "@/types/firestore";
+import type { ApiDebt, ApiDebtPayment } from "@/types/models";
 
 interface DebtDetailsProps {
-    debt: FirestoreDebt;
+    debt: ApiDebt;
     isOpen: boolean;
     onClose: () => void;
 }
 
 export default function DebtDetails({ debt, isOpen, onClose }: DebtDetailsProps) {
-    const [details, setDetails] = useState<(FirestoreDebt & { payments: FirestoreDebtPayment[] }) | null>(null);
+    const [details, setDetails] = useState<(ApiDebt & { payments: ApiDebtPayment[] }) | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -96,8 +96,8 @@ export default function DebtDetails({ debt, isOpen, onClose }: DebtDetailsProps)
                 {/* Header */}
                 <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                     <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-xl ${debt.type === 'loaned_out' ? 'bg-blue-100' : 'bg-purple-100'}`}>
-                            {debt.type === 'loaned_out' ? <ArrowUpCircleIcon className="h-6 w-6 text-blue-600" /> : <ArrowDownCircleIcon className="h-6 w-6 text-purple-600" />}
+                        <div className={`p-3 rounded-xl ${debt.type === 'loaned_out' ? 'bg-primary/10' : 'bg-gray-100'}`}>
+                            {debt.type === 'loaned_out' ? <ArrowUpCircleIcon className="h-6 w-6 text-primary" /> : <ArrowDownCircleIcon className="h-6 w-6 text-gray-700" />}
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">{debt.personName}</h2>

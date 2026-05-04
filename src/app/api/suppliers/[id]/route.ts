@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateDoc, getDocById, deleteDoc, queryDocs, softDeleteDoc } from "@/lib/prisma-helpers";
 import { auth } from "@/auth";
-import type { FirestoreSupplier } from "@/types/firestore";
+import type { ApiSupplier } from "@/types/models";
 
 export async function GET(
     request: NextRequest,
@@ -9,7 +9,7 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
-        const supplier = await getDocById<FirestoreSupplier>("suppliers", id);
+        const supplier = await getDocById<ApiSupplier>("suppliers", id);
 
         if (!supplier) {
             return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
@@ -38,13 +38,13 @@ export async function PUT(
             );
         }
 
-        await updateDoc<Partial<FirestoreSupplier>>('suppliers', id, {
+        await updateDoc<Partial<ApiSupplier>>('suppliers', id, {
             name,
             phone: phone || null,
             address: address || null,
         });
 
-        const supplier = await getDocById<FirestoreSupplier>('suppliers', id);
+        const supplier = await getDocById<ApiSupplier>('suppliers', id);
         if (!supplier) {
             return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
         }

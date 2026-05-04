@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getAllDocs } from "@/lib/prisma-helpers";
-import type { FirestoreUnit } from "@/types/firestore";
+import type { ApiUnit } from "@/types/models";
 
 export async function GET() {
     try {
-        const units = await getAllDocs<FirestoreUnit>('units', {
+        const units = await getAllDocs<ApiUnit>('units', {
             orderBy: 'name',
             orderDirection: 'asc',
         });
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         const trimmedSymbol = symbol ? symbol.trim() : "";
 
         // Check for duplicate
-        const existing = await import('@/lib/prisma-helpers').then(m => m.queryDocs<FirestoreUnit>('units', [
+        const existing = await import('@/lib/prisma-helpers').then(m => m.queryDocs<ApiUnit>('units', [
             { field: 'name', operator: '==', value: trimmedName }
         ]));
 
@@ -46,14 +46,14 @@ export async function POST(req: Request) {
         }
 
         const createDoc = await import('@/lib/prisma-helpers').then(m => m.createDoc);
-        const unitId = await createDoc<Omit<FirestoreUnit, 'id'>>('units', {
+        const unitId = await createDoc<Omit<ApiUnit, 'id'>>('units', {
             name: trimmedName,
             symbol: trimmedSymbol,
             createdAt: new Date()
         });
 
         const getDocById = await import('@/lib/prisma-helpers').then(m => m.getDocById);
-        const unit = await getDocById<FirestoreUnit>('units', unitId);
+        const unit = await getDocById<ApiUnit>('units', unitId);
 
         return NextResponse.json(unit, { status: 201 });
     } catch (error) {

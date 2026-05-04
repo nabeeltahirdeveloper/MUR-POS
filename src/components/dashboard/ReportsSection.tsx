@@ -219,7 +219,7 @@ export default function ReportsSection() {
 
                 <div className="space-y-4">
                     <h4 className="font-bold text-gray-900 flex items-center gap-2 px-2">
-                        <TagIcon className="h-4 w-4 text-purple-500" />
+                        <TagIcon className="h-4 w-4 text-primary" />
                         Category Breakdown
                     </h4>
                     {categoryBreakdown.length > 0 ? (

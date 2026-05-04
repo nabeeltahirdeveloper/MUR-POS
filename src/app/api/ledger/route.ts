@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { Timestamp } from "@/lib/prisma-helpers";
 import { queryDocs, getDocById, getAllDocs } from "@/lib/prisma-helpers";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCache, invalidateCacheByPrefix } from "@/lib/server-cache";
 import { invalidateStatsCache } from "@/lib/stats-cache";
-import type { FirestoreLedger, FirestoreLedgerCategory, FirestoreDebt, FirestoreDebtPayment, FirestoreUtility, FirestoreExpense, FirestoreItem } from "@/types/firestore";
+import type { ApiLedger, ApiLedgerCategory, ApiDebt, ApiDebtPayment, ApiUtility, ApiExpense, ApiItem } from "@/types/models";
 import { isSystemLocked } from "@/lib/lock";
 
 export async function GET(req: NextRequest) {
@@ -42,24 +41,24 @@ export async function GET(req: NextRequest) {
         if (from) {
             const fromDate = new Date(from);
             fromDate.setHours(0, 0, 0, 0);
-            filters.push({ field: 'date', operator: '>=', value: Timestamp.fromDate(fromDate) });
+            filters.push({ field: 'date', operator: '>=', value: fromDate });
         }
 
         if (to) {
             const toDate = new Date(to);
             toDate.setHours(23, 59, 59, 999);
-            filters.push({ field: 'date', operator: '<=', value: Timestamp.fromDate(toDate) });
+            filters.push({ field: 'date', operator: '<=', value: toDate });
         }
 
         // Get all entries matching filters, then paginate in-memory after merging virtual entries.
         let entries: (any)[] = [];
 
         // Logic to support direct Order Number search
-        let specificOrderEntries: FirestoreLedger[] = [];
+        let specificOrderEntries: ApiLedger[] = [];
         if (search && /^\d+$/.test(search)) {
             try {
                 const orderNum = parseInt(search, 10);
-                specificOrderEntries = await queryDocs<FirestoreLedger>('ledger', [{ field: 'orderNumber', operator: '==', value: orderNum }]);
+                specificOrderEntries = await queryDocs<ApiLedger>('ledger', [{ field: 'orderNumber', operator: '==', value: orderNum }]);
             } catch (e) {
                 console.error("Failed to fetch specific order", e);
             }
@@ -69,11 +68,11 @@ export async function GET(req: NextRequest) {
         const queryOpts = { includeDeleted: showDeleted };
         const [rawLedger, rawDebts, rawPayments, rawUtilities] = await Promise.all([
             filters.length > 0
-                ? queryDocs<FirestoreLedger>('ledger', filters, { orderBy: 'date', orderDirection: 'desc', ...queryOpts })
-                : getAllDocs<FirestoreLedger>('ledger', { orderBy: 'date', orderDirection: 'desc', ...queryOpts }),
-            getAllDocs<FirestoreDebt>('debts', { orderBy: 'createdAt', orderDirection: 'desc' }),
-            getAllDocs<FirestoreDebtPayment>('debt_payments', { orderBy: 'date', orderDirection: 'desc' }),
-            getAllDocs<FirestoreUtility>('utilities', { orderBy: 'dueDate', orderDirection: 'desc' })
+                ? queryDocs<ApiLedger>('ledger', filters, { orderBy: 'date', orderDirection: 'desc', ...queryOpts })
+                : getAllDocs<ApiLedger>('ledger', { orderBy: 'date', orderDirection: 'desc', ...queryOpts }),
+            getAllDocs<ApiDebt>('debts', { orderBy: 'createdAt', orderDirection: 'desc' }),
+            getAllDocs<ApiDebtPayment>('debt_payments', { orderBy: 'date', orderDirection: 'desc' }),
+            getAllDocs<ApiUtility>('utilities', { orderBy: 'dueDate', orderDirection: 'desc' })
         ]);
 
         // Combine specific order search results with general results
@@ -104,7 +103,7 @@ export async function GET(req: NextRequest) {
 
         // 1. Process New Loans
         rawDebts.forEach(debt => {
-            const dDate = debt.createdAt instanceof Date ? debt.createdAt : (debt.createdAt?.toDate ? debt.createdAt.toDate() : new Date(debt.createdAt));
+            const dDate = debt.createdAt instanceof Date ? debt.createdAt : new Date(debt.createdAt);
             if (dateFrom && dDate < dateFrom) return;
             if (dateTo && dDate > dateTo) return;
             if (type && ((type === 'credit' && debt.type !== 'loaned_in') || (type === 'debit' && debt.type !== 'loaned_out'))) return;
@@ -122,7 +121,7 @@ export async function GET(req: NextRequest) {
 
         // 2. Process Loan Payments
         rawPayments.forEach(payment => {
-            const pDate = payment.date instanceof Date ? payment.date : (payment.date?.toDate ? payment.date.toDate() : new Date(payment.date));
+            const pDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
             if (dateFrom && pDate < dateFrom) return;
             if (dateTo && pDate > dateTo) return;
 
@@ -151,10 +150,10 @@ export async function GET(req: NextRequest) {
             // Use paidAt if available, otherwise fallback to dueDate or createdAt to guess when it was paid
             // For older records without paidAt, dueDate is the best proxy we have for "Cash Out" timing relation
             // unless we want to assume they were just paid "now" (which is wrong for history).
-            let uDate = util.dueDate instanceof Date ? util.dueDate : (util.dueDate?.toDate ? util.dueDate.toDate() : new Date(util.dueDate));
+            let uDate = util.dueDate instanceof Date ? util.dueDate : new Date(util.dueDate);
 
             if (util.paidAt) {
-                uDate = util.paidAt instanceof Date ? util.paidAt : (util.paidAt?.toDate ? util.paidAt.toDate() : new Date(util.paidAt));
+                uDate = util.paidAt instanceof Date ? util.paidAt : new Date(util.paidAt);
             }
 
             if (dateFrom && uDate < dateFrom) return;
@@ -174,15 +173,15 @@ export async function GET(req: NextRequest) {
         });
 
         // 4. Process Other Expenses (Paid)
-        const rawOtherExpenses = await getAllDocs<FirestoreExpense>('other_expenses', { orderBy: 'dueDate', orderDirection: 'desc' });
+        const rawOtherExpenses = await getAllDocs<ApiExpense>('other_expenses', { orderBy: 'dueDate', orderDirection: 'desc' });
 
         rawOtherExpenses.forEach(expense => {
             if (expense.status !== 'paid') return;
 
-            let eDate = expense.dueDate instanceof Date ? expense.dueDate : (expense.dueDate?.toDate ? expense.dueDate.toDate() : new Date(expense.dueDate));
+            let eDate = expense.dueDate instanceof Date ? expense.dueDate : new Date(expense.dueDate);
 
             if (expense.paidAt) {
-                eDate = expense.paidAt instanceof Date ? expense.paidAt : (expense.paidAt?.toDate ? expense.paidAt.toDate() : new Date(expense.paidAt));
+                eDate = expense.paidAt instanceof Date ? expense.paidAt : new Date(expense.paidAt);
             }
 
             if (dateFrom && eDate < dateFrom) return;
@@ -201,8 +200,8 @@ export async function GET(req: NextRequest) {
 
         // Merge and sort (skip virtual entries when viewing trash — trash only has real ledger records)
         entries = [...entries, ...(showDeleted ? [] : virtualEntries)].sort((a, b) => {
-            const da = a.date instanceof Date ? a.date : (a.date?.toDate ? a.date.toDate() : new Date(a.date));
-            const db = b.date instanceof Date ? b.date : (b.date?.toDate ? b.date.toDate() : new Date(b.date));
+            const da = a.date instanceof Date ? a.date : new Date(a.date);
+            const db = b.date instanceof Date ? b.date : new Date(b.date);
             return db.getTime() - da.getTime();
         });
 
@@ -327,7 +326,7 @@ export async function POST(req: NextRequest) {
         // If the categoryId is from the inventory categories table, clear it to avoid FK violation
         let validCategoryId: string | null = null;
         if (categoryId) {
-            const isLedgerCategory = !!(await getDocById<FirestoreLedgerCategory>('ledger_categories', categoryId));
+            const isLedgerCategory = !!(await getDocById<ApiLedgerCategory>('ledger_categories', categoryId));
             if (isLedgerCategory) {
                 validCategoryId = categoryId;
             }
@@ -346,7 +345,7 @@ export async function POST(req: NextRequest) {
 
         // Uniqueness Check for Order Number
         if (orderNumber) {
-            const existingEntries = await queryDocs<FirestoreLedger>('ledger', [{ field: 'orderNumber', operator: '==', value: orderNumber }]);
+            const existingEntries = await queryDocs<ApiLedger>('ledger', [{ field: 'orderNumber', operator: '==', value: orderNumber }]);
             if (existingEntries.length > 0) {
                 return NextResponse.json(
                     { error: `Order #${orderNumber} already exists. Please start a new transaction.` },
@@ -364,7 +363,7 @@ export async function POST(req: NextRequest) {
 
         if (itemId) {
             try {
-                const itemDoc = await getDocById<FirestoreItem>('items', itemId);
+                const itemDoc = await getDocById<ApiItem>('items', itemId);
                 if (itemDoc && itemDoc.conversionFactor) {
                     conversionFactor = itemDoc.conversionFactor;
                 }
@@ -373,7 +372,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const entryData: Omit<FirestoreLedger, 'id'> = {
+        const entryData: Omit<ApiLedger, 'id'> = {
             type: type as 'debit' | 'credit',
             amount: Number(amount),
             categoryId: validCategoryId,
@@ -386,7 +385,7 @@ export async function POST(req: NextRequest) {
             createdAt: new Date(),
         };
 
-        const entryId = await createDoc<Omit<FirestoreLedger, 'id'>>('ledger', entryData);
+        const entryId = await createDoc<Omit<ApiLedger, 'id'>>('ledger', entryData);
 
         if (itemId && quantity && Number(quantity) > 0) {
             try {
@@ -420,7 +419,7 @@ export async function POST(req: NextRequest) {
         }
         // --------------------------
 
-        const entry = await getDocById<FirestoreLedger>('ledger', entryId);
+        const entry = await getDocById<ApiLedger>('ledger', entryId);
 
         // Invalidate daily cache and refresh dashboard stats
         const todayStr = new Date().toISOString().split("T")[0];

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { FirestoreSettings } from "@/types/firestore";
+import { ApiSettings } from "@/types/models";
 import {
     BuildingOfficeIcon,
     BanknotesIcon,
@@ -16,7 +16,7 @@ import {
 type Tab = "profile" | "currency" | "inventory" | "notifications";
 
 export default function SettingsPage() {
-    const [settings, setSettings] = useState<FirestoreSettings | null>(null);
+    const [settings, setSettings] = useState<ApiSettings | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>("profile");
@@ -26,8 +26,8 @@ export default function SettingsPage() {
         fetchSettings();
     }, []);
 
-    const defaultSettings: FirestoreSettings = {
-        businessName: "Moon Traders",
+    const defaultSettings: ApiSettings = {
+        businessName: "MUR Traders",
         phone: "",
         address: "",
         currency: { symbol: "Rs.", code: "PKR", position: "prefix" },
@@ -172,7 +172,7 @@ export default function SettingsPage() {
                                                 value={settings.businessProfile.name}
                                                 onChange={(e) => updateProfile("name", e.target.value)}
                                                 className="mt-1 block w-full rounded-lg border border-gray-200 p-2.5 text-sm text-gray-900 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                                placeholder="e.g. Moon Traders"
+                                                placeholder="e.g. MUR Traders"
                                             />
                                         </div>
                                         <div>

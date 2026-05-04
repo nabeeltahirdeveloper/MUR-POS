@@ -26,6 +26,7 @@ export type ReceiptData = {
     notes?: string;
     terms?: string;
     orderNumber?: string | number;
+    isPaymentOnly?: boolean;
     history?: {
         date: string | Date;
         type: string;
@@ -190,7 +191,7 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                         {/* Logo */}
                         <div className="flex justify-center">
                             <img
-                                src="/receipt-logo.png"
+                                src="/favicon.jpeg"
                                 alt="logo"
                                 className="receipt-logo block object-contain -mb-8 -mt-8 "
                                 style={{
@@ -309,8 +310,25 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
 
                     {/* Totals */}
                     <div className="mt-3 border-t-2 border-gray-800 pt-2 text-base">
-                        {(data.advance !== undefined && data.remaining !== undefined) ? (() => {
-                            return (
+                        {(data.advance !== undefined && data.remaining !== undefined) ? (
+                            data.isPaymentOnly ? (
+                                <>
+                                    <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
+                                        <span>TOTAL BILL</span>
+                                        <span>{currency.code} {fmt(data.total)}</span>
+                                    </div>
+                                    <div className="border-t border-dashed border-gray-400 mt-1 pt-1 mb-1"></div>
+                                    <div className="flex justify-between font-semibold text-sm text-gray-900 mt-1">
+                                        <span>PAID</span>
+                                        <span>{currency.code} {fmt(data.advance || 0)}</span>
+                                    </div>
+                                    <div className="border-t border-double border-gray-800 mt-1 pt-1"></div>
+                                    <div className="flex justify-between font-bold text-base text-gray-900 mt-1 mb-2">
+                                        <span>BALANCE DUE</span>
+                                        <span>{currency.code} {fmt(data.remaining || 0)}</span>
+                                    </div>
+                                </>
+                            ) : (
                                 <>
                                     <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
                                         <span>TOTAL (Items)</span>
@@ -327,8 +345,8 @@ export default function ThermalReceipt({ data, onClose, autoPrint = false }: The
                                         <span>{currency.code} {fmt(data.remaining || 0)}</span>
                                     </div>
                                 </>
-                            );
-                        })() : (
+                            )
+                        ) : (
                             <div className="flex justify-between font-bold text-lg text-gray-900 mt-1">
                                 <span>TOTAL</span>
                                 <span>{currency.code} {fmt(data.total)}</span>

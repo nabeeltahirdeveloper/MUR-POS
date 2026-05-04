@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllDocs, createDoc } from "@/lib/prisma-helpers";
 import { isSystemLocked } from "@/lib/lock";
-import type { FirestoreCustomer } from "@/types/firestore";
+import type { ApiCustomer } from "@/types/models";
 
 export const runtime = "nodejs";
 
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
 
     try {
-        const customers = await getAllDocs<FirestoreCustomer>('customers', {
+        const customers = await getAllDocs<ApiCustomer>('customers', {
             orderBy: 'name',
             orderDirection: 'asc',
         });
@@ -69,15 +69,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const customerData: Omit<FirestoreCustomer, 'id'> = {
+        const customerData: Omit<ApiCustomer, 'id'> = {
             name,
             phone: phone || null,
             address: address || null,
         };
 
-        const customerId = await createDoc<Omit<FirestoreCustomer, 'id'>>('customers', customerData);
+        const customerId = await createDoc<Omit<ApiCustomer, 'id'>>('customers', customerData);
         const { getDocById } = await import('@/lib/prisma-helpers');
-        const customer = await getDocById<FirestoreCustomer>('customers', customerId);
+        const customer = await getDocById<ApiCustomer>('customers', customerId);
 
         return NextResponse.json(customer, { status: 201 });
     } catch (error) {

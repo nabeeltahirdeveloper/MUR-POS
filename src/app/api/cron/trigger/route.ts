@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllDocs, getSettings, createDoc } from "@/lib/prisma-helpers";
 import { calculateCurrentStock } from "@/lib/inventory";
-import type { FirestoreDebt, FirestoreItem, FirestoreUtility } from "@/types/firestore";
+import type { ApiDebt, ApiItem, ApiUtility } from "@/types/models";
 import {
   addDays,
   computeDueTriggerAt,
@@ -134,9 +134,9 @@ export async function GET(req: NextRequest) {
     const settings = await getSettings();
 
     const [items, utilities, debts] = await Promise.all([
-      getAllDocs<FirestoreItem>("items", { orderBy: "name", orderDirection: "asc" }),
-      getAllDocs<FirestoreUtility>("utilities", { orderBy: "dueDate", orderDirection: "asc" }),
-      getAllDocs<FirestoreDebt>("debts", { orderBy: "dueDate", orderDirection: "asc" }),
+      getAllDocs<ApiItem>("items", { orderBy: "name", orderDirection: "asc" }),
+      getAllDocs<ApiUtility>("utilities", { orderBy: "dueDate", orderDirection: "asc" }),
+      getAllDocs<ApiDebt>("debts", { orderBy: "dueDate", orderDirection: "asc" }),
     ]);
 
     let itemsResult = { checked: 0, triggered: 0, resolved: 0 };
@@ -191,12 +191,12 @@ export async function GET(req: NextRequest) {
       docs: debts,
       now,
       titleFor: (d, lead) => {
-        const debt = d as unknown as FirestoreDebt;
+        const debt = d as unknown as ApiDebt;
         const loanType = debt.type === "loaned_in" ? "Loan-In (Payable)" : "Loan-Out (Receivable)";
         const timePrefix = lead === 0 ? "URGENT: " : "";
         return `${timePrefix}${loanType}: ${debt.personName}`;
       },
-      shouldAutoResolve: (d) => isDebtPaid((d as unknown as FirestoreDebt).status),
+      shouldAutoResolve: (d) => isDebtPaid((d as unknown as ApiDebt).status),
     });
 
     // Optional run log for debugging

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateDoc, deleteDoc, getDocById, softDeleteDoc } from "@/lib/prisma-helpers";
 import { auth } from "@/auth";
-import type { FirestoreUtility } from "@/types/firestore";
+import type { ApiUtility } from "@/types/models";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCacheByPrefix } from "@/lib/server-cache";
 import { isSystemLocked } from "@/lib/lock";
@@ -21,7 +21,7 @@ export async function PATCH(
         const body = await request.json();
         const { name, amount, dueDate, category, status } = body;
 
-        const updateData: Partial<FirestoreUtility> = {};
+        const updateData: Partial<ApiUtility> = {};
         if (name !== undefined) updateData.name = name;
         if (amount !== undefined) updateData.amount = Number(amount);
         if (dueDate !== undefined) updateData.dueDate = new Date(dueDate);
@@ -29,7 +29,7 @@ export async function PATCH(
         if (status !== undefined) updateData.status = status;
 
         // Check if this is a payment (status changing to paid)
-        const existingUtility = await getDocById<FirestoreUtility>('utilities', id);
+        const existingUtility = await getDocById<ApiUtility>('utilities', id);
         const isPayment = existingUtility && existingUtility.status === 'unpaid' && status === 'paid';
 
         // Capture paidAt date when marking as paid
@@ -67,7 +67,7 @@ export async function PATCH(
             console.error("Failed to sync reminders for updated utility:", err);
         });
 
-        const updated = await getDocById<FirestoreUtility>('utilities', id);
+        const updated = await getDocById<ApiUtility>('utilities', id);
         invalidateCacheByPrefix("daily-summary:");
         triggerDashboardStatsRefresh();
         return NextResponse.json(updated);

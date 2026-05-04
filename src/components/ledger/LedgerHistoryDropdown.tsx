@@ -389,7 +389,7 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
                             setSelectedYear(null);
                             setSelectedMonth(null);
                         }}
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                        className="text-primary hover:text-primary-dark hover:underline"
                     >
                         Years
                     </button>
@@ -402,7 +402,7 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
                                         setViewLevel('months');
                                         setSelectedMonth(null);
                                     }}
-                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                    className="text-primary hover:text-primary-dark hover:underline"
                                 >
                                     {selectedYear}
                                 </button>
@@ -435,7 +435,7 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
                             className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
                         >
                             <span className="text-lg font-semibold text-gray-900">{year}</span>
-                            <span className="text-lg font-bold text-blue-600">{formatCurrency(total)}</span>
+                            <span className="text-lg font-bold text-primary">{formatCurrency(total)}</span>
                         </div>
                     ))}
                 </div>
@@ -454,7 +454,7 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
                             className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
                         >
                             <span className="text-lg font-semibold text-gray-900">{label}</span>
-                            <span className="text-lg font-bold text-blue-600">{formatCurrency(total)}</span>
+                            <span className="text-lg font-bold text-primary">{formatCurrency(total)}</span>
                         </div>
                     ))}
                 </div>
@@ -469,11 +469,11 @@ export function LedgerHistoryDropdown({ type, name }: LedgerHistoryDropdownProps
                             <div key={group.date} className="border-b last:border-b-0 border-gray-100">
                                 {/* Date Header Row */}
                                 <div
-                                    className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
+                                    className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${isExpanded ? 'bg-primary/5' : 'hover:bg-gray-50'}`}
                                     onClick={() => toggleDate(group.date)}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className={`p-1.5 rounded-lg transition-colors ${isExpanded ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                        <div className={`p-1.5 rounded-lg transition-colors ${isExpanded ? 'bg-primary/15 text-primary' : 'bg-gray-100 text-gray-400'}`}>
                                             {isExpanded ? (
                                                 <ChevronDownIcon className="h-4 w-4" />
                                             ) : (

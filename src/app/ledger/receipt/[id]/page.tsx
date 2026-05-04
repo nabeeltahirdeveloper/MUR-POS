@@ -68,17 +68,27 @@ export default function ReceiptPage() {
                     });
                 }
 
-                // Fetch computed balance from API (source of truth) instead of stale note values
+                const hasRealItems = receiptItems.some((it: any) =>
+                    it.name &&
+                    it.name !== "-" &&
+                    !/direct payment/i.test(it.name)
+                );
+                const isPaymentOnly = !hasRealItems;
+                const isSupplier = (entry.note || "").includes("Supplier:");
+
+                // Advance/remaining:
+                // - Payment-only entries: use this entry's own note values (snapshot at save time)
+                //   so the receipt matches the Recent Transactions row.
+                // - Item purchases: take remaining from the live balance API.
                 let advance: number | undefined = initialParsed.advance;
                 let remaining: number | undefined = initialParsed.remaining;
 
-                if (initialParsed.title && initialParsed.title !== "-") {
+                if (!isPaymentOnly && initialParsed.title && initialParsed.title !== "-") {
                     try {
-                        const isSupplier = (entry.note || "").includes("Supplier:");
                         const balanceEndpoint = isSupplier ? "/api/ledger/suppliers" : "/api/ledger/customers";
                         const balRes = await fetch(balanceEndpoint, { cache: 'no-store' });
                         if (balRes.ok) {
-                            const balances: { name: string; balance: number }[] = await balRes.json();
+                            const balances: { name: string; balance: number; totalCredit: number; totalDebit: number }[] = await balRes.json();
                             const match = balances.find(
                                 b => b.name.trim().toLowerCase() === initialParsed.title.trim().toLowerCase()
                             );
@@ -94,6 +104,15 @@ export default function ReceiptPage() {
                 if (advance !== undefined && remaining === undefined) {
                     remaining = Math.max(0, totalAmount - advance);
                 }
+
+                // For payment-only receipts:
+                //   PAID        = advance (this transaction's payment)
+                //   BALANCE DUE = remaining (state right after this payment)
+                //   TOTAL BILL  = advance + remaining (state right before this payment)
+                const displayTotal = isPaymentOnly
+                    ? (Number(advance || 0) + Number(remaining || 0))
+                    : totalAmount;
+                const displayAdvance = advance;
 
                 // FETCH HISTORY for the receipt
                 let history: any[] = [];
@@ -117,10 +136,11 @@ export default function ReceiptPage() {
                     customerName: initialParsed.title,
                     customerPhone: initialParsed.customerPhone,
                     customerAddress: initialParsed.customerAddress,
-                    items: receiptItems,
-                    total: totalAmount,
-                    advance: advance,
+                    items: isPaymentOnly ? [] : receiptItems,
+                    total: displayTotal,
+                    advance: displayAdvance,
                     remaining: remaining,
+                    isPaymentOnly,
                     notes: entry.note,
                     orderNumber: entry.orderNumber || initialParsed.orderNumber,
                     history: history

@@ -86,7 +86,7 @@ function DashboardContent() {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={handleRefresh}
-                            className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm text-gray-400 hover:text-primary hover:border-primary transition-all"
+                            className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm text-gray-400 hover:text-gray-700 hover:border-gray-300 transition-all"
                             title="Refresh Dashboard"
                         >
                             <ArrowPathIcon className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
@@ -153,11 +153,11 @@ function DashboardContent() {
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center">
                             <Link href="/ledger" className="flex items-center justify-between group">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">Go to Detailed</p>
+                                    <p className="text-sm font-medium text-gray-500 group-hover:text-gray-900 transition-colors">Go to Detailed</p>
                                     <p className="text-lg font-bold text-gray-900">Full Records →</p>
                                 </div>
-                                <div className="p-2 bg-gray-50 rounded-lg group-hover:bg-primary/10 transition-colors">
-                                    <ChartBarIcon className="h-5 w-5 text-gray-400 group-hover:text-primary" />
+                                <div className="p-2 bg-gray-50 rounded-lg group-hover:bg-gray-100 transition-colors">
+                                    <ChartBarIcon className="h-5 w-5 text-gray-400 group-hover:text-gray-700" />
                                 </div>
                             </Link>
                         </div>
@@ -171,7 +171,7 @@ function DashboardContent() {
                         className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 transition-all group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-gray-200 transition-colors">
                                 <CubeIcon className="h-6 w-6 text-primary" />
                             </div>
                             <div>
@@ -186,12 +186,12 @@ function DashboardContent() {
                         className="block w-full text-left p-5 bg-primary rounded-xl shadow-sm hover:shadow-md hover:bg-primary-dark transition-all group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-black/10 rounded-lg group-hover:bg-black/20 transition-colors">
-                                <BanknotesIcon className="h-6 w-6 text-slate-900" />
+                            <div className="p-3 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
+                                <BanknotesIcon className="h-6 w-6 text-white" />
                             </div>
                             <div>
-                                <h2 className="text-base font-bold text-slate-900 leading-tight">Create Bill</h2>
-                                <p className="text-xs text-slate-900/70">Sales or expenses</p>
+                                <h2 className="text-base font-bold text-white leading-tight">Create Bill</h2>
+                                <p className="text-xs text-white/70">Sales or expenses</p>
                             </div>
                         </div>
                     </button>
@@ -201,7 +201,7 @@ function DashboardContent() {
                         className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 transition-all group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-gray-200 transition-colors">
                                 <BoltIcon className="h-6 w-6 text-primary" />
                             </div>
                             <div>
@@ -216,7 +216,7 @@ function DashboardContent() {
                         className="block p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/20 transition-all group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-gray-200 transition-colors">
                                 <BanknotesIcon className="h-6 w-6 text-primary" />
                             </div>
                             <div>
@@ -320,14 +320,14 @@ function DashboardContent() {
 
                     {/* Pending Payments (Ledger Remaining) Widget */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-yellow-50/50">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                             <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-yellow-100 rounded-lg">
-                                    <svg className="w-4 h-4 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <div className="p-1.5 bg-gray-100 rounded-lg">
+                                    <svg className="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 </div>
                                 <h3 className="font-bold text-gray-900">Payments</h3>
                             </div>
-                            <Link href="/ledger?view=pending" className="text-xs font-bold text-yellow-700 hover:underline">View All</Link>
+                            <Link href="/ledger?view=pending" className="text-xs font-bold text-primary-dark hover:underline">View All</Link>
                         </div>
                         <div className="flex-1">
                             {pendingLedger.length > 0 ? (
@@ -351,8 +351,8 @@ function DashboardContent() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
-                                    <div className="p-3 bg-yellow-50 rounded-full mb-3">
-                                        <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <div className="p-3 bg-gray-100 rounded-full mb-3">
+                                        <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     </div>
                                     <p className="text-sm font-bold text-gray-500 mb-1">No Payments</p>
                                 </div>
@@ -384,7 +384,7 @@ function DashboardContent() {
                                         <div key={debt.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50/80 transition-colors">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-gray-900">{debt.personName}</span>
-                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block w-fit mt-1 ${debt.type === 'loaned_out' ? 'bg-primary/10 text-primary-dark' : 'bg-purple-100 text-purple-700'}`}>
+                                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block w-fit mt-1 ${debt.type === 'loaned_out' ? 'bg-primary/10 text-primary-dark' : 'bg-primary/10 text-primary'}`}>
                                                     {debt.type === 'loaned_out' ? 'Loan-Out' : 'Loan-In'}
                                                 </span>
                                             </div>
@@ -397,8 +397,8 @@ function DashboardContent() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
-                                    <div className="p-2 bg-blue-50 rounded-full mb-2">
-                                        <CheckCircleIcon className="h-5 w-5 text-blue-500" />
+                                    <div className="p-2 bg-primary/10 rounded-full mb-2">
+                                        <CheckCircleIcon className="h-5 w-5 text-primary" />
                                     </div>
                                     <p className="text-sm font-bold text-gray-500">No Active Debts</p>
                                 </div>

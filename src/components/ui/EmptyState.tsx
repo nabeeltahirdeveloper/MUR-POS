@@ -40,18 +40,25 @@ export function EmptyState({
     };
 
     return (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-            <div className="flex justify-center mb-4">
+        <div className="relative text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 overflow-hidden">
+            {/* Faded brand watermark */}
+            <img
+                src="/favicon.jpeg"
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 m-auto h-24 w-24 rounded-2xl opacity-[0.04] pointer-events-none select-none"
+            />
+            <div className="relative flex justify-center mb-4">
                 {icons[icon]}
             </div>
             {title && (
-                <h3 className="text-sm font-medium text-gray-900 mb-1">{title}</h3>
+                <h3 className="relative text-sm font-medium text-gray-900 mb-1">{title}</h3>
             )}
-            <p className="text-sm text-gray-500">{message}</p>
+            <p className="relative text-sm text-gray-500">{message}</p>
             {action && (
                 <button
                     onClick={action.onClick}
-                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="relative mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
                     {action.label}
                 </button>

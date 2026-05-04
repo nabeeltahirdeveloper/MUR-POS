@@ -315,7 +315,7 @@ export function SupplierLedgerList({ supplierName }: { supplierName: string }) {
                                     {group.remaining}
                                 </td>
                                 <td className="px-3 py-2 text-sm text-gray-900 whitespace-nowrap align-top">
-                                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${group.status === 'closed' ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-800'}`}>
+                                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${group.status === 'closed' ? 'bg-gray-100 text-gray-600' : 'bg-primary/15 text-primary-dark'}`}>
                                         {group.status === 'closed' ? 'Closed' : 'Open'}
                                     </span>
                                 </td>
@@ -347,7 +347,7 @@ export function SupplierLedgerList({ supplierName }: { supplierName: string }) {
                                                     fetchEntries(); // Refresh all
                                                 }
                                             }}
-                                            className={`transition-colors ${group.status === 'closed' ? 'text-blue-500 hover:text-blue-700' : 'text-gray-500 hover:text-red-600'}`}
+                                            className={`transition-colors ${group.status === 'closed' ? 'text-primary hover:text-primary' : 'text-gray-500 hover:text-red-600'}`}
                                             title={group.status === 'closed' ? 'Re-open Order' : 'Close Order'}
                                         >
                                             {group.status === 'closed' ? (
@@ -360,7 +360,7 @@ export function SupplierLedgerList({ supplierName }: { supplierName: string }) {
                                         {group.status !== 'closed' && (
                                             <Link
                                                 href={`/ledger/${group.id}/edit`} // Edit first ID, form handles batch fetch
-                                                className="text-blue-500 hover:text-blue-700 transition-colors"
+                                                className="text-primary hover:text-primary transition-colors"
                                                 onClick={(e) => e.stopPropagation()}
                                                 title="Edit Transaction"
                                             >

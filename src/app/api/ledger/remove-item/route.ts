@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { getDocById, updateDoc, createDoc } from "@/lib/prisma-helpers";
 import { calculateCurrentStock } from "@/lib/inventory";
 import { syncLowStockReminderForItem } from "@/lib/reminders";
-import type { FirestoreLedger, FirestoreItem, FirestoreStockLog } from "@/types/firestore";
+import type { ApiLedger, ApiItem, ApiStockLog } from "@/types/models";
 
 export async function POST(request: NextRequest) {
     try {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Get the original ledger entry
-        const originalEntry = await getDocById<FirestoreLedger>('ledger', String(ledgerId));
+        const originalEntry = await getDocById<ApiLedger>('ledger', String(ledgerId));
         if (!originalEntry) {
             return NextResponse.json(
                 { error: "Ledger entry not found" },
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         // Get the item to find purchase price
         let purchasePrice = 0;
         if (originalEntry.itemId) {
-            const item = await getDocById<FirestoreItem>('items', originalEntry.itemId);
+            const item = await getDocById<ApiItem>('items', originalEntry.itemId);
             if (item) {
                 purchasePrice = item.secondPurchasePrice || 0;
             }
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
             notes ? `Notes: ${notes}` : ''
         ].filter(Boolean).join('\n');
 
-        await updateDoc<Omit<FirestoreLedger, 'id'>>('ledger', String(ledgerId), {
+        await updateDoc<Omit<ApiLedger, 'id'>>('ledger', String(ledgerId), {
             ...originalEntry,
             amount: newAmount,
             quantity: newQuantity,
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Create a debit entry to record the write-off
-        const writeOffEntry: Omit<FirestoreLedger, 'id'> = {
+        const writeOffEntry: Omit<ApiLedger, 'id'> = {
             type: 'debit',
             amount: amountToRemove,
             itemId: originalEntry.itemId,
@@ -113,12 +113,12 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(),
         };
 
-        const writeOffId = await createDoc<Omit<FirestoreLedger, 'id'>>('ledger', writeOffEntry);
+        const writeOffId = await createDoc<Omit<ApiLedger, 'id'>>('ledger', writeOffEntry);
 
         // Create stock removal log (stock was already verified above)
         if (originalEntry.itemId) {
             try {
-                const stockLogData: Omit<FirestoreStockLog, 'id'> = {
+                const stockLogData: Omit<ApiStockLog, 'id'> = {
                     itemId: originalEntry.itemId,
                     type: "out",
                     quantityBaseUnit: qty,
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
                     createdAt: new Date(),
                 };
 
-                await createDoc<Omit<FirestoreStockLog, 'id'>>('stock_logs', stockLogData);
+                await createDoc<Omit<ApiStockLog, 'id'>>('stock_logs', stockLogData);
 
                 // Update low stock reminders
                 await syncLowStockReminderForItem(originalEntry.itemId);

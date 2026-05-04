@@ -65,9 +65,11 @@ export default function Sidebar({
     const { isLocked } = useLock();
 
     const [expandedItems, setExpandedItems] = useState<string[]>(["Ledger"]);
-    const [businessName, setBusinessName] = useState("Moon Traders");
+    const [businessName, setBusinessName] = useState("MUR Traders");
 
     useEffect(() => {
+        const oldNameRegex = /(jb\s*&?\s*company|jb\s*&?\s*cmpany|jb\s*&?\s*co\.?|jbc|moon\s*traders|moon\s*electric)/i;
+
         const fetchSettings = async () => {
             try {
                 // Avoid repeated requests (dev remounts / navigation) by caching in sessionStorage.
@@ -76,8 +78,7 @@ export default function Sidebar({
                     const data = JSON.parse(cached);
                     if (data?.businessProfile?.name) {
                         const name = String(data.businessProfile.name).trim();
-                        const oldNameRegex = /(jb\s*&?\s*company|jb\s*&?\s*cmpany|jb\s*&?\s*co\.?|jbc)/i;
-                        setBusinessName(oldNameRegex.test(name) ? "Moon Traders" : name);
+                        setBusinessName(oldNameRegex.test(name) ? "MUR Traders" : name);
                     }
                     return;
                 }
@@ -90,16 +91,12 @@ export default function Sidebar({
                     } catch { }
                     if (data?.businessProfile?.name) {
                         const name = String(data.businessProfile.name).trim();
-
-                        // Force "Moon Traders" if old name variants found
-                        const oldNameRegex = /(jb\s*&?\s*company|jb\s*&?\s*cmpany|jb\s*&?\s*co\.?|jbc)/i;
-
-                        setBusinessName(oldNameRegex.test(name) ? "Moon Traders" : name);
+                        setBusinessName(oldNameRegex.test(name) ? "MUR Traders" : name);
                     }
                 }
             } catch (error) {
                 // fallback to default
-                setBusinessName("Moon Traders");
+                setBusinessName("MUR Traders");
             }
         };
         fetchSettings();
@@ -120,8 +117,10 @@ export default function Sidebar({
         <>
             {/* Logo */}
             <div className="flex h-16 shrink-0 items-center px-6 border-b border-slate-800">
-                <img src="/favicon.jpg" alt="Logo" className="h-10 w-10 rounded-lg object-cover" />
-                <span className="ml-2 text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
+                <div className="rounded-xl ring-1 ring-white/15 shadow-[0_0_28px_rgba(255,255,255,0.55),0_0_8px_rgba(255,255,255,0.4)]">
+                    <img src="/favicon.jpeg" alt="Logo" className="h-10 w-10 rounded-xl object-cover block" />
+                </div>
+                <span className="font-serif ml-3 text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
                     {businessName}
                 </span>
             </div>
@@ -146,8 +145,8 @@ export default function Sidebar({
                                 <button
                                     onClick={() => toggleExpanded(item.name)}
                                     className={`w-full group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
-                                        ? "bg-slate-800 text-white"
-                                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white cursor-pointer"
+                                        ? "bg-white/10 text-white"
+                                        : "text-slate-400 hover:bg-slate-800/60 hover:text-white cursor-pointer"
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
@@ -165,8 +164,8 @@ export default function Sidebar({
                                     prefetch={false}
                                     onClick={() => setSidebarOpen(false)}
                                     className={`group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
-                                        ? "bg-primary/10 text-primary border-l-2 border-primary"
-                                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                                        ? "bg-white/10 text-white border-l-2 border-white"
+                                        : "text-slate-400 hover:bg-slate-800/60 hover:text-white"
                                         }`}
                                 >
                                     <item.icon className="h-5 w-5 shrink-0" />
@@ -201,8 +200,8 @@ export default function Sidebar({
                                                 prefetch={false}
                                                 onClick={() => setSidebarOpen(false)}
                                                 className={`group flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ${childActive
-                                                    ? "bg-primary/10 text-primary"
-                                                    : "text-slate-500 hover:bg-slate-800/50 hover:text-white"
+                                                    ? "bg-white/10 text-white"
+                                                    : "text-slate-500 hover:bg-slate-800/60 hover:text-white"
                                                     }`}
                                             >
                                                 {child.icon && <child.icon className="h-4 w-4" />}
@@ -228,6 +227,11 @@ export default function Sidebar({
                     <ArrowRightOnRectangleIcon className="h-5 w-5 shrink-0" />
                     Sign Out
                 </button>
+                <div className="mt-3 px-3 flex items-center justify-center gap-1.5 text-[10px] uppercase tracking-widest text-slate-600">
+                    <span className="font-serif">MUR Traders</span>
+                    <span className="text-slate-700">•</span>
+                    <span>v1.0</span>
+                </div>
             </div>
         </>
     );

@@ -144,7 +144,7 @@ export default function CategoryManager({
                 <button
                     type="submit"
                     disabled={loading || !newCategory.trim()}
-                    className="bg-primary text-slate-900 font-bold px-4 py-2 rounded hover:bg-primary-dark disabled:opacity-50"
+                    className="bg-primary text-white font-bold px-4 py-2 rounded hover:bg-primary-dark disabled:opacity-50"
                 >
                     Add
                 </button>

@@ -7,7 +7,7 @@ import { isSystemLocked } from "@/lib/lock";
 import { invalidateCacheByPrefix } from "@/lib/server-cache";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateStatsCache } from "@/lib/stats-cache";
-import type { FirestoreStockLog, FirestoreItem, FirestoreUnit, FirestoreSupplier, FirestoreLedger } from "@/types/firestore";
+import type { ApiStockLog, ApiItem, ApiUnit, ApiSupplier, ApiLedger } from "@/types/models";
 
 export async function POST(request: NextRequest) {
     try {
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create IN log
-        const logData: Omit<FirestoreStockLog, 'id'> = {
+        const logData: Omit<ApiStockLog, 'id'> = {
             itemId: String(itemId),
             type: "in",
             quantityBaseUnit: qty,
@@ -42,23 +42,23 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(),
         };
 
-        await createDoc<Omit<FirestoreStockLog, 'id'>>('stock_logs', logData);
+        await createDoc<Omit<ApiStockLog, 'id'>>('stock_logs', logData);
 
         // --- Create Pending Ledger Entry ---
         try {
-            const item = await getDocById<FirestoreItem>('items', String(itemId));
+            const item = await getDocById<ApiItem>('items', String(itemId));
             if (item) {
                 // Determine Unit Label
                 let unitLabel = "";
                 if (item.baseUnitId) {
-                    const unit = await getDocById<FirestoreUnit>('units', item.baseUnitId);
+                    const unit = await getDocById<ApiUnit>('units', item.baseUnitId);
                     unitLabel = unit?.symbol || unit?.name || "";
                 }
 
                 // Determine Supplier Name
                 let supplierName = "-";
                 if (item.supplierId) {
-                    const supplier = await getDocById<FirestoreSupplier>('suppliers', item.supplierId);
+                    const supplier = await getDocById<ApiSupplier>('suppliers', item.supplierId);
                     supplierName = supplier?.name || "-";
                 }
 
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
                 const cumulativeBalance = currentBalance + totalAmount;
 
                 // Determine Next Order Number
-                const recentEntries = await getAllDocs<FirestoreLedger>('ledger', {
+                const recentEntries = await getAllDocs<ApiLedger>('ledger', {
                     orderBy: 'createdAt',
                     orderDirection: 'desc',
                     limit: 50
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
                     `Remaining: ${cumulativeBalance}`
                 ].join('\n');
 
-                const ledgerData: Omit<FirestoreLedger, 'id'> = {
+                const ledgerData: Omit<ApiLedger, 'id'> = {
                     type: 'debit',
                     amount: totalAmount,
                     itemId: String(itemId),
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
                     createdAt: new Date(),
                 };
 
-                await createDoc<Omit<FirestoreLedger, 'id'>>('ledger', ledgerData);
+                await createDoc<Omit<ApiLedger, 'id'>>('ledger', ledgerData);
             }
         } catch (ledgerError) {
             console.error("Failed to create ledger entry for stock add:", ledgerError);

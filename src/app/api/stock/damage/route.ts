@@ -4,7 +4,7 @@ import { calculateCurrentStock } from "@/lib/inventory";
 import { syncLowStockReminderForItem } from "@/lib/reminders";
 import { getSupplierBalance, getCustomerBalance } from "@/lib/ledger-balance";
 import { isSystemLocked } from "@/lib/lock";
-import type { FirestoreStockLog, FirestoreItem, FirestoreUnit, FirestoreLedger } from "@/types/firestore";
+import type { ApiStockLog, ApiItem, ApiUnit, ApiLedger } from "@/types/models";
 
 export async function POST(request: NextRequest) {
     try {
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
         // Create damage/removal log with reason
         const description = `${reason || 'Removal'}${notes ? ': ' + notes : ''}`;
-        const logData: Omit<FirestoreStockLog, 'id'> = {
+        const logData: Omit<ApiStockLog, 'id'> = {
             itemId: id,
             type: "out",
             quantityBaseUnit: qtyToRemove,
@@ -54,11 +54,11 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(),
         };
 
-        const logId = await createDoc<Omit<FirestoreStockLog, 'id'>>('stock_logs', logData);
+        const logId = await createDoc<Omit<ApiStockLog, 'id'>>('stock_logs', logData);
 
         // Update stock reminders if needed
         const updatedStock = currentStock - qtyToRemove;
-        const item = await getDocById<FirestoreItem>('items', id);
+        const item = await getDocById<ApiItem>('items', id);
 
         if (item) {
             await syncLowStockReminderForItem(id);
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
                 if (totalAmount > 0) {
                     let unitLabel = "";
                     if (item.baseUnitId) {
-                        const unit = await getDocById<FirestoreUnit>('units', item.baseUnitId);
+                        const unit = await getDocById<ApiUnit>('units', item.baseUnitId);
                         unitLabel = unit?.symbol || unit?.name || "";
                     }
 
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
                         notes ? `Notes: ${notes}` : ''
                     ].filter(Boolean).join('\n');
 
-                    const ledgerData: Omit<FirestoreLedger, 'id'> = {
+                    const ledgerData: Omit<ApiLedger, 'id'> = {
                         type: 'debit',
                         amount: totalAmount,
                         itemId: id,
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
                         createdAt: new Date(),
                     };
 
-                    await createDoc<Omit<FirestoreLedger, 'id'>>('ledger', ledgerData);
+                    await createDoc<Omit<ApiLedger, 'id'>>('ledger', ledgerData);
                 }
             } catch (err) {
                 console.error("Optional ledger entry creation failed:", err);

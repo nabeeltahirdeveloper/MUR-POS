@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDocById, updateDoc, queryDocs, createDoc } from "@/lib/prisma-helpers";
-import type { FirestoreLedger } from "@/types/firestore";
+import type { ApiLedger } from "@/types/models";
 import { isSystemLocked } from "@/lib/lock";
 import { triggerDashboardStatsRefresh } from "@/lib/dashboard-stats";
 import { invalidateCache, invalidateCacheByPrefix } from "@/lib/server-cache";
@@ -24,7 +24,7 @@ export async function POST(
         const { id } = await params;
 
         // Fetch the entry (getDocById is unfiltered, can find soft-deleted records)
-        const entry = await getDocById<FirestoreLedger>('ledger', id);
+        const entry = await getDocById<ApiLedger>('ledger', id);
         if (!entry) {
             return NextResponse.json({ error: "Entry not found" }, { status: 404 });
         }

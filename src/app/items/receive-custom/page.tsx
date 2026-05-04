@@ -21,13 +21,13 @@ function ReceiveCustomContent() {
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
-            <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 mb-6">
-                <h2 className="text-lg font-bold text-purple-900">Receive Custom Order</h2>
-                <p className="text-sm text-purple-700">
+            <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 mb-6">
+                <h2 className="text-lg font-bold text-primary-dark">Receive Custom Order</h2>
+                <p className="text-sm text-gray-700">
                     You are creating a new inventory item for a pending custom order.
                     Once saved, the item will be added to inventory and the pending order will be marked as processed.
                 </p>
-                <div className="mt-2 text-sm font-mono bg-white p-2 rounded text-purple-900 font-semibold">
+                <div className="mt-2 text-sm font-mono bg-white p-2 rounded text-primary-dark font-semibold border border-primary/20">
                     Ledger Ref: {ledgerId || "N/A"}
                 </div>
             </div>

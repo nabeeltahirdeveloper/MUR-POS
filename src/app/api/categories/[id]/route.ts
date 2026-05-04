@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDocById, updateDoc, queryDocs, deleteDoc, softDeleteDoc } from "@/lib/prisma-helpers";
-import type { FirestoreCategory, FirestoreItem } from "@/types/firestore";
+import type { ApiCategory, ApiItem } from "@/types/models";
 
 export async function PUT(
     req: NextRequest,
@@ -22,7 +22,7 @@ export async function PUT(
         const trimmedName = name.trim();
 
         // Check if name exists for another category
-        const existing = await queryDocs<FirestoreCategory>('categories', [
+        const existing = await queryDocs<ApiCategory>('categories', [
             { field: 'name', operator: '==', value: trimmedName }
         ]);
 
@@ -33,11 +33,11 @@ export async function PUT(
             );
         }
 
-        await updateDoc<Partial<FirestoreCategory>>('categories', id, {
+        await updateDoc<Partial<ApiCategory>>('categories', id, {
             name: trimmedName,
         });
 
-        const updatedCategory = await getDocById<FirestoreCategory>('categories', id);
+        const updatedCategory = await getDocById<ApiCategory>('categories', id);
         if (!updatedCategory) {
             return NextResponse.json({ error: "Category not found" }, { status: 404 });
         }
@@ -60,7 +60,7 @@ export async function DELETE(
         const { id } = await params;
 
         // Check usage in items
-        const usage = await queryDocs<FirestoreItem>('items', [
+        const usage = await queryDocs<ApiItem>('items', [
             { field: 'categoryId', operator: '==', value: id }
         ]);
 

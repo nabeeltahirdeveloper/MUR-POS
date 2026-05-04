@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { FirestoreSettings } from "@/types/firestore";
+import { ApiSettings } from "@/types/models";
 
 const GLOBAL_SETTINGS_KEY = "global";
 
-const DEFAULT_SETTINGS: Omit<FirestoreSettings, "id"> = {
+const DEFAULT_SETTINGS: Omit<ApiSettings, "id"> = {
     businessProfile: {
-        name: "Moon Traders",
+        name: "MUR Traders",
         address: null,
         phone: null,
         email: null,
-        logoUrl: "/favicon.jpg",
+        logoUrl: "/favicon.jpeg",
         tagline: null,
     },
     currency: {

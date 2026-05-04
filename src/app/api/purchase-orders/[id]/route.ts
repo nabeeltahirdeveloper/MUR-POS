@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDocById, queryDocs, deleteDoc, softDeleteDoc } from "@/lib/prisma-helpers";
 import { auth } from "@/auth";
-import type { FirestorePurchaseOrder, FirestoreSupplier, FirestorePurchaseOrderItem, FirestoreItem, FirestoreUnit, FirestoreCategory } from "@/types/firestore";
+import type { ApiPurchaseOrder, ApiSupplier, ApiPurchaseOrderItem, ApiItem, ApiUnit, ApiCategory } from "@/types/models";
 
 export async function GET(
     request: NextRequest,
@@ -10,7 +10,7 @@ export async function GET(
     try {
         const { id } = await params;
 
-        const purchaseOrder = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        const purchaseOrder = await getDocById<ApiPurchaseOrder>('purchase_orders', id);
 
         if (!purchaseOrder) {
             return NextResponse.json(
@@ -21,14 +21,14 @@ export async function GET(
 
         // Fetch supplier
         const supplier = purchaseOrder.supplierId
-            ? await getDocById<FirestoreSupplier>('suppliers', purchaseOrder.supplierId)
+            ? await getDocById<ApiSupplier>('suppliers', purchaseOrder.supplierId)
             : null;
 
         // Fetch items
-        // NOTE: Do not add Firestore `orderBy` here unless you also create the required composite index.
+        // NOTE: Do not add database `orderBy` here unless you also create the required composite index.
         // We intentionally fetch without ordering (simple equality query) to avoid index requirements.
         // If you need stable ordering, sort in-memory by document id.
-        const poItems = await queryDocs<FirestorePurchaseOrderItem>('purchase_order_items', [
+        const poItems = await queryDocs<ApiPurchaseOrderItem>('purchase_order_items', [
             { field: 'orderId', operator: '==', value: id }
         ]);
 
@@ -37,12 +37,12 @@ export async function GET(
         // Fetch item details for each PO item
         const itemsWithDetails = await Promise.all(
             poItems.map(async (poItem) => {
-                const item = await getDocById<FirestoreItem>('items', poItem.itemId);
+                const item = await getDocById<ApiItem>('items', poItem.itemId);
                 const category = item?.categoryId
-                    ? await getDocById<FirestoreCategory>("categories", item.categoryId)
+                    ? await getDocById<ApiCategory>("categories", item.categoryId)
                     : null;
                 const baseUnit = item?.baseUnitId
-                    ? await getDocById<FirestoreUnit>('units', item.baseUnitId)
+                    ? await getDocById<ApiUnit>('units', item.baseUnitId)
                     : null;
                 return {
                     ...poItem,
@@ -78,7 +78,7 @@ export async function PUT(
         const body = await request.json();
         const { supplierId, notes, terms } = body;
 
-        const currentPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        const currentPO = await getDocById<ApiPurchaseOrder>('purchase_orders', id);
 
         if (!currentPO) {
             return NextResponse.json(
@@ -95,22 +95,22 @@ export async function PUT(
         }
 
         const { updateDoc } = await import('@/lib/prisma-helpers');
-        const updateData: Partial<FirestorePurchaseOrder> = {
+        const updateData: Partial<ApiPurchaseOrder> = {
             notes: notes !== undefined ? notes : null,
             terms: terms !== undefined ? terms : null,
         };
         if (supplierId !== undefined) updateData.supplierId = supplierId || null;
 
-        await updateDoc<Partial<FirestorePurchaseOrder>>('purchase_orders', id, updateData);
+        await updateDoc<Partial<ApiPurchaseOrder>>('purchase_orders', id, updateData);
 
-        const updatedPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        const updatedPO = await getDocById<ApiPurchaseOrder>('purchase_orders', id);
         if (!updatedPO) {
             return NextResponse.json({ error: "Purchase Order not found" }, { status: 404 });
         }
 
 
         const supplier = updatedPO.supplierId
-            ? await getDocById<FirestoreSupplier>('suppliers', updatedPO.supplierId)
+            ? await getDocById<ApiSupplier>('suppliers', updatedPO.supplierId)
             : null;
 
         return NextResponse.json({
@@ -134,7 +134,7 @@ export async function DELETE(
         const { id } = await params;
 
         // Check availability
-        const currentPO = await getDocById<FirestorePurchaseOrder>('purchase_orders', id);
+        const currentPO = await getDocById<ApiPurchaseOrder>('purchase_orders', id);
         if (!currentPO) {
             return NextResponse.json({ error: "Purchase Order not found" }, { status: 404 });
         }
