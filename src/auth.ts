@@ -15,6 +15,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
             authorize: async (credentials) => {
                 if (!credentials?.email || !credentials?.password) {
+                    console.error('[auth] Missing email or password in credentials');
                     return null
                 }
 
@@ -22,33 +23,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 const password = credentials.password as string;
 
                 try {
-                    // Find user in PostgreSQL
                     const user = await prisma.user.findUnique({
                         where: { email },
                     });
 
                     if (!user) {
-                        console.error('User not found:', email);
+                        console.error(`[auth] User not found for email="${email}". DB host=${process.env.DATABASE_URL?.match(/@([^/?]+)/)?.[1] ?? "unknown"}`);
                         return null;
                     }
 
-                    // Verify password with bcrypt
                     const isValid = await bcrypt.compare(password, user.passwordHash);
 
                     if (!isValid) {
-                        console.error('Password verification failed for:', email);
+                        console.error(`[auth] Password mismatch for email="${email}" id=${user.id}. Hash prefix=${user.passwordHash.slice(0, 7)}`);
                         return null;
                     }
 
+                    console.log(`[auth] Login OK email="${email}" id=${user.id} role=${user.role}`);
                     return {
                         id: user.id,
                         email: user.email,
                         name: user.name,
                         role: user.role || 'staff',
                     };
-                } catch (error) {
-                    console.error('Auth error:', error);
-                    return null;
+                } catch (error: any) {
+                    // Infrastructure failure (DB unreachable, TLS handshake, bcrypt issue,
+                    // etc.) must NOT collapse into "invalid password". Log it and re-throw
+                    // so NextAuth surfaces it as a Configuration error instead of
+                    // CredentialsSignin — that distinction is what makes the live box
+                    // debuggable.
+                    console.error(`[auth] Authorize threw error: ${error?.message ?? error}`);
+                    if (error?.code) console.error(`[auth] Prisma error code: ${error.code}`);
+                    throw error;
                 }
             },
         }),

@@ -3,10 +3,11 @@ import type { NextAuthConfig } from "next-auth"
 export const authConfig = {
     session: {
         strategy: "jwt",
-        // maxAge will be set dynamically by signIn() maxAge parameter
-        // When maxAge is not provided, NextAuth uses session cookies (expires on browser close)
-        // When maxAge is provided in signIn(), it sets persistent cookie expiration
     },
+    // Allow NextAuth to trust the host header from the reverse proxy
+    // (nginx/caddy in front of the app). Required when deployed behind
+    // any proxy that terminates TLS.
+    trustHost: true,
     providers: [],
     callbacks: {
         async jwt({ token, user }) {

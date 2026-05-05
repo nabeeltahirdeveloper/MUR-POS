@@ -21,6 +21,7 @@ const PUBLIC_API_ROUTES = [
     "/api/auth",        // NextAuth endpoints
     "/api/lock/status", // Lock status check (read-only, no sensitive data)
     "/api/lock/unlock", // Uses its own password-based auth
+    "/api/health",      // Diagnostic — reports env presence + DB status, no secrets
 ]
 
 function isPublicApiRoute(pathname: string): boolean {
